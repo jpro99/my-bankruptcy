@@ -14,6 +14,7 @@ import { FieldReviewCard, ApprovalBadge } from "@/components/cockpit/field-revie
 import { DocumentPreviewModal } from "@/components/cockpit/document-preview-modal";
 import { DiagnosticsPanel } from "@/components/cockpit/diagnostics-panel";
 import { MatterSidebar } from "@/components/layout/matter-shell";
+import { BackButton } from "@/components/layout/back-button";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { BRAND } from "@/lib/brand";
@@ -75,6 +76,9 @@ export function MatterCockpit({ matterId }: { matterId: string }) {
       <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <header className="flex items-center justify-between gap-4 border-b border-border bg-white px-6 py-4">
           <div>
+            <div className="mb-2">
+              <BackButton fallbackHref={`/matters/${matterId}/forge`} />
+            </div>
             <div className="flex flex-wrap items-center gap-2">
               <h1 className="font-display text-xl font-bold">{BRAND.forge.name}</h1>
               <Badge>{BRAND.forge.short}</Badge>
