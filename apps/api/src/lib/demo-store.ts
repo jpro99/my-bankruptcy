@@ -57,6 +57,8 @@ export interface DemoPortalState {
   message: string;
 }
 
+import type { ValuationProvenance } from "@chapterai/petition";
+
 export interface DemoAsset {
   id: string;
   description: string;
@@ -65,6 +67,7 @@ export interface DemoAsset {
   securedAmount?: string;
   exemptionSystem?: string;
   exemptionAmount?: string;
+  valuation?: ValuationProvenance;
 }
 
 export interface DemoDistrictInfo {
@@ -180,6 +183,28 @@ const DEFAULT_ASSETS: DemoAsset[] = [
     securedAmount: "200000.00",
     exemptionSystem: "System 2",
     exemptionAmount: "685000.00",
+    valuation: {
+      tier: "medium",
+      selectedAmount: "685000.00",
+      lowAmount: "620000.00",
+      mediumAmount: "685000.00",
+      highAmount: "745000.00",
+      sourceName: "Los Angeles County Assessor + Zillow Zestimate",
+      sourceUrl: "https://assessor.lacounty.gov",
+      lookupDate: "2025-06-10",
+      method: "County assessed value (2024 roll) cross-checked with Zestimate range",
+      snapshotLines: [
+        "Los Angeles County Assessor — Property Search",
+        "Parcel: 1234-OAK-AV-LA",
+        "Owner of record: Maria Martinez",
+        "Site address: 1234 Oak Ave, Los Angeles CA 90001",
+        "Land value: $285,000",
+        "Improvement value: $335,000",
+        "Total assessed value (2024): $620,000",
+        "Zillow Zestimate range: $655,000 – $715,000",
+        "Attorney selected: $685,000 (mid-range, Schedule A/B current value)",
+      ],
+    },
   },
   {
     id: "vehicle",
@@ -189,6 +214,28 @@ const DEFAULT_ASSETS: DemoAsset[] = [
     securedAmount: "8500.00",
     exemptionSystem: "System 2",
     exemptionAmount: "7500.00",
+    valuation: {
+      tier: "medium",
+      selectedAmount: "12000.00",
+      lowAmount: "10200.00",
+      mediumAmount: "12000.00",
+      highAmount: "13800.00",
+      sourceName: "Kelley Blue Book (KBB.com)",
+      sourceUrl: "https://www.kbb.com",
+      lookupDate: "2025-06-10",
+      method: "Private Party Value — Good condition, ~68,000 miles, Los Angeles CA",
+      snapshotLines: [
+        "Kelley Blue Book — Used Car Values",
+        "2019 Toyota Camry LE 4-Door Sedan",
+        "Zip code: 90001 (Los Angeles, CA)",
+        "Mileage: 68,000",
+        "Condition: Good",
+        "Trade-In Value: $10,200",
+        "Private Party Value: $12,000  ← selected for Schedule A/B",
+        "Dealer Retail Value: $13,800",
+        "VIN (from credit report): matched Toyota Financial tradeline",
+      ],
+    },
   },
   {
     id: "retirement",
@@ -197,6 +244,22 @@ const DEFAULT_ASSETS: DemoAsset[] = [
     currentValue: "45000.00",
     exemptionSystem: "Federal",
     exemptionAmount: "45000.00",
+    valuation: {
+      tier: "high",
+      selectedAmount: "45000.00",
+      sourceName: "Fidelity account statement (client upload)",
+      lookupDate: "2025-06-08",
+      method: "Most recent quarterly statement balance — no range estimate",
+      snapshotLines: [
+        "Fidelity NetBenefits — Account Summary",
+        "Account: ****8821",
+        "Plan: Riverside Medical Group 401(k)",
+        "Participant: Maria Martinez",
+        "Statement date: March 31, 2025",
+        "Total balance: $45,000.00",
+        "Note: Retirement accounts typically valued at statement balance (no KBB-style range)",
+      ],
+    },
   },
 ];
 
@@ -270,6 +333,12 @@ function getOrCreate(matterId: string): DemoMatterState {
     state.tradelineInclusion = {};
     for (const tl of state.classifiedTradelines) {
       state.tradelineInclusion[tl.id] = true;
+    }
+  }
+  for (const asset of state.assets) {
+    if (!asset.valuation) {
+      const seed = DEFAULT_ASSETS.find((a) => a.id === asset.id);
+      if (seed?.valuation) asset.valuation = seed.valuation;
     }
   }
   return state;

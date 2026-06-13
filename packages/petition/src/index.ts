@@ -3,6 +3,8 @@ export {
   type PetitionView,
   type PetitionSchedule,
   type PetitionLineItem,
+  type ValuationProvenance,
+  type ValuationTier,
   type AssemblePetitionInput,
   type ReviewFieldInput,
   type TradelineInput,

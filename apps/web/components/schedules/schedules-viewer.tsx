@@ -6,8 +6,10 @@ import {
   setMatterDistrict,
   updateScheduleItem,
   type DistrictInfo,
+  type PetitionLineItem,
   type PetitionSchedule,
   type PetitionView,
+  type ValuationProvenance,
 } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +17,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, MapPin, Pencil, Check, X } from "lucide-react";
+import { Loader2, MapPin, Pencil, Check, X, FileSearch } from "lucide-react";
+import { ValuationSourceModal } from "./valuation-source-modal";
 
 const STATUS_VARIANT: Record<string, "success" | "warning" | "default" | "secondary" | "outline"> = {
   approved: "success",
@@ -26,6 +29,21 @@ const STATUS_VARIANT: Record<string, "success" | "warning" | "default" | "second
   questioned: "outline",
 };
 
+const STATUS_LABEL: Record<string, string> = {
+  computed: "Auto-valued",
+  imported: "From credit",
+  approved: "Approved",
+  edited: "Edited",
+  pending: "Pending",
+  questioned: "Questioned",
+};
+
+const TIER_LABEL: Record<ValuationProvenance["tier"], string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+};
+
 export function SchedulesViewer({ matterId }: { matterId: string }) {
   const [petition, setPetition] = useState<PetitionView | null>(null);
   const [district, setDistrict] = useState<DistrictInfo | null>(null);
@@ -34,6 +52,7 @@ export function SchedulesViewer({ matterId }: { matterId: string }) {
   const [countySaved, setCountySaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [valuationItem, setValuationItem] = useState<PetitionLineItem | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -158,7 +177,19 @@ export function SchedulesViewer({ matterId }: { matterId: string }) {
       </div>
 
       {current && (
-        <SchedulePanel schedule={current} onSaveItem={(id, value) => handleItemSave(id, value)} />
+        <SchedulePanel
+          schedule={current}
+          onSaveItem={(id, value) => handleItemSave(id, value)}
+          onViewValuation={setValuationItem}
+        />
+      )}
+
+      {valuationItem?.valuation && (
+        <ValuationSourceModal
+          item={valuationItem}
+          debtorName={petition.debtorName}
+          onClose={() => setValuationItem(null)}
+        />
       )}
     </div>
   );
@@ -167,9 +198,11 @@ export function SchedulesViewer({ matterId }: { matterId: string }) {
 function SchedulePanel({
   schedule,
   onSaveItem,
+  onViewValuation,
 }: {
   schedule: PetitionSchedule;
   onSaveItem: (itemId: string, value: string) => Promise<void>;
+  onViewValuation: (item: PetitionLineItem) => void;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -247,13 +280,27 @@ function SchedulePanel({
                   <p className="mt-1 text-xs text-primary">{item.sourceDocument}</p>
                 )}
               </div>
-              <div className="flex shrink-0 items-center gap-2">
+              <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+                {item.valuation && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="gap-1.5"
+                    onClick={() => onViewValuation(item)}
+                  >
+                    <FileSearch className="size-3.5" />
+                    {TIER_LABEL[item.valuation.tier]} · View source
+                  </Button>
+                )}
                 {item.confidence !== undefined && (
                   <span className="text-xs text-muted-foreground">
                     {Math.round(item.confidence * 100)}%
                   </span>
                 )}
-                <Badge variant={STATUS_VARIANT[item.status] ?? "outline"}>{item.status}</Badge>
+                <Badge variant={STATUS_VARIANT[item.status] ?? "outline"}>
+                  {STATUS_LABEL[item.status] ?? item.status}
+                </Badge>
                 {editingId !== item.id && item.id !== "chapter-election" && item.id !== "district-filing" && item.id !== "means-computed" && (
                   <Button
                     type="button"

@@ -372,6 +372,19 @@ export function uploadPortalDocument(token: string, requestId: string, fileName:
 
 // --- Phase 7: Schedules, Districts, Provenance ---
 
+export interface ValuationProvenance {
+  tier: "low" | "medium" | "high";
+  selectedAmount: string;
+  lowAmount?: string;
+  mediumAmount?: string;
+  highAmount?: string;
+  sourceName: string;
+  sourceUrl?: string;
+  lookupDate: string;
+  method?: string;
+  snapshotLines?: string[];
+}
+
 export interface PetitionLineItem {
   id: string;
   label: string;
@@ -380,6 +393,7 @@ export interface PetitionLineItem {
   confidence?: number;
   sourceDocument?: string;
   formReference?: string;
+  valuation?: ValuationProvenance;
 }
 
 export interface PetitionSchedule {

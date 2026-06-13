@@ -10,6 +10,24 @@ export const PetitionFieldStatusSchema = z.enum([
 ]);
 export type PetitionFieldStatus = z.infer<typeof PetitionFieldStatusSchema>;
 
+export const ValuationTierSchema = z.enum(["low", "medium", "high"]);
+export type ValuationTier = z.infer<typeof ValuationTierSchema>;
+
+export const ValuationProvenanceSchema = z.object({
+  tier: ValuationTierSchema,
+  selectedAmount: z.string(),
+  lowAmount: z.string().optional(),
+  mediumAmount: z.string().optional(),
+  highAmount: z.string().optional(),
+  sourceName: z.string(),
+  sourceUrl: z.string().optional(),
+  lookupDate: z.string(),
+  method: z.string().optional(),
+  snapshotLines: z.array(z.string()).optional(),
+});
+
+export type ValuationProvenance = z.infer<typeof ValuationProvenanceSchema>;
+
 export const PetitionLineItemSchema = z.object({
   id: z.string(),
   label: z.string(),
@@ -18,6 +36,7 @@ export const PetitionLineItemSchema = z.object({
   confidence: z.number().min(0).max(1).optional(),
   sourceDocument: z.string().optional(),
   formReference: z.string().optional(),
+  valuation: ValuationProvenanceSchema.optional(),
 });
 
 export type PetitionLineItem = z.infer<typeof PetitionLineItemSchema>;
@@ -80,6 +99,7 @@ export interface AssetInput {
   securedAmount?: string;
   exemptionSystem?: string;
   exemptionAmount?: string;
+  valuation?: ValuationProvenance;
 }
 
 export interface AssemblePetitionInput {
@@ -192,6 +212,7 @@ export function assemblePetition(input: AssemblePetitionInput): PetitionView {
       value: `$${a.currentValue}${a.securedAmount ? ` (secured: $${a.securedAmount})` : ""}`,
       status: "computed" as const,
       formReference: "106A/B",
+      valuation: a.valuation,
     }))
   );
 
