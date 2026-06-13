@@ -9,6 +9,7 @@ import {
   scheduleSummary,
   SANDBOX_TRADELINES,
   createCreditProvider,
+  adviseTradelineInclusion,
 } from "@chapterai/credit";
 import { optimizeExemptions } from "@chapterai/exemption-optimizer";
 import type { FilingResult } from "@chapterai/efile";
@@ -23,6 +24,7 @@ import {
 import { assemblePetition, type PetitionView } from "@chapterai/petition";
 import type { ProvenanceEventType } from "@chapterai/provenance";
 import { exportProvenanceBundle, type ProvenanceRecord } from "@chapterai/provenance";
+import { loadDemoStore, persistDemoStore } from "./demo-persist.js";
 
 /** In-memory dev store when DATABASE_URL is unavailable */
 export interface DemoReviewField {
@@ -86,6 +88,8 @@ interface DemoMatterState {
   reviewFields: DemoReviewField[];
   diagnostics: MatterDiagnosticsPayload;
   classifiedTradelines: ClassifiedTradeline[];
+  /** tradeline id → include on petition schedules (attorney credit review) */
+  tradelineInclusion: Record<string, boolean>;
   creditPulled: boolean;
   filing?: FilingResult;
   autopilot?: AutopilotTimeline;
@@ -238,17 +242,35 @@ function buildInitialState(matterId: string): DemoMatterState {
     reviewFields: fields,
     diagnostics: buildInitialDiagnostics(),
     classifiedTradelines: [],
+    tradelineInclusion: {},
     creditPulled: false,
   };
 }
 
 const demoStore = new Map<string, DemoMatterState>();
+loadDemoStore(demoStore);
+
+function saveSnapshot(): void {
+  persistDemoStore(demoStore);
+}
+
+function getIncludedTradelines(state: DemoMatterState): ClassifiedTradeline[] {
+  return state.classifiedTradelines.filter(
+    (t) => state.tradelineInclusion[t.id] !== false
+  );
+}
 
 function getOrCreate(matterId: string): DemoMatterState {
   let state = demoStore.get(matterId);
   if (!state) {
     state = buildInitialState(matterId);
     demoStore.set(matterId, state);
+  }
+  if (!state.tradelineInclusion) {
+    state.tradelineInclusion = {};
+    for (const tl of state.classifiedTradelines) {
+      state.tradelineInclusion[tl.id] = true;
+    }
   }
   return state;
 }
@@ -280,6 +302,7 @@ export function recordDemoProvenance(
     metadata: input.metadata,
   };
   state.provenanceEvents.push(record);
+  saveSnapshot();
   return record;
 }
 
@@ -320,11 +343,13 @@ export function setDemoDistrict(
   const division = getDefaultDivision(state.district, state.county);
   state.divisionId = division.id;
   state.divisionName = division.name;
+  saveSnapshot();
   return getDemoDistrictInfo(matterId);
 }
 
 export function assembleDemoPetition(matterId: string): PetitionView {
   const state = getOrCreate(matterId);
+  const includedTradelines = getIncludedTradelines(state);
   return assemblePetition({
     matterId,
     district: state.district,
@@ -333,7 +358,7 @@ export function assembleDemoPetition(matterId: string): PetitionView {
     chapter: state.chapter,
     debtorDisplayName: state.debtorDisplayName,
     reviewFields: state.reviewFields,
-    tradelines: state.classifiedTradelines.map((t) => ({
+    tradelines: includedTradelines.map((t) => ({
       id: t.id,
       creditorName: t.creditorName,
       schedule: t.schedule,
@@ -394,6 +419,8 @@ export function updateDemoFieldApproval(
       confidence: field.confidence,
       metadata: { fieldPath: field.fieldPath, formId: field.formId },
     });
+  } else {
+    saveSnapshot();
   }
 
   return field;
@@ -405,9 +432,10 @@ export async function runDemoCreditPull(matterId: string): Promise<{
 }> {
   const state = getOrCreate(matterId);
   if (state.creditPulled && state.classifiedTradelines.length > 0) {
+    const included = getIncludedTradelines(state);
     return {
       classified: state.classifiedTradelines,
-      summary: scheduleSummary(state.classifiedTradelines),
+      summary: scheduleSummary(included),
     };
   }
 
@@ -437,6 +465,9 @@ export async function runDemoCreditPull(matterId: string): Promise<{
 
   state.reviewFields = [...state.reviewFields, ...creditFields];
   state.classifiedTradelines = classified;
+  for (const tl of classified) {
+    state.tradelineInclusion[tl.id] = true;
+  }
   state.creditPulled = true;
 
   for (const cf of creditFields) {
@@ -449,7 +480,7 @@ export async function runDemoCreditPull(matterId: string): Promise<{
     });
   }
 
-  const securedPayments = classified
+  const securedPayments = getIncludedTradelines(state)
     .filter((t) => t.schedule === "D")
     .reduce((acc, t) => acc + parseFloat(t.monthlyPayment ?? "0"), 0)
     .toFixed(2);
@@ -466,16 +497,122 @@ export async function runDemoCreditPull(matterId: string): Promise<{
 
   state.diagnostics = buildDiagnosticsPayload({
     meansTest,
-    missingFields: Math.max(0, 3 - creditFields.length),
+    missingFields: state.reviewFields.filter((f) => f.approvalState === "pending").length,
     exemptionGaps: 0,
-    creditSummary: summary,
+    creditSummary: scheduleSummary(getIncludedTradelines(state)),
   });
 
-  return { classified, summary };
+  saveSnapshot();
+  return { classified, summary: scheduleSummary(getIncludedTradelines(state)) };
 }
 
 export function getDemoTradelines(matterId: string): ClassifiedTradeline[] {
   return getOrCreate(matterId).classifiedTradelines;
+}
+
+export function getTradelineReview(matterId: string) {
+  const state = getOrCreate(matterId);
+  return state.classifiedTradelines.map((tl) => {
+    const included = state.tradelineInclusion[tl.id] !== false;
+    const advice = adviseTradelineInclusion(tl);
+    return {
+      ...tl,
+      included,
+      advice,
+      fieldId: `credit-${tl.id}`,
+    };
+  });
+}
+
+export function setTradelineIncluded(
+  matterId: string,
+  tradelineId: string,
+  included: boolean
+): ClassifiedTradeline[] {
+  const state = getOrCreate(matterId);
+  state.tradelineInclusion[tradelineId] = included;
+  const field = state.reviewFields.find((f) => f.id === `credit-${tradelineId}`);
+  if (field) {
+    if (!included) {
+      field.approvalState = "questioned";
+      field.rationale = "Excluded from petition by attorney — credit review";
+    } else if (field.approvalState === "questioned") {
+      field.approvalState = "pending";
+    }
+  }
+  state.diagnostics = buildDiagnosticsPayload({
+    meansTest: evaluateUnifiedMeansTest({
+      chapter: state.chapter,
+      householdSize: 2,
+      annualIncome: "72000.00",
+      deductions: DEFAULT_DEDUCTIONS,
+    }),
+    missingFields: state.reviewFields.filter((f) => f.approvalState === "pending").length,
+    exemptionGaps: 0,
+    creditSummary: state.creditPulled
+      ? scheduleSummary(getIncludedTradelines(state))
+      : undefined,
+  });
+  recordDemoProvenance(matterId, {
+    formFieldId: `credit-${tradelineId}`,
+    eventType: "attorney_edited",
+    newValue: included ? "included" : "excluded",
+    metadata: { tradelineId, included, source: "credit_review" },
+  });
+  saveSnapshot();
+  return state.classifiedTradelines;
+}
+
+function parseMoney(value: string): string | null {
+  const match = value.replace(/,/g, "").match(/-?\d+(?:\.\d{1,2})?/);
+  return match ? match[0] : null;
+}
+
+export function updateDemoScheduleItem(
+  matterId: string,
+  itemId: string,
+  value: string
+): PetitionView {
+  const state = getOrCreate(matterId);
+  const field = state.reviewFields.find((f) => f.id === itemId);
+  if (field) {
+    const previous = field.proposedValue;
+    field.proposedValue = parseMoney(value) ?? value;
+    field.approvalState = "edited";
+    recordDemoProvenance(matterId, {
+      formFieldId: itemId,
+      eventType: "attorney_edited",
+      previousValue: previous,
+      newValue: field.proposedValue,
+      metadata: { source: "schedules_editor" },
+    });
+  } else if (itemId.startsWith("ex-")) {
+    const assetId = itemId.slice(3);
+    const asset = state.assets.find((a) => a.id === assetId);
+    if (asset) {
+      const amount = parseMoney(value);
+      if (amount) asset.exemptionAmount = amount;
+    }
+  } else {
+    const asset = state.assets.find((a) => a.id === itemId);
+    if (asset) {
+      const amount = parseMoney(value);
+      if (amount) asset.currentValue = amount;
+      const secured = value.match(/secured:\s*\$?([\d,]+\.?\d*)/i);
+      if (secured?.[1]) asset.securedAmount = secured[1].replace(/,/g, "");
+    } else {
+      const tl = state.classifiedTradelines.find((t) => t.id === itemId);
+      if (tl) {
+        const amount = parseMoney(value);
+        if (amount) tl.balance = amount;
+        const monthly = value.match(/([\d,]+\.?\d*)\/mo/i);
+        if (monthly?.[1]) tl.monthlyPayment = monthly[1].replace(/,/g, "");
+      }
+    }
+  }
+  recomputeDemoDiagnostics(matterId, {});
+  saveSnapshot();
+  return assembleDemoPetition(matterId);
 }
 
 export function recomputeDemoDiagnostics(
@@ -500,9 +637,10 @@ export function recomputeDemoDiagnostics(
     meansTest,
     missingFields: state.reviewFields.filter((f) => f.approvalState === "pending").length,
     exemptionGaps: 0,
-    creditSummary: state.creditPulled ? scheduleSummary(state.classifiedTradelines) : undefined,
+    creditSummary: state.creditPulled ? scheduleSummary(getIncludedTradelines(state)) : undefined,
   });
 
+  saveSnapshot();
   return state.diagnostics;
 }
 

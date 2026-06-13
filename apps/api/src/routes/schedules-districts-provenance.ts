@@ -10,6 +10,7 @@ import {
   getDemoProvenanceEvents,
   isDemoMatter,
   setDemoDistrict,
+  updateDemoScheduleItem,
 } from "../lib/demo-store.js";
 
 export const schedulesRouter = new Hono<AppEnv>();
@@ -55,6 +56,26 @@ districtsRouter.patch(
     const district = setDemoDistrict(matterId, body);
     const petition = assembleDemoPetition(matterId);
     return c.json({ district, petition });
+  }
+);
+
+const ScheduleItemSchema = z.object({
+  value: z.string().min(1),
+});
+
+schedulesRouter.patch(
+  "/matter/:matterId/items/:itemId",
+  zValidator("json", ScheduleItemSchema),
+  async (c) => {
+    const matterId = c.req.param("matterId");
+    const itemId = c.req.param("itemId");
+    if (!isDemoMatter(matterId)) {
+      return c.json({ error: "Matter not found" }, 404);
+    }
+    const { value } = c.req.valid("json");
+    const petition = updateDemoScheduleItem(matterId, itemId, value);
+    const district = getDemoDistrictInfo(matterId);
+    return c.json({ petition, district, itemId, value });
   }
 );
 

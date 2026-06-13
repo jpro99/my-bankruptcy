@@ -459,6 +459,50 @@ export function setMatterDistrict(
   );
 }
 
+export interface TradelineReviewEntry {
+  id: string;
+  creditorName: string;
+  accountType: string;
+  balance: string;
+  monthlyPayment?: string;
+  schedule: "D" | "E" | "F" | "G";
+  confidence: number;
+  rationale: string;
+  included: boolean;
+  fieldId: string;
+  advice: { recommendation: "keep" | "exclude"; reason: string };
+}
+
+export function fetchCreditReview(matterId: string) {
+  return apiFetch<{
+    matterId: string;
+    entries: TradelineReviewEntry[];
+    total: number;
+    includedCount: number;
+    excludedCount: number;
+  }>(`/api/credit/matter/${matterId}/review`);
+}
+
+export function setTradelineIncluded(matterId: string, tradelineId: string, included: boolean) {
+  return apiFetch<{
+    matterId: string;
+    tradelineId: string;
+    included: boolean;
+    entries: TradelineReviewEntry[];
+    diagnostics: ApiDiagnostics;
+  }>(`/api/credit/matter/${matterId}/tradelines/${tradelineId}`, {
+    method: "PATCH",
+    body: JSON.stringify({ included }),
+  });
+}
+
+export function updateScheduleItem(matterId: string, itemId: string, value: string) {
+  return apiFetch<{ petition: PetitionView; district: DistrictInfo; itemId: string; value: string }>(
+    `/api/schedules/matter/${matterId}/items/${itemId}`,
+    { method: "PATCH", body: JSON.stringify({ value }) }
+  );
+}
+
 export function fetchProvenance(matterId: string) {
   return apiFetch<{ matterId: string; eventCount: number; events: ProvenanceEvent[] }>(
     `/api/provenance/matter/${matterId}`

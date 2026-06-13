@@ -37,8 +37,8 @@ export function computeMatterProgress(input: ComputeProgressInput): MatterProgre
         !input.intakeComplete
       ),
       weight: 10,
-      actionLabel: "Pull credit",
-      actionHref: `${base}/cockpit`,
+      actionLabel: input.creditPulled ? "Review credit" : "Pull credit",
+      actionHref: input.creditPulled ? `${base}/credit` : `${base}/cockpit`,
       estimatedMinutes: 2,
     },
     {

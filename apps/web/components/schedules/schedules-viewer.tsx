@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   fetchSchedules,
   setMatterDistrict,
+  updateScheduleItem,
   type DistrictInfo,
   type PetitionSchedule,
   type PetitionView,
@@ -14,7 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, MapPin } from "lucide-react";
+import { Loader2, MapPin, Pencil, Check, X } from "lucide-react";
 
 const STATUS_VARIANT: Record<string, "success" | "warning" | "default" | "secondary" | "outline"> = {
   approved: "success",
@@ -30,6 +31,7 @@ export function SchedulesViewer({ matterId }: { matterId: string }) {
   const [district, setDistrict] = useState<DistrictInfo | null>(null);
   const [activeSchedule, setActiveSchedule] = useState<string>("petition");
   const [countyInput, setCountyInput] = useState("");
+  const [countySaved, setCountySaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
@@ -55,13 +57,23 @@ export function SchedulesViewer({ matterId }: { matterId: string }) {
   const handleCountyUpdate = async () => {
     if (!countyInput.trim()) return;
     setSaving(true);
+    setCountySaved(false);
     try {
       const res = await setMatterDistrict(matterId, { county: countyInput.trim() });
       setDistrict(res.district);
       setPetition(res.petition);
+      setCountyInput(res.district.county);
+      setCountySaved(true);
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleItemSave = async (itemId: string, value: string) => {
+    const res = await updateScheduleItem(matterId, itemId, value);
+    setPetition(res.petition);
+    setDistrict(res.district);
+    setCountyInput(res.district.county);
   };
 
   if (loading || !petition || !district) {
@@ -117,6 +129,11 @@ export function SchedulesViewer({ matterId }: { matterId: string }) {
           <Button onClick={() => void handleCountyUpdate()} disabled={saving}>
             {saving ? <Loader2 className="animate-spin" /> : "Update district"}
           </Button>
+          {countySaved && (
+            <p className="text-xs text-success sm:col-span-2">
+              Saved — {district.district} · {district.divisionName} · {district.county} County
+            </p>
+          )}
         </CardContent>
       </Card>
 
@@ -140,12 +157,39 @@ export function SchedulesViewer({ matterId }: { matterId: string }) {
         ))}
       </div>
 
-      {current && <SchedulePanel schedule={current} />}
+      {current && (
+        <SchedulePanel schedule={current} onSaveItem={(id, value) => handleItemSave(id, value)} />
+      )}
     </div>
   );
 }
 
-function SchedulePanel({ schedule }: { schedule: PetitionSchedule }) {
+function SchedulePanel({
+  schedule,
+  onSaveItem,
+}: {
+  schedule: PetitionSchedule;
+  onSaveItem: (itemId: string, value: string) => Promise<void>;
+}) {
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editValue, setEditValue] = useState("");
+  const [savingId, setSavingId] = useState<string | null>(null);
+
+  const startEdit = (itemId: string, value: string) => {
+    setEditingId(itemId);
+    setEditValue(value);
+  };
+
+  const saveEdit = async (itemId: string) => {
+    setSavingId(itemId);
+    try {
+      await onSaveItem(itemId, editValue);
+      setEditingId(null);
+    } finally {
+      setSavingId(null);
+    }
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -172,7 +216,33 @@ function SchedulePanel({ schedule }: { schedule: PetitionSchedule }) {
             >
               <div className="min-w-0 flex-1">
                 <p className="font-medium">{item.label}</p>
-                <p className="mt-0.5 text-sm text-muted-foreground truncate">{item.value}</p>
+                {editingId === item.id ? (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <Input
+                      value={editValue}
+                      onChange={(e) => setEditValue(e.target.value)}
+                      className="max-w-md"
+                      autoFocus
+                    />
+                    <Button
+                      size="sm"
+                      disabled={savingId === item.id}
+                      onClick={() => void saveEdit(item.id)}
+                    >
+                      {savingId === item.id ? (
+                        <Loader2 className="animate-spin" />
+                      ) : (
+                        <Check className="size-4" />
+                      )}
+                      Save
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setEditingId(null)}>
+                      <X className="size-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <p className="mt-0.5 text-sm text-muted-foreground">{item.value}</p>
+                )}
                 {item.sourceDocument && (
                   <p className="mt-1 text-xs text-primary">{item.sourceDocument}</p>
                 )}
@@ -184,6 +254,17 @@ function SchedulePanel({ schedule }: { schedule: PetitionSchedule }) {
                   </span>
                 )}
                 <Badge variant={STATUS_VARIANT[item.status] ?? "outline"}>{item.status}</Badge>
+                {editingId !== item.id && item.id !== "chapter-election" && item.id !== "district-filing" && item.id !== "means-computed" && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => startEdit(item.id, item.value)}
+                  >
+                    <Pencil className="size-3.5" />
+                    Edit
+                  </Button>
+                )}
               </div>
             </div>
           ))

@@ -14,6 +14,7 @@ import {
   Scale,
   FileStack,
   ShieldCheck,
+  CreditCard,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ApiStatusDot } from "@/components/layout/api-status-banner";
@@ -21,6 +22,7 @@ import { ApiStatusDot } from "@/components/layout/api-status-banner";
 const MATTER_LINKS = [
   { id: "command", href: (id: string) => `/matters/${id}/command`, label: "Command Center", icon: LayoutDashboard },
   { id: "cockpit", href: (id: string) => `/matters/${id}/cockpit`, label: "Cockpit", icon: Gauge },
+  { id: "credit", href: (id: string) => `/matters/${id}/credit`, label: "Credit Review", icon: CreditCard },
   { id: "schedules", href: (id: string) => `/matters/${id}/schedules`, label: "Schedules", icon: FileStack },
   { id: "intake", href: (id: string) => `/matters/${id}/intake`, label: "Intake", icon: Upload },
   { id: "plan", href: (id: string) => `/matters/${id}/plan`, label: "Ch 13 Plan", icon: Calculator },

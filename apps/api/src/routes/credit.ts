@@ -7,6 +7,8 @@ import {
   runDemoCreditPull,
   getDemoTradelines,
   getDemoDiagnostics,
+  getTradelineReview,
+  setTradelineIncluded,
   recomputeDemoDiagnostics,
 } from "../lib/demo-store.js";
 
@@ -55,6 +57,47 @@ creditRouter.get("/matter/:matterId/tradelines", async (c) => {
   const tradelines = getDemoTradelines(matterId);
   return c.json({ tradelines, total: tradelines.length });
 });
+
+const TradelineIncludeSchema = z.object({
+  included: z.boolean(),
+});
+
+creditRouter.get("/matter/:matterId/review", async (c) => {
+  const matterId = c.req.param("matterId");
+  if (!isDemoMatter(matterId)) {
+    return c.json({ error: "Matter not found" }, 404);
+  }
+  const entries = getTradelineReview(matterId);
+  const includedCount = entries.filter((e) => e.included).length;
+  return c.json({
+    matterId,
+    entries,
+    total: entries.length,
+    includedCount,
+    excludedCount: entries.length - includedCount,
+  });
+});
+
+creditRouter.patch(
+  "/matter/:matterId/tradelines/:tradelineId",
+  zValidator("json", TradelineIncludeSchema),
+  async (c) => {
+    const matterId = c.req.param("matterId");
+    const tradelineId = c.req.param("tradelineId");
+    if (!isDemoMatter(matterId)) {
+      return c.json({ error: "Matter not found" }, 404);
+    }
+    const { included } = c.req.valid("json");
+    setTradelineIncluded(matterId, tradelineId, included);
+    return c.json({
+      matterId,
+      tradelineId,
+      included,
+      entries: getTradelineReview(matterId),
+      diagnostics: getDemoDiagnostics(matterId),
+    });
+  }
+);
 
 creditRouter.get("/matter/:matterId/summary", async (c) => {
   const matterId = c.req.param("matterId");
