@@ -4,6 +4,8 @@
 
 This is a Turborepo + pnpm monorepo ("My Bankruptcy" / internal packages are `@chapterai/*`). Node 20+, pnpm `9.15.0` (declared in root `package.json` `packageManager`).
 
+The cloud environment is defined in `.cursor/environment.json` (committed, takes precedence over the UI environment): `install` pins pnpm via corepack to match `packageManager` and runs `pnpm install --frozen-lockfile`; a `dev` terminal auto-runs the servers below in demo mode. The base image already provides Node 22 (satisfies `>=20`) — there is no Dockerfile-based build, so node/pnpm versions come from the base image + corepack.
+
 ### Services (run all via root `pnpm dev`)
 | Service | Port | Notes |
 |---------|------|-------|

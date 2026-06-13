@@ -1,0 +1,10 @@
+{
+  "install": "corepack enable && corepack prepare pnpm@9.15.0 --activate && pnpm install --frozen-lockfile",
+  "terminals": [
+    {
+      "name": "dev",
+      "command": "DEV_AUTH_BYPASS=1 NEXT_PUBLIC_DEV_AUTH_BYPASS=1 EFILE_MODE=sandbox pnpm dev",
+      "description": "Turbo builds workspace packages, then runs web (Next.js :3000), api (Hono :3002), and worker (:3001) in demo mode"
+    }
+  ]
+}
