@@ -1,3 +1,5 @@
+import { adviseTradelineInclusion } from "./credit-advice";
+
 function getApiBase(): string {
   // Production deploy (Vercel + Railway) — set in Vercel env vars
   if (process.env.NEXT_PUBLIC_API_URL) {
@@ -480,7 +482,29 @@ export function fetchCreditReview(matterId: string) {
     total: number;
     includedCount: number;
     excludedCount: number;
-  }>(`/api/credit/matter/${matterId}/review`);
+    reviewApiAvailable?: boolean;
+  }>(`/api/credit/matter/${matterId}/review`)
+    .then((data) => ({ ...data, reviewApiAvailable: true as const }))
+    .catch(async (err) => {
+      if (!(err instanceof Error && err.message.includes("404"))) throw err;
+      const data = await apiFetch<{
+        tradelines: Omit<TradelineReviewEntry, "included" | "fieldId" | "advice">[];
+      }>(`/api/credit/matter/${matterId}/tradelines`);
+      const entries: TradelineReviewEntry[] = data.tradelines.map((tl) => ({
+        ...tl,
+        included: true,
+        fieldId: `credit-${tl.id}`,
+        advice: adviseTradelineInclusion(tl),
+      }));
+      return {
+        matterId,
+        entries,
+        total: entries.length,
+        includedCount: entries.length,
+        excludedCount: 0,
+        reviewApiAvailable: false as const,
+      };
+    });
 }
 
 export function setTradelineIncluded(matterId: string, tradelineId: string, included: boolean) {

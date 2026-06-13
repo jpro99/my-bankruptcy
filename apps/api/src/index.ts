@@ -48,7 +48,7 @@ app.use(
 );
 
 app.get("/health", (c) =>
-  c.json({ status: "ok", service: "my-bankruptcy-api", version: "0.7.0" })
+  c.json({ status: "ok", service: "my-bankruptcy-api", version: "0.8.0" })
 );
 
 /** Public client portal — magic link auth */

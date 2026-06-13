@@ -20,6 +20,7 @@ export function CreditReviewPanel({ matterId }: { matterId: string }) {
   const [pulling, setPulling] = useState(false);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saveLimited, setSaveLimited] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -27,6 +28,7 @@ export function CreditReviewPanel({ matterId }: { matterId: string }) {
     try {
       const data = await fetchCreditReview(matterId);
       setEntries(data.entries);
+      setSaveLimited(data.reviewApiAvailable === false);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load credit review");
       setEntries([]);
@@ -41,6 +43,7 @@ export function CreditReviewPanel({ matterId }: { matterId: string }) {
 
   const handlePull = async () => {
     setPulling(true);
+    setError(null);
     try {
       await pullCredit(matterId);
       await load();
@@ -52,10 +55,20 @@ export function CreditReviewPanel({ matterId }: { matterId: string }) {
   };
 
   const toggleIncluded = async (entry: TradelineReviewEntry, included: boolean) => {
+    if (saveLimited) {
+      setEntries((prev) =>
+        prev.map((e) => (e.id === entry.id ? { ...e, included } : e))
+      );
+      return;
+    }
     setSavingId(entry.id);
     try {
       const res = await setTradelineIncluded(matterId, entry.id, included);
       setEntries(res.entries);
+    } catch (e) {
+      setError(
+        e instanceof Error ? e.message : "Could not save — try again after API redeploys"
+      );
     } finally {
       setSavingId(null);
     }
@@ -83,16 +96,21 @@ export function CreditReviewPanel({ matterId }: { matterId: string }) {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {entries.length === 0 && (
-            <Button onClick={() => void handlePull()} disabled={pulling}>
-              {pulling ? <Loader2 className="animate-spin" /> : "Pull tri-merge credit"}
-            </Button>
-          )}
+          <Button onClick={() => void handlePull()} disabled={pulling}>
+            {pulling ? <Loader2 className="animate-spin" /> : "Pull tri-merge credit"}
+          </Button>
           <Button asChild variant="secondary">
             <Link href={`/matters/${matterId}/schedules`}>View schedules</Link>
           </Button>
         </div>
       </header>
+
+      {saveLimited && entries.length > 0 && (
+        <p className="rounded-lg border border-amber-200 bg-warning-muted px-4 py-3 text-sm text-amber-900">
+          API update deploying — you can review lines now. Keep/exclude saves fully once Railway
+          finishes redeploying (a few minutes).
+        </p>
+      )}
 
       {error && (
         <p className="rounded-lg border border-red-200 bg-danger-muted px-4 py-3 text-sm text-red-800">
@@ -103,7 +121,7 @@ export function CreditReviewPanel({ matterId }: { matterId: string }) {
       {entries.length === 0 ? (
         <Card>
           <CardContent className="py-12 text-center text-muted-foreground">
-            No credit report yet — pull tri-merge from Cockpit or use the button above.
+            No credit report yet — click <strong>Pull tri-merge credit</strong> above.
           </CardContent>
         </Card>
       ) : (
