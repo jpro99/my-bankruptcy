@@ -54,8 +54,10 @@ The web app shows an **API not connected** banner until Railway is wired. Demo m
 
 1. Go to [railway.app/new](https://railway.app/new) → **Deploy from GitHub repo**
 2. Select **my-bankruptcy**
-3. **Settings → Source:** Root Directory = **`.`** (repo root)
-4. **Variables** tab — add:
+3. Keep **one** service: `@chapterai/api` (delete any extra auto-created services)
+4. **Settings → Source:** Root Directory = **`.`** (repo root — **not** `apps/api`)
+   - If deploy fails **Healthcheck** with build/deploy green, Root Directory is almost always wrong. Either set it to **`.`** or redeploy after the latest `apps/api/railway.toml` fix (start command `node dist/server.js`).
+5. **Variables** tab — add:
    ```
    DEV_AUTH_BYPASS=1
    NODE_ENV=production
@@ -116,6 +118,22 @@ http://YOUR-PC-LAN-IP:3000/matters/demo/command
 ```
 
 Stops working when you leave the house.
+
+---
+
+## Troubleshooting Railway healthcheck failure
+
+If **Build** and **Deploy** are green but **Network → Healthcheck** fails:
+
+1. Open the failed deploy → **View logs** — look for `Cannot find module ... apps/api/dist/server.js` (wrong start path).
+2. **Settings → Source → Root Directory:**
+   - **`.`** (repo root) — uses root `railway.toml` / `Dockerfile`, start: `node apps/api/dist/server.js`
+   - **`apps/api`** — uses `apps/api/railway.toml`, start: `node dist/server.js`
+3. **Settings → Deploy:** confirm Start Command matches the row above.
+4. **Settings → Networking → Generate Domain** (if you have not already).
+5. Test in browser: `https://YOUR-RAILWAY-URL/health` → `{"status":"ok",...}`
+
+Then set Vercel `NEXT_PUBLIC_API_URL` to that Railway URL (not empty) and **Redeploy** the web app.
 
 ---
 
