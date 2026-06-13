@@ -18,6 +18,7 @@ import { portalStaffRouter } from "./routes/portal-staff.js";
 import { integrationsRouter } from "./routes/integrations.js";
 import { followUpRouter } from "./routes/follow-up.js";
 import { filingRouter } from "./routes/filing-package.js";
+import { matterWorkflowRouter } from "./routes/matter-workflow.js";
 import {
   schedulesRouter,
   districtsRouter,
@@ -82,6 +83,7 @@ app.route("/api/intake", intakeMatterRouter);
 app.route("/api/integrations", integrationsRouter);
 app.route("/api/follow-up", followUpRouter);
 app.route("/api/filing", filingRouter);
+app.route("/api/workflow", matterWorkflowRouter);
 app.route("/api/matters", mattersRouter);
 app.route("/api/documents", documentsRouter);
 app.route("/api/form-fields", formFieldsRouter);

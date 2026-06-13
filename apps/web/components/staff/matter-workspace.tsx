@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import {
   applyForgeSync,
   fetchMatterDossier,
+  fetchMatterProfile,
   fetchPortalStaff,
   sendPortalInvite,
   sendPortalStaffMessage,
@@ -18,13 +19,18 @@ import { ReliefScoutPanel } from "@/components/scout/relief-scout-panel";
 import { MatterDossierPanel } from "@/components/intake/matter-dossier-panel";
 import { FilingPacketPanel } from "@/components/filing/filing-packet-panel";
 import { CommandCenter } from "@/components/command/command-center";
+import { DocumentReviewPanel } from "@/components/workflow/document-review-panel";
+import { FinalCheckPanel } from "@/components/workflow/final-check-panel";
+import { MatterCalendarPanel } from "@/components/workflow/matter-calendar-panel";
 
 const TABS = [
   { id: "command", label: "Relief Command", icon: "🎯" },
+  { id: "messages", label: "Messages", icon: "💬" },
   { id: "intake", label: "Intake", icon: "📋" },
   { id: "documents", label: "Documents", icon: "📁" },
-  { id: "clientPortal", label: "Client Portal", icon: "🔗" },
-  { id: "notes", label: "Notes / Timeline", icon: "📝" },
+  { id: "docReview", label: "Doc QA", icon: "✅" },
+  { id: "finalCheck", label: "Final Check", icon: "👍" },
+  { id: "calendar", label: "Calendar", icon: "📅" },
   { id: "forge", label: BRAND.forge.name, icon: "🔨" },
   { id: "filing", label: "Filing packet", icon: "📦" },
   { id: "financials", label: BRAND.trustLedger.name, icon: "💰" },
@@ -32,8 +38,8 @@ const TABS = [
 
 type TabId = (typeof TABS)[number]["id"];
 
-function PortalStaffTab({ matterId }: { matterId: string }) {
-  const [panel, setPanel] = useState<"activity" | "invite" | "messages">("activity");
+function PortalStaffTab({ matterId, defaultPanel = "messages" }: { matterId: string; defaultPanel?: "activity" | "invite" | "messages" }) {
+  const [panel, setPanel] = useState<"activity" | "invite" | "messages">(defaultPanel);
   const [activity, setActivity] = useState<PortalActivityEvent[]>([]);
   const [messages, setMessages] = useState<PortalMessage[]>([]);
   const [portalUrl, setPortalUrl] = useState("");
@@ -53,6 +59,12 @@ function PortalStaffTab({ matterId }: { matterId: string }) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    void fetchMatterProfile(matterId).then((p) => {
+      if (p.profile.clientEmail) setRecipient(p.profile.clientEmail);
+    });
+  }, [matterId]);
 
   const sendInvite = async () => {
     setBusy(true);
@@ -153,6 +165,9 @@ function PortalStaffTab({ matterId }: { matterId: string }) {
 
       {panel === "messages" && (
         <div style={{ display: "grid", gap: "0.75rem" }}>
+          <p className="text-sm text-muted-foreground">
+            Two-way messaging with your client — same thread they see in Client Vault.
+          </p>
           <ul style={{ listStyle: "none", padding: 0, maxHeight: 280, overflow: "auto" }}>
             {messages.map((m) => (
               <li
@@ -257,8 +272,8 @@ export function MatterWorkspace({ matterId, debtorName }: { matterId: string; de
           <button type="button" className="app-btn app-btn--primary" disabled={syncing} onClick={() => void forgeSync()}>
             {syncing ? "Syncing…" : "Forge Sync"}
           </button>
-          <Link href="/dashboard" className="app-btn app-btn--tonal">
-            ← Dashboard
+          <Link href="/matters" className="app-btn app-btn--tonal">
+            ← All Matters
           </Link>
         </div>
       </div>
@@ -293,8 +308,10 @@ export function MatterWorkspace({ matterId, debtorName }: { matterId: string; de
         {activeTab === "command" && <CommandCenter matterId={matterId} />}
         {activeTab === "intake" && <ReliefScoutPanel matterId={matterId} />}
         {activeTab === "documents" && <MatterDossierPanel matterId={matterId} />}
-        {activeTab === "clientPortal" && <PortalStaffTab matterId={matterId} />}
-        {activeTab === "notes" && <NotesTimelineTab matterId={matterId} />}
+        {activeTab === "messages" && <PortalStaffTab matterId={matterId} />}
+        {activeTab === "docReview" && <DocumentReviewPanel matterId={matterId} />}
+        {activeTab === "finalCheck" && <FinalCheckPanel matterId={matterId} />}
+        {activeTab === "calendar" && <MatterCalendarPanel matterId={matterId} />}
         {activeTab === "forge" && (
           <p>
             <Link href={`/matters/${matterId}/forge`} className="app-btn app-btn--primary">

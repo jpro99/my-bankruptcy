@@ -12,6 +12,7 @@ export default function NewMatterPage() {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [chapter, setChapter] = useState<"7" | "13">("7");
   const [busy, setBusy] = useState(false);
 
@@ -24,8 +25,12 @@ export default function NewMatterPage() {
       const { matter } = await createDemoMatter({
         debtorDisplayName: name,
         chapter,
+        clientEmail: email.trim() || undefined,
+        clientFirstName: firstName.trim() || undefined,
+        clientLastName: lastName.trim() || undefined,
+        clientPhone: phone.trim() || undefined,
       });
-      router.push(`/matters/${matter.matterId}?tab=intake&welcome=intake`);
+      router.push(`/matters/${matter.matterId}?tab=messages`);
     } finally {
       setBusy(false);
     }
@@ -65,6 +70,15 @@ export default function NewMatterPage() {
             className="w-full rounded-lg border px-3 py-2 mt-1"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+          />
+        </label>
+        <label className="text-sm">
+          Client phone (optional)
+          <input
+            type="tel"
+            className="w-full rounded-lg border px-3 py-2 mt-1"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
           />
         </label>
         <label className="text-sm">

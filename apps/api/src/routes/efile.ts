@@ -6,6 +6,7 @@ import {
   getApprovedFormIds,
   getDemoFiling,
   getDemoMatterMeta,
+  isAttorneySignOffComplete,
   isDemoMatter,
   setDemoFiling,
   setDemoAutopilot,
@@ -70,6 +71,17 @@ efileRouter.post("/matter/:matterId/submit", async (c) => {
   const existing = getDemoFiling(matterId);
   if (existing) {
     return c.json({ error: "Matter already filed", filing: existing }, 409);
+  }
+
+  if (!isAttorneySignOffComplete(matterId)) {
+    return c.json(
+      {
+        error: "Attorney final sign-off required",
+        message:
+          "Complete Final Check — staff document QA, numbers review, and attorney thumbs-up before Strike The Gavel.",
+      },
+      403
+    );
   }
 
   const meta = getDemoMatterMeta(matterId);

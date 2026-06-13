@@ -28,14 +28,15 @@ export default function MattersListPage() {
     <div className="app-container">
       <StaffHeader />
     <main className="matters-page">
-      <div className="matters-page__header">
-        <h1 className="matters-page__title">Matters</h1>
-        <p className="matters-page__subtitle">
-          Select a case to open its matter page — same layout as Demand Generator, built for
-          bankruptcy.
-        </p>
-        <Link href="/field-capture" className="matters-page__inbox-link">
-          Field capture (phone notes) →
+      <div className="matters-page__header-row">
+        <div className="matters-page__header">
+          <h1 className="matters-page__title">All Matters</h1>
+          <p className="matters-page__subtitle">
+            Every bankruptcy case — open a matter to message clients, review documents, and file.
+          </p>
+        </div>
+        <Link href="/matters/new" className="app-btn app-btn--primary">
+          + New Matter
         </Link>
       </div>
 
@@ -53,8 +54,8 @@ export default function MattersListPage() {
           <table className="matters-table">
             <thead>
               <tr>
-                <th>Matter</th>
-                <th>Client</th>
+                <th>Client / Matter</th>
+                <th>Contact</th>
                 <th>Chapter</th>
                 <th>Status</th>
                 <th>Actions</th>
@@ -70,9 +71,19 @@ export default function MattersListPage() {
                         title="Unread client portal message(s)"
                       />
                     )}
-                    {m.matterId}
+                    <strong>{m.debtorDisplayName}</strong>
+                    <br />
+                    <span style={{ fontSize: "0.72rem", color: "#64748b" }}>{m.matterId}</span>
                   </td>
-                  <td>{m.debtorDisplayName}</td>
+                  <td>
+                    {m.clientEmail ?? "—"}
+                    {m.clientPhone && (
+                      <>
+                        <br />
+                        <span style={{ fontSize: "0.72rem" }}>{m.clientPhone}</span>
+                      </>
+                    )}
+                  </td>
                   <td>Ch {m.chapter}</td>
                   <td>{m.status}</td>
                   <td className="matters-table__actions">

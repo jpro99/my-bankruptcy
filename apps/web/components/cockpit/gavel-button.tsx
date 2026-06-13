@@ -10,7 +10,7 @@ import {
   X,
   XCircle,
 } from "lucide-react";
-import { fetchPreflight, filePetition, type PreflightReport } from "@/lib/api-client";
+import { fetchPreflight, fetchFinalReview, filePetition, type PreflightReport } from "@/lib/api-client";
 import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -35,16 +35,23 @@ export function GavelButton({ matterId, chapter, disabled }: GavelButtonProps) {
     autopilotTaskCount?: number;
   } | null>(null);
 
+  const [finalReviewBlocked, setFinalReviewBlocked] = useState(false);
+
   const chapterLabel = chapter === "review" ? "7" : chapter;
 
   const runSealCheck = async () => {
     setOpen(true);
     setResult(null);
     setReport(null);
+    setFinalReviewBlocked(false);
     setLoading(true);
     try {
-      const data = await fetchPreflight(matterId);
-      setReport(data.report);
+      const [preflight, finalReview] = await Promise.all([
+        fetchPreflight(matterId),
+        fetchFinalReview(matterId),
+      ]);
+      setReport(preflight.report);
+      setFinalReviewBlocked(!finalReview.finalReview.readyForGavel);
     } finally {
       setLoading(false);
     }
@@ -194,7 +201,20 @@ export function GavelButton({ matterId, chapter, disabled }: GavelButtonProps) {
                       </li>
                     ))}
                   </ul>
-                  {report.readyToFile && (
+                  {report.readyToFile && finalReviewBlocked && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm">
+                      <p className="font-semibold">Final Check required</p>
+                      <p className="mt-1 text-muted-foreground">
+                        Complete document QA, numbers review, and attorney sign-off before filing.
+                      </p>
+                      <Button asChild className="mt-3 w-full" variant="secondary">
+                        <Link href={`/matters/${matterId}?tab=finalCheck`} onClick={() => setOpen(false)}>
+                          Open Final Check
+                        </Link>
+                      </Button>
+                    </div>
+                  )}
+                  {report.readyToFile && !finalReviewBlocked && (
                     <Button
                       variant="danger"
                       size="lg"

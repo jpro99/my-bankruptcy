@@ -14,6 +14,7 @@ import {
   getDemoFiling,
   getDemoMatterMeta,
   getDemoReviewFields,
+  isAttorneySignOffComplete,
   isDemoMatter,
   setDemoAutopilot,
   setDemoFiling,
@@ -176,6 +177,17 @@ preflightRouter.post("/matter/:matterId/file", async (c) => {
 
   if (!report.readyToFile || districtReport.errors > 0) {
     return c.json({ error: "Preflight failed", report, districtReport }, 400);
+  }
+
+  if (!isAttorneySignOffComplete(matterId)) {
+    return c.json(
+      {
+        error: "Attorney final sign-off required",
+        message:
+          "Complete Final Check on the matter — document QA, numbers review, and attorney thumbs-up.",
+      },
+      403
+    );
   }
 
   const existing = getDemoFiling(matterId);

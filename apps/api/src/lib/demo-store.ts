@@ -28,6 +28,12 @@ import type { ProvenanceEventType } from "@chapterai/provenance";
 import { exportProvenanceBundle, type ProvenanceRecord } from "@chapterai/provenance";
 import { loadDemoStore, persistDemoStore } from "./demo-persist.js";
 import { portalTokenForMatter, verifyPortalToken } from "./secure-token.js";
+import {
+  buildIntakeCalendarEvents,
+  buildPostFilingCalendarEvents,
+  type MatterCalendarEvent,
+} from "./matter-calendar.js";
+import { buildFinalReviewSnapshot, type FinalReviewSnapshot } from "./final-review.js";
 
 export { portalTokenForMatter };
 
@@ -118,6 +124,10 @@ export interface IntakeDocument {
   status: IntakeDocStatus;
   appliedFieldIds?: string[];
   mimeType?: string;
+  staffVerified?: boolean;
+  staffVerifiedAt?: string;
+  staffVerifiedBy?: string;
+  staffNote?: string;
 }
 
 export interface ConsultSnapshot {
@@ -147,6 +157,8 @@ export interface DemoMatterSummary {
   noteCount: number;
   unreadPortalMessages: number;
   createdAt: string;
+  clientEmail?: string;
+  clientPhone?: string;
 }
 
 export type ScheduleBucket = "D" | "E" | "F" | "G";
@@ -204,6 +216,20 @@ interface DemoMatterState {
   portalActivity: PortalActivityEvent[];
   consult?: ConsultSnapshot;
   createdAt: string;
+  clientEmail?: string;
+  clientPhone?: string;
+  clientFirstName?: string;
+  clientLastName?: string;
+  calendarEvents?: MatterCalendarEvent[];
+  finalReview?: {
+    documentsQaComplete?: boolean;
+    documentsQaAt?: string;
+    numbersQaComplete?: boolean;
+    numbersQaAt?: string;
+    attorneySignOff?: boolean;
+    attorneySignOffAt?: string;
+    attorneyName?: string;
+  };
   dischargeFollowUp?: {
     clientEmail: string;
     includePiCrossSell: boolean;
@@ -522,6 +548,8 @@ function getOrCreate(matterId: string): DemoMatterState {
   if (!state.portalMessages) state.portalMessages = [];
   if (!state.portalActivity) state.portalActivity = [];
   if (!state.createdAt) state.createdAt = new Date().toISOString();
+  if (!state.calendarEvents) state.calendarEvents = [];
+  if (!state.finalReview) state.finalReview = {};
   for (const asset of state.assets) {
     if (!asset.valuation) {
       const seed = DEFAULT_ASSETS.find((a) => a.id === asset.id);
@@ -1074,6 +1102,19 @@ export function setDemoFiling(matterId: string, filing: FilingResult): FilingRes
   if (state.portal?.counseling.course2.status === "locked") {
     state.portal.counseling.course2.status = "pending";
   }
+  const postFiling = buildPostFilingCalendarEvents({
+    matterId,
+    debtorDisplayName: state.debtorDisplayName,
+    chapter: state.chapter,
+    filing,
+    divisionName: state.divisionName,
+  });
+  const existingIds = new Set((state.calendarEvents ?? []).map((e) => e.id));
+  state.calendarEvents = [
+    ...(state.calendarEvents ?? []).filter((e) => e.source !== "filing"),
+    ...postFiling.filter((e) => !existingIds.has(e.id)),
+  ];
+  saveSnapshot();
   return filing;
 }
 
@@ -1648,9 +1689,22 @@ export function createDemoMatter(input: {
   debtorDisplayName: string;
   chapter?: "7" | "13";
   county?: string;
+  clientEmail?: string;
+  clientPhone?: string;
+  clientFirstName?: string;
+  clientLastName?: string;
 }): DemoMatterSummary {
   const matterId = `demo-${crypto.randomUUID().slice(0, 8)}`;
   const state = buildProspectState(matterId, input);
+  if (input.clientEmail) state.clientEmail = input.clientEmail.trim();
+  if (input.clientPhone) state.clientPhone = input.clientPhone.trim();
+  if (input.clientFirstName) state.clientFirstName = input.clientFirstName.trim();
+  if (input.clientLastName) state.clientLastName = input.clientLastName.trim();
+  state.calendarEvents = buildIntakeCalendarEvents({
+    matterId,
+    debtorDisplayName: state.debtorDisplayName,
+    createdAt: state.createdAt,
+  });
   demoStore.set(matterId, state);
   saveSnapshot();
   return summarizeDemoMatter(state);
@@ -1669,6 +1723,8 @@ function summarizeDemoMatter(state: DemoMatterState): DemoMatterSummary {
       (m) => m.direction === "inbound" && !m.readAt
     ).length,
     createdAt: state.createdAt,
+    clientEmail: state.clientEmail,
+    clientPhone: state.clientPhone,
   };
 }
 
@@ -1771,6 +1827,23 @@ function seedFiledTestMatter(): void {
     chapter: state.chapter,
     filingDate,
   });
+
+  state.calendarEvents = [
+    ...buildIntakeCalendarEvents({
+      matterId,
+      debtorDisplayName: state.debtorDisplayName,
+      createdAt: state.createdAt,
+    }),
+    ...buildPostFilingCalendarEvents({
+      matterId,
+      debtorDisplayName: state.debtorDisplayName,
+      chapter: state.chapter,
+      filing: state.filing,
+      divisionName: state.divisionName,
+    }),
+  ];
+
+  state.clientEmail = DEMO_TEST_CLIENT_EMAIL;
 
   state.billing = generateInvoice({
     matterId,
@@ -2005,6 +2078,114 @@ export function markDischargeFollowUpSent(
 
 export function getDischargeFollowUp(matterId: string) {
   return getOrCreate(matterId).dischargeFollowUp;
+}
+
+export function getMatterProfile(matterId: string) {
+  const state = getOrCreate(matterId);
+  return {
+    matterId,
+    debtorDisplayName: state.debtorDisplayName,
+    chapter: state.chapter,
+    clientEmail: state.clientEmail ?? null,
+    clientPhone: state.clientPhone ?? null,
+    clientFirstName: state.clientFirstName ?? null,
+    clientLastName: state.clientLastName ?? null,
+    county: state.county,
+    district: state.district,
+    caseNumber: state.filing?.caseNumber ?? null,
+    filed: !!state.filing,
+  };
+}
+
+export function updateMatterProfile(
+  matterId: string,
+  input: {
+    clientEmail?: string;
+    clientPhone?: string;
+    clientFirstName?: string;
+    clientLastName?: string;
+    debtorDisplayName?: string;
+  }
+) {
+  const state = getOrCreate(matterId);
+  if (input.clientEmail !== undefined) state.clientEmail = input.clientEmail.trim() || undefined;
+  if (input.clientPhone !== undefined) state.clientPhone = input.clientPhone.trim() || undefined;
+  if (input.clientFirstName !== undefined) state.clientFirstName = input.clientFirstName.trim() || undefined;
+  if (input.clientLastName !== undefined) state.clientLastName = input.clientLastName.trim() || undefined;
+  if (input.debtorDisplayName !== undefined) state.debtorDisplayName = input.debtorDisplayName.trim();
+  saveSnapshot();
+  return getMatterProfile(matterId);
+}
+
+export function verifyIntakeDocument(
+  matterId: string,
+  documentId: string,
+  input: { verified: boolean; note?: string; verifiedBy?: string }
+): IntakeDocument | null {
+  const state = getOrCreate(matterId);
+  const doc = state.intakeDocuments.find((d) => d.id === documentId);
+  if (!doc) return null;
+  doc.staffVerified = input.verified;
+  doc.staffVerifiedAt = input.verified ? new Date().toISOString() : undefined;
+  doc.staffVerifiedBy = input.verified ? (input.verifiedBy ?? "Staff") : undefined;
+  doc.staffNote = input.note;
+  saveSnapshot();
+  return doc;
+}
+
+export function getFinalReview(matterId: string): FinalReviewSnapshot {
+  const state = getOrCreate(matterId);
+  const unverified = state.intakeDocuments.filter((d) => !d.staffVerified).length;
+  const pendingDocs = state.intakeDocuments.filter((d) => d.status !== "applied").length;
+  return buildFinalReviewSnapshot({
+    reviewFields: state.reviewFields,
+    diagnostics: state.diagnostics,
+    chapter: state.chapter,
+    unverifiedDocumentCount: unverified,
+    pendingDocumentCount: pendingDocs,
+    stored: state.finalReview ?? {},
+  });
+}
+
+export function updateFinalReviewStep(
+  matterId: string,
+  step: "documentsQa" | "numbersQa" | "attorneySignOff",
+  input: { complete: boolean; attorneyName?: string }
+): FinalReviewSnapshot {
+  const state = getOrCreate(matterId);
+  if (!state.finalReview) state.finalReview = {};
+  const now = new Date().toISOString();
+  if (step === "documentsQa") {
+    state.finalReview.documentsQaComplete = input.complete;
+    state.finalReview.documentsQaAt = input.complete ? now : undefined;
+  } else if (step === "numbersQa") {
+    state.finalReview.numbersQaComplete = input.complete;
+    state.finalReview.numbersQaAt = input.complete ? now : undefined;
+  } else if (step === "attorneySignOff") {
+    state.finalReview.attorneySignOff = input.complete;
+    state.finalReview.attorneySignOffAt = input.complete ? now : undefined;
+    state.finalReview.attorneyName = input.complete ? (input.attorneyName ?? "Attorney") : undefined;
+  }
+  if (input.complete && step === "attorneySignOff") {
+    addMatterNote(matterId, {
+      text: `Attorney final sign-off — cleared to Strike The Gavel (${input.attorneyName ?? "Attorney"})`,
+      source: "system",
+      authorLabel: "Final Check",
+    });
+  }
+  saveSnapshot();
+  return getFinalReview(matterId);
+}
+
+export function getCalendarEvents(matterId: string): MatterCalendarEvent[] {
+  const state = getOrCreate(matterId);
+  return [...(state.calendarEvents ?? [])].sort((a, b) =>
+    a.startAt.localeCompare(b.startAt)
+  );
+}
+
+export function isAttorneySignOffComplete(matterId: string): boolean {
+  return getFinalReview(matterId).readyForGavel;
 }
 
 export function getFilingPackagePreview(matterId: string) {

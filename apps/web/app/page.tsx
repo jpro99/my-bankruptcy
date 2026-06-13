@@ -82,21 +82,20 @@ export default function HomePage() {
 
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" className="min-w-[220px] shadow-glow">
-              <Link href="/signup">
-                Start free — attorney signup
+              <Link href="/matters/new">
+                + New Matter
                 <ArrowRight />
               </Link>
             </Button>
             <Button asChild variant="secondary" size="lg" className="min-w-[220px]">
-              <Link href="/matters/demo/command">
-                <LayoutDashboard />
-                {BRAND.command.name}
+              <Link href="/matters">
+                All Matters
               </Link>
             </Button>
-            <Button asChild variant="secondary" size="lg" className="min-w-[220px] border-primary/30">
-              <Link href="/mobile/install">
-                <Smartphone />
-                {BRAND.reliefPocket.name}
+            <Button asChild variant="secondary" size="lg" className="min-w-[220px]">
+              <Link href="/dashboard">
+                <LayoutDashboard />
+                Dashboard
               </Link>
             </Button>
           </div>

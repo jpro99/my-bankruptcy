@@ -28,6 +28,10 @@ intakeMatterRouter.post(
       debtorDisplayName: z.string().min(1),
       chapter: z.enum(["7", "13"]).optional(),
       county: z.string().optional(),
+      clientEmail: z.string().email().optional(),
+      clientPhone: z.string().optional(),
+      clientFirstName: z.string().optional(),
+      clientLastName: z.string().optional(),
     })
   ),
   async (c) => {

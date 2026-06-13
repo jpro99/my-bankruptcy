@@ -52,7 +52,10 @@ export default function DashboardPage() {
 
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1.5rem" }}>
           <Link href="/matters/new" className="app-btn app-btn--primary">
-            New Matter
+            + New Matter
+          </Link>
+          <Link href="/matters" className="app-btn app-btn--secondary">
+            All Matters
           </Link>
           <Link href="/field-capture" className="app-btn app-btn--secondary">
             Field capture (phone)
