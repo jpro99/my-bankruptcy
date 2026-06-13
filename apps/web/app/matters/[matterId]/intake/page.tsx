@@ -1,14 +1,16 @@
 import { IntakeUploader } from "@/components/intake/intake-uploader";
+import { MatterShell } from "@/components/layout/matter-shell";
 
-interface IntakePageProps {
+export default async function IntakePage({
+  params,
+}: {
   params: Promise<{ matterId: string }>;
-}
-
-export default async function IntakePage({ params }: IntakePageProps) {
+}) {
   const { matterId } = await params;
+
   return (
-    <main className="min-h-screen p-8">
+    <MatterShell matterId={matterId}>
       <IntakeUploader matterId={matterId} />
-    </main>
+    </MatterShell>
   );
 }

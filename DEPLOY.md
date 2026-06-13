@@ -46,11 +46,39 @@ git push -u origin main
 | Web UI | [Vercel](https://vercel.com) | `https://my-bankruptcy.vercel.app` |
 | API | [Railway](https://railway.app) | `https://my-bankruptcy-api.up.railway.app` |
 
-### Railway (API)
+The web app shows an **API not connected** banner until Railway is wired. Demo mode works once both are linked.
 
-1. [railway.app](https://railway.app) → New Project → Deploy **my-bankruptcy** from GitHub
-2. Variables: `DEV_AUTH_BYPASS=1`, `NODE_ENV=production`, `PORT=3002`
-3. Generate domain → copy API URL
+### Railway (API) — step by step
+
+1. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
+2. Select **my-bankruptcy** (same repo as Vercel)
+3. **Settings → Source:** Root Directory = **`.`** (repo root — `railway.toml` handles the build)
+4. **Variables** tab — add:
+
+   ```
+   DEV_AUTH_BYPASS=1
+   NODE_ENV=production
+   WEB_URL=https://my-bankruptcy.vercel.app
+   ```
+
+   Do **not** set `PORT` — Railway injects it automatically.
+
+5. **Settings → Networking → Generate Domain** → copy the URL (e.g. `https://my-bankruptcy-api-production.up.railway.app`)
+6. Wait for deploy — check **Deployments** shows healthy (`GET /health`)
+
+### Vercel (Web) — link the API
+
+1. Vercel project **my-bankruptcy** → **Settings → Environment Variables**
+2. Add:
+
+   ```
+   NEXT_PUBLIC_API_URL=https://YOUR-RAILWAY-URL.up.railway.app
+   NEXT_PUBLIC_DEV_AUTH_BYPASS=1
+   ```
+
+3. **Deployments → Redeploy** (required after env var changes)
+
+The app checks `/health` on load — the yellow banner disappears when the API is reachable.
 
 ### Vercel (Web)
 

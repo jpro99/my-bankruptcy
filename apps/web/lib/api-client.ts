@@ -13,6 +13,23 @@ function getApiBase(): string {
   return "http://localhost:3002";
 }
 
+export function getPublicApiBase(): string {
+  return getApiBase();
+}
+
+/** Ping Railway/local API — used for connection banner */
+export async function checkApiHealth(): Promise<boolean> {
+  try {
+    const response = await fetch(`${getApiBase()}/health`, {
+      cache: "no-store",
+      signal: AbortSignal.timeout(5000),
+    });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function apiFetch<T>(
   path: string,
   options: RequestInit = {}
@@ -28,10 +45,17 @@ export async function apiFetch<T>(
     headers.set("x-user-role", "attorney");
   }
 
-  const response = await fetch(`${getApiBase()}${path}`, {
-    ...options,
-    headers,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${getApiBase()}${path}`, {
+      ...options,
+      headers,
+    });
+  } catch {
+    throw new Error(
+      "Cannot reach API — start the backend locally or set NEXT_PUBLIC_API_URL on Vercel"
+    );
+  }
 
   if (!response.ok) {
     const error = (await response.json().catch(() => ({}))) as { error?: string };
@@ -134,6 +158,7 @@ export interface PreflightReport {
     severity: string;
     message: string;
     passed: boolean;
+    formReference?: string;
   }>;
 }
 

@@ -1,5 +1,5 @@
 import { BillingPanel } from "@/components/billing/billing-panel";
-import { MatterTree } from "@/components/cockpit/matter-tree";
+import { MatterShell } from "@/components/layout/matter-shell";
 
 export default async function BillingPage({
   params,
@@ -9,11 +9,8 @@ export default async function BillingPage({
   const { matterId } = await params;
 
   return (
-    <div className="flex h-screen">
-      <MatterTree matterId={matterId} />
-      <main className="flex-1 overflow-y-auto p-8">
-        <BillingPanel matterId={matterId} />
-      </main>
-    </div>
+    <MatterShell matterId={matterId}>
+      <BillingPanel matterId={matterId} />
+    </MatterShell>
   );
 }

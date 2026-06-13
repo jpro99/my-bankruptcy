@@ -1,12 +1,21 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { AnimatePresence } from "framer-motion";
+import {
+  ChevronLeft,
+  ChevronRight,
+  CreditCard,
+  FileText,
+  Sparkles,
+} from "lucide-react";
 import { useReviewStore } from "@/lib/store/review-store";
 import { FieldReviewCard } from "@/components/cockpit/field-review-card";
 import { DiagnosticsPanel } from "@/components/cockpit/diagnostics-panel";
-import { MatterTree } from "@/components/cockpit/matter-tree";
-import { GodButton } from "@/components/cockpit/god-button";
+import { MatterSidebar } from "@/components/layout/matter-shell";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ApiStatusDot } from "@/components/layout/api-status-banner";
 
 export function MatterCockpit({ matterId }: { matterId: string }) {
   const {
@@ -27,71 +36,88 @@ export function MatterCockpit({ matterId }: { matterId: string }) {
     pendingCount,
   } = useReviewStore();
 
+  const [editValue, setEditValue] = useState("");
+  const [editing, setEditing] = useState(false);
+
   useEffect(() => {
     void init(matterId);
   }, [matterId, init]);
 
   const currentField = fields[currentIndex];
   const approvedCount = fields.filter((f) => f.approvalState === "approved").length;
+  const pending = pendingCount();
 
   const handleBulkApprove = async () => {
     await bulkApprove(0.95);
   };
 
-  return (
-    <div className="flex h-screen">
-      <MatterTree activeSection="ef" matterId={matterId} />
+  const startEdit = () => {
+    if (!currentField) return;
+    setEditValue(String(currentField.proposedValue));
+    setEditing(true);
+  };
 
-      <main className="flex-1 flex flex-col overflow-hidden">
-        <header className="border-b border-[var(--border)] bg-white px-6 py-3 flex items-center justify-between">
+  const saveEdit = () => {
+    if (!currentField) return;
+    edit(currentField.id, editValue);
+    setEditing(false);
+  };
+
+  return (
+    <div className="flex h-screen bg-background">
+      <MatterSidebar matterId={matterId} />
+
+      <main className="flex min-w-0 flex-1 flex-col overflow-hidden">
+        <header className="flex items-center justify-between gap-4 border-b border-border bg-white px-6 py-4">
           <div>
-            <h1 className="text-lg font-semibold">Martinez — Chapter 7</h1>
-            <p className="text-xs text-[var(--muted-foreground)]">
-              CACB · {loading ? "Loading…" : `${pendingCount()} fields pending review`}
+            <div className="flex flex-wrap items-center gap-2">
+              <h1 className="font-display text-xl font-bold">Martinez — Chapter 7</h1>
+              <Badge variant="secondary">CACB</Badge>
+              <ApiStatusDot />
+            </div>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              {loading ? "Loading matter…" : `${pending} fields awaiting approval`}
               {error && ` · ${error}`}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex shrink-0 flex-wrap gap-2">
             {!creditSummary && (
-              <button
-                type="button"
+              <Button
+                size="sm"
                 onClick={() => void pullTriMerge()}
                 disabled={loading}
-                className="text-xs px-3 py-1.5 bg-blue-600 text-white rounded-lg hover:opacity-90 transition disabled:opacity-50"
               >
-                Pull Tri-Merge Credit
-              </button>
+                <CreditCard className="size-3.5" />
+                Pull Tri-Merge
+              </Button>
             )}
-            <button
-              type="button"
-              onClick={() => void handleBulkApprove()}
-              className="text-xs px-3 py-1.5 border border-[var(--border)] rounded-lg hover:bg-[var(--muted)] transition"
-            >
-              Approve all &gt;95%
-            </button>
-            <kbd className="text-xs px-2 py-1 bg-[var(--muted)] rounded border border-[var(--border)]">
-              ⌘K
-            </kbd>
+            <Button variant="secondary" size="sm" onClick={() => void handleBulkApprove()}>
+              <Sparkles className="size-3.5" />
+              Approve &gt;95%
+            </Button>
           </div>
         </header>
 
-        <div className="flex-1 flex overflow-hidden">
-          <div className="flex-1 p-6 overflow-y-auto">
-            <div className="max-w-lg mx-auto space-y-4">
-              <div className="flex items-center justify-between text-sm text-[var(--muted-foreground)]">
-                <button type="button" onClick={prev} disabled={currentIndex === 0}>
-                  ← Prev
-                </button>
-                <span>
-                  {fields.length > 0 ? currentIndex + 1 : 0} of {fields.length}
+        <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 flex-col overflow-y-auto p-6">
+            <div className="mx-auto w-full max-w-xl space-y-5">
+              <div className="flex items-center justify-between">
+                <Button variant="ghost" size="sm" onClick={prev} disabled={currentIndex === 0}>
+                  <ChevronLeft />
+                  Previous
+                </Button>
+                <span className="text-sm tabular-nums text-muted-foreground">
+                  {fields.length > 0 ? currentIndex + 1 : 0} / {fields.length}
                 </span>
-                <button
-                  type="button"
+                <Button
+                  variant="ghost"
+                  size="sm"
                   onClick={next}
                   disabled={currentIndex >= fields.length - 1}
                 >
-                  Next →
-                </button>
+                  Next
+                  <ChevronRight />
+                </Button>
               </div>
 
               <AnimatePresence mode="wait">
@@ -99,11 +125,13 @@ export function MatterCockpit({ matterId }: { matterId: string }) {
                   <FieldReviewCard
                     key={currentField.id}
                     field={currentField}
+                    editing={editing}
+                    editValue={editValue}
+                    onEditValueChange={setEditValue}
                     onApprove={() => void approve(currentField.id)}
-                    onEdit={() => {
-                      const val = prompt("Edit value:", String(currentField.proposedValue));
-                      if (val !== null) edit(currentField.id, val);
-                    }}
+                    onEdit={startEdit}
+                    onSaveEdit={saveEdit}
+                    onCancelEdit={() => setEditing(false)}
                     onQuestion={() => void question(currentField.id)}
                   />
                 )}
@@ -111,11 +139,18 @@ export function MatterCockpit({ matterId }: { matterId: string }) {
             </div>
           </div>
 
-          <div className="w-80 border-l border-[var(--border)] bg-[var(--muted)] p-4 hidden lg:block">
-            <div className="bg-white border border-[var(--border)] rounded-lg h-full flex items-center justify-center text-[var(--muted-foreground)] text-sm text-center p-4">
-              Official USC PDF Preview
-              <br />
-              (Form {currentField?.formId ?? "—"})
+          <div className="hidden w-72 shrink-0 border-l border-border bg-slate-50 p-4 xl:block">
+            <div className="flex h-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-white p-6 text-center">
+              <FileText className="mb-3 size-10 text-muted-foreground/40" />
+              <p className="text-sm font-medium text-muted-foreground">Official PDF Preview</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Form {currentField?.formId ?? "—"}
+              </p>
+              {currentField?.sourceDocument && (
+                <Badge variant="outline" className="mt-4">
+                  {currentField.sourceDocument.fileName}
+                </Badge>
+              )}
             </div>
           </div>
         </div>
@@ -124,7 +159,7 @@ export function MatterCockpit({ matterId }: { matterId: string }) {
       <DiagnosticsPanel
         diagnostics={diagnostics}
         creditSummary={creditSummary}
-        pendingCount={pendingCount()}
+        pendingCount={pending}
         approvedCount={approvedCount}
         matterId={matterId}
       />

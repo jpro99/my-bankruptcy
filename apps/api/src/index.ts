@@ -26,14 +26,17 @@ app.use(
   "*",
   cors({
     origin: (origin) => {
-      if (!origin) return process.env.WEB_URL ?? "http://localhost:3000";
+      const webUrl = process.env.WEB_URL;
+      if (!origin) return webUrl ?? "http://localhost:3000";
       if (process.env.NODE_ENV !== "production") {
-        // Allow localhost + LAN IPs during local dev (phone testing)
         if (/^https?:\/\/(localhost|127\.0\.0\.1|\d{1,3}(\.\d{1,3}){3})(:\d+)?$/.test(origin)) {
           return origin;
         }
       }
-      return process.env.WEB_URL ?? "http://localhost:3000";
+      if (webUrl && origin === webUrl) return origin;
+      // Vercel production + preview deployments
+      if (/^https:\/\/[\w-]+\.vercel\.app$/.test(origin)) return origin;
+      return webUrl ?? "http://localhost:3000";
     },
     credentials: true,
   })

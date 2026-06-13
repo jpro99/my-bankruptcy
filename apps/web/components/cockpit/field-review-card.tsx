@@ -1,116 +1,137 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import { Check, FileText, HelpCircle, Pencil, X } from "lucide-react";
 import { cn, formatConfidence, confidenceColor } from "@/lib/utils";
 import type { ReviewField } from "@/lib/types";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 
 interface FieldReviewCardProps {
   field: ReviewField;
+  editing?: boolean;
+  editValue?: string;
+  onEditValueChange?: (v: string) => void;
   onApprove: () => void;
   onEdit: () => void;
+  onSaveEdit?: () => void;
+  onCancelEdit?: () => void;
   onQuestion: () => void;
 }
 
 export function FieldReviewCard({
   field,
+  editing,
+  editValue,
+  onEditValueChange,
   onApprove,
   onEdit,
+  onSaveEdit,
+  onCancelEdit,
   onQuestion,
 }: FieldReviewCardProps) {
+  const color = confidenceColor(field.confidence);
+
   return (
     <motion.div
       key={field.id}
-      initial={{ opacity: 0, x: 50 }}
-      animate={{ opacity: 1, x: 0 }}
-      exit={{ opacity: 0, x: -50 }}
-      className="bg-white border border-[var(--border)] rounded-xl shadow-sm p-6 space-y-4"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -12 }}
+      transition={{ duration: 0.25 }}
     >
-      <div className="flex items-center justify-between">
-        <div>
-          <span className="text-xs font-medium text-[var(--muted-foreground)] uppercase tracking-wide">
-            Form {field.formId}
-          </span>
-          <h3 className="text-sm font-mono text-[var(--foreground)]">{field.fieldPath}</h3>
+      <Card className="overflow-hidden shadow-elevated">
+        <div className="border-b border-border bg-muted/40 px-6 py-4">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <Badge variant="outline" className="mb-2">
+                Form {field.formId}
+              </Badge>
+              <h3 className="font-mono text-sm font-medium">{field.fieldPath}</h3>
+            </div>
+            <div className="text-right">
+              <span className="text-sm font-bold" style={{ color }}>
+                {formatConfidence(field.confidence)}
+              </span>
+              <div className="mt-1 h-1.5 w-20 overflow-hidden rounded-full bg-muted">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${field.confidence * 100}%`, backgroundColor: color }}
+                />
+              </div>
+            </div>
+          </div>
         </div>
-        <ConfidenceBar confidence={field.confidence} />
-      </div>
 
-      <div className="bg-[var(--muted)] rounded-lg p-4">
-        <p className="text-2xl font-semibold">
-          {typeof field.proposedValue === "string"
-            ? field.proposedValue
-            : JSON.stringify(field.proposedValue)}
-        </p>
-      </div>
+        <CardContent className="space-y-4 p-6">
+          {editing ? (
+            <div className="space-y-3">
+              <Input
+                value={editValue}
+                onChange={(e) => onEditValueChange?.(e.target.value)}
+                className="text-lg font-semibold"
+                autoFocus
+              />
+              <div className="flex gap-2">
+                <Button className="flex-1" onClick={onSaveEdit}>
+                  Save
+                </Button>
+                <Button variant="secondary" onClick={onCancelEdit}>
+                  <X className="size-4" />
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-border bg-muted/50 p-5">
+              <p className="font-display text-2xl font-bold tracking-tight">
+                {typeof field.proposedValue === "string"
+                  ? field.proposedValue
+                  : JSON.stringify(field.proposedValue)}
+              </p>
+            </div>
+          )}
 
-      {field.sourceDocument && (
-        <button
-          type="button"
-          className="inline-flex items-center gap-2 text-xs bg-blue-50 text-blue-700 px-3 py-1.5 rounded-full hover:bg-blue-100 transition"
-        >
-          📄 {field.sourceDocument.fileName}
-          {field.sourceDocument.boundingBox && " · highlighted"}
-        </button>
-      )}
+          {field.sourceDocument && (
+            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-white px-3 py-1.5 text-xs font-medium text-muted-foreground">
+              <FileText className="size-3.5 text-primary" />
+              {field.sourceDocument.fileName}
+            </div>
+          )}
 
-      {field.rationale && (
-        <p className="text-sm text-[var(--muted-foreground)] italic">{field.rationale}</p>
-      )}
+          {field.rationale && (
+            <p className="text-sm italic leading-relaxed text-muted-foreground">{field.rationale}</p>
+          )}
 
-      <div className="flex gap-3 pt-2">
-        <button
-          type="button"
-          onClick={onApprove}
-          className="flex-1 py-3 bg-[var(--success)] text-white rounded-lg font-medium hover:opacity-90 transition text-lg"
-        >
-          ✅ Approve
-        </button>
-        <button
-          type="button"
-          onClick={onEdit}
-          className="flex-1 py-3 border border-[var(--border)] rounded-lg font-medium hover:bg-[var(--muted)] transition"
-        >
-          ✏️ Edit
-        </button>
-        <button
-          type="button"
-          onClick={onQuestion}
-          className="flex-1 py-3 border border-[var(--border)] rounded-lg font-medium hover:bg-[var(--muted)] transition"
-        >
-          ❓ Ask AI
-        </button>
-      </div>
+          {!editing && (
+            <div className="grid grid-cols-3 gap-2 pt-2">
+              <Button variant="success" className="h-12" onClick={onApprove}>
+                <Check />
+                Approve
+              </Button>
+              <Button variant="secondary" className="h-12" onClick={onEdit}>
+                <Pencil />
+                Edit
+              </Button>
+              <Button variant="secondary" className="h-12" onClick={onQuestion}>
+                <HelpCircle />
+                Ask AI
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </motion.div>
   );
 }
 
-function ConfidenceBar({ confidence }: { confidence: number }) {
-  const color = confidenceColor(confidence);
-  return (
-    <div className="text-right">
-      <span className="text-sm font-semibold" style={{ color }}>
-        {formatConfidence(confidence)}
-      </span>
-      <div className="w-24 h-2 bg-[var(--muted)] rounded-full mt-1 overflow-hidden">
-        <div
-          className="h-full rounded-full transition-all"
-          style={{ width: `${confidence * 100}%`, backgroundColor: color }}
-        />
-      </div>
-    </div>
-  );
-}
-
 export function ApprovalBadge({ state }: { state: ReviewField["approvalState"] }) {
-  const styles: Record<ReviewField["approvalState"], string> = {
-    pending: "bg-yellow-50 text-yellow-700",
-    approved: "bg-green-50 text-green-700",
-    edited: "bg-blue-50 text-blue-700",
-    questioned: "bg-red-50 text-red-700",
+  const variants: Record<ReviewField["approvalState"], "warning" | "success" | "default" | "danger"> = {
+    pending: "warning",
+    approved: "success",
+    edited: "default",
+    questioned: "danger",
   };
-  return (
-    <span className={cn("text-xs px-2 py-0.5 rounded-full font-medium", styles[state])}>
-      {state}
-    </span>
-  );
+  return <Badge variant={variants[state]}>{state}</Badge>;
 }

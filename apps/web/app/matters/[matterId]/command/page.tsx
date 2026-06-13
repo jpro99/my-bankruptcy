@@ -1,5 +1,5 @@
 import { CommandCenter } from "@/components/command/command-center";
-import { MatterTree } from "@/components/cockpit/matter-tree";
+import { MatterShell } from "@/components/layout/matter-shell";
 
 export default async function CommandPage({
   params,
@@ -9,11 +9,8 @@ export default async function CommandPage({
   const { matterId } = await params;
 
   return (
-    <div className="flex h-screen">
-      <MatterTree matterId={matterId} />
-      <main className="flex-1 overflow-y-auto p-8">
-        <CommandCenter matterId={matterId} />
-      </main>
-    </div>
+    <MatterShell matterId={matterId}>
+      <CommandCenter matterId={matterId} />
+    </MatterShell>
   );
 }

@@ -2,7 +2,19 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+  X,
+  XCircle,
+  Zap,
+} from "lucide-react";
 import { fetchPreflight, filePetition, type PreflightReport } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface GodButtonProps {
   matterId: string;
@@ -14,6 +26,7 @@ export function GodButton({ matterId, chapter, disabled }: GodButtonProps) {
   const [open, setOpen] = useState(false);
   const [report, setReport] = useState<PreflightReport | null>(null);
   const [filing, setFiling] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<{
     caseNumber: string;
     message: string;
@@ -25,8 +38,14 @@ export function GodButton({ matterId, chapter, disabled }: GodButtonProps) {
   const runPreflight = async () => {
     setOpen(true);
     setResult(null);
-    const data = await fetchPreflight(matterId);
-    setReport(data.report);
+    setReport(null);
+    setLoading(true);
+    try {
+      const data = await fetchPreflight(matterId);
+      setReport(data.report);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleFile = async () => {
@@ -47,89 +66,157 @@ export function GodButton({ matterId, chapter, disabled }: GodButtonProps) {
 
   return (
     <>
-      <button
+      <Button
         type="button"
+        variant="danger"
+        size="lg"
+        className="w-full shadow-elevated"
         onClick={() => void runPreflight()}
         disabled={disabled}
-        className="w-full py-3 bg-red-600 text-white rounded-lg font-semibold text-sm hover:bg-red-700 transition disabled:opacity-50 shadow-lg"
       >
-        ⚡ File Chapter {chapterLabel} Now
-      </button>
+        <Zap className="size-4 fill-current" />
+        File Chapter {chapterLabel} Now
+      </Button>
 
       {open && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-lg w-full max-h-[80vh] overflow-y-auto p-6 space-y-4">
-            <div className="flex justify-between items-center">
-              <h2 className="text-lg font-bold">Preflight — God Button</h2>
-              <button type="button" onClick={() => setOpen(false)} className="text-gray-500">
-                ✕
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm">
+          <Card className="max-h-[85vh] w-full max-w-lg overflow-hidden shadow-elevated animate-fade-in">
+            <div className="flex items-center justify-between border-b border-border px-6 py-4">
+              <div>
+                <h2 className="font-display text-lg font-bold">God Button Preflight</h2>
+                <p className="text-xs text-muted-foreground">247-rule validation before e-file</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                className="rounded-lg p-1.5 text-muted-foreground hover:bg-muted"
+              >
+                <X className="size-5" />
               </button>
             </div>
 
-            {result ? (
-              <div className="space-y-3">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <p className="font-semibold text-green-800">
-                    {result.caseNumber ? `Filed — Case #${result.caseNumber}` : "Filing blocked"}
-                  </p>
-                  <p className="text-sm text-green-700 mt-1">{result.message}</p>
-                  {result.autopilotTaskCount !== undefined && (
-                    <p className="text-xs text-green-600 mt-2">
-                      Post-petition autopilot activated — {result.autopilotTaskCount} tasks scheduled
+            <CardContent className="max-h-[60vh] space-y-4 overflow-y-auto p-6">
+              {result ? (
+                <div className="space-y-4">
+                  <div
+                    className={cn(
+                      "rounded-xl border p-4",
+                      result.caseNumber
+                        ? "border-emerald-200 bg-success-muted"
+                        : "border-red-200 bg-danger-muted"
+                    )}
+                  >
+                    <p className="flex items-center gap-2 font-semibold">
+                      {result.caseNumber ? (
+                        <>
+                          <CheckCircle2 className="size-5 text-success" />
+                          Filed — Case #{result.caseNumber}
+                        </>
+                      ) : (
+                        <>
+                          <XCircle className="size-5 text-danger" />
+                          Filing blocked
+                        </>
+                      )}
                     </p>
+                    <p className="mt-1 text-sm text-muted-foreground">{result.message}</p>
+                    {result.autopilotTaskCount !== undefined && (
+                      <p className="mt-2 text-xs font-medium text-success">
+                        Autopilot activated — {result.autopilotTaskCount} tasks scheduled
+                      </p>
+                    )}
+                  </div>
+                  {result.caseNumber && (
+                    <Button asChild className="w-full">
+                      <Link href={`/matters/${matterId}/autopilot`} onClick={() => setOpen(false)}>
+                        Open Autopilot Dashboard
+                      </Link>
+                    </Button>
                   )}
                 </div>
-                {result.caseNumber && (
-                  <Link
-                    href={`/matters/${matterId}/autopilot`}
-                    className="block w-full py-2 text-center text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                    onClick={() => setOpen(false)}
-                  >
-                    Open Autopilot Dashboard →
-                  </Link>
-                )}
-              </div>
-            ) : report ? (
-              <>
-                <div
-                  className={`rounded-lg p-3 text-center font-semibold ${
-                    report.readyToFile ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                  }`}
-                >
-                  {report.readyToFile
-                    ? `✅ READY TO FILE — ${report.passed}/${report.totalRules} rules passed`
-                    : `❌ BLOCKED — ${report.errors} error(s), ${report.warnings} warning(s)`}
+              ) : loading ? (
+                <div className="flex flex-col items-center gap-3 py-12">
+                  <Loader2 className="size-8 animate-spin text-primary" />
+                  <p className="text-sm text-muted-foreground">Running validation rules…</p>
                 </div>
-                <ul className="space-y-2 text-sm">
-                  {report.results.map((r) => (
-                    <li
-                      key={r.ruleId}
-                      className={`flex gap-2 p-2 rounded ${
-                        r.passed ? "bg-gray-50" : r.severity === "error" ? "bg-red-50" : "bg-yellow-50"
-                      }`}
-                    >
-                      <span>{r.passed ? "✅" : r.severity === "error" ? "❌" : "⚠️"}</span>
-                      <span>
-                        <strong>{r.ruleId}</strong> — {r.message}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-                {report.readyToFile && (
-                  <button
-                    type="button"
-                    onClick={() => void handleFile()}
-                    disabled={filing}
-                    className="w-full py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 disabled:opacity-50"
+              ) : report ? (
+                <>
+                  <div
+                    className={cn(
+                      "rounded-xl p-4 text-center",
+                      report.readyToFile ? "bg-success-muted" : "bg-danger-muted"
+                    )}
                   >
-                    {filing ? "Submitting to CM/ECF…" : "Confirm E-File to CACB"}
-                  </button>
-                )}
-              </>
-            ) : (
-              <p className="text-center text-gray-500">Running validation rules…</p>
-            )}
-          </div>
+                    <p className="font-display text-lg font-bold">
+                      {report.readyToFile ? "Ready to file" : "Blocked"}
+                    </p>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {report.passed}/{report.totalRules} rules passed
+                      {report.errors > 0 && ` · ${report.errors} error(s)`}
+                      {report.warnings > 0 && ` · ${report.warnings} warning(s)`}
+                    </p>
+                  </div>
+                  <ul className="space-y-2">
+                    {report.results.map((r) => (
+                      <li
+                        key={r.ruleId}
+                        className={cn(
+                          "flex items-start gap-3 rounded-lg border p-3 text-sm",
+                          r.passed
+                            ? "border-border bg-muted/30"
+                            : r.severity === "error"
+                              ? "border-red-200 bg-danger-muted/50"
+                              : "border-amber-200 bg-warning-muted/50"
+                        )}
+                      >
+                        {r.passed ? (
+                          <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-success" />
+                        ) : r.severity === "error" ? (
+                          <XCircle className="mt-0.5 size-4 shrink-0 text-danger" />
+                        ) : (
+                          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-warning" />
+                        )}
+                        <div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant="outline" className="text-[10px]">
+                              {r.ruleId}
+                            </Badge>
+                            {r.formReference && (
+                              <span className="text-[10px] text-muted-foreground">
+                                Form {r.formReference}
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1">{r.message}</p>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  {report.readyToFile && (
+                    <Button
+                      variant="danger"
+                      size="lg"
+                      className="w-full"
+                      onClick={() => void handleFile()}
+                      disabled={filing}
+                    >
+                      {filing ? (
+                        <>
+                          <Loader2 className="animate-spin" />
+                          Submitting to CM/ECF…
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="fill-current" />
+                          Confirm E-File to CACB
+                        </>
+                      )}
+                    </Button>
+                  )}
+                </>
+              ) : null}
+            </CardContent>
+          </Card>
         </div>
       )}
     </>
