@@ -16,6 +16,7 @@ import { DiagnosticsPanel } from "@/components/cockpit/diagnostics-panel";
 import { MatterSidebar } from "@/components/layout/matter-shell";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { BRAND } from "@/lib/brand";
 import { ApiStatusDot } from "@/components/layout/api-status-banner";
 
 export function MatterCockpit({ matterId }: { matterId: string }) {
@@ -75,12 +76,13 @@ export function MatterCockpit({ matterId }: { matterId: string }) {
         <header className="flex items-center justify-between gap-4 border-b border-border bg-white px-6 py-4">
           <div>
             <div className="flex flex-wrap items-center gap-2">
-              <h1 className="font-display text-xl font-bold">Martinez — Chapter 7</h1>
-              <Badge variant="secondary">CACB</Badge>
+              <h1 className="font-display text-xl font-bold">{BRAND.forge.name}</h1>
+              <Badge>{BRAND.forge.short}</Badge>
               <ApiStatusDot />
             </div>
             <p className="mt-0.5 text-sm text-muted-foreground">
-              {loading ? "Loading matter…" : `${pending} fields awaiting approval`}
+              {BRAND.forge.description}
+              {loading ? "" : ` · ${pending} fields awaiting approval`}
               {error && ` · ${error}`}
             </p>
           </div>

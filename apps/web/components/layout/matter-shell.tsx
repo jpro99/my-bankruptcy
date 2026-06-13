@@ -4,10 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
-  Gauge,
+  Hammer,
   Upload,
   Calculator,
-  Plane,
+  Route,
   Wallet,
   Home,
   ChevronRight,
@@ -16,19 +16,65 @@ import {
   ShieldCheck,
   CreditCard,
 } from "lucide-react";
+import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { ApiStatusDot } from "@/components/layout/api-status-banner";
 
 const MATTER_LINKS = [
-  { id: "command", href: (id: string) => `/matters/${id}/command`, label: "Command Center", icon: LayoutDashboard },
-  { id: "cockpit", href: (id: string) => `/matters/${id}/cockpit`, label: "Cockpit", icon: Gauge },
-  { id: "credit", href: (id: string) => `/matters/${id}/credit`, label: "Credit Review", icon: CreditCard },
-  { id: "schedules", href: (id: string) => `/matters/${id}/schedules`, label: "Schedules", icon: FileStack },
-  { id: "intake", href: (id: string) => `/matters/${id}/intake`, label: "Intake", icon: Upload },
-  { id: "plan", href: (id: string) => `/matters/${id}/plan`, label: "Ch 13 Plan", icon: Calculator },
-  { id: "autopilot", href: (id: string) => `/matters/${id}/autopilot`, label: "Autopilot", icon: Plane },
-  { id: "billing", href: (id: string) => `/matters/${id}/billing`, label: "Fees & Trust", icon: Wallet },
-  { id: "audit", href: (id: string) => `/matters/${id}/audit`, label: "Audit Trail", icon: ShieldCheck },
+  {
+    id: "command",
+    href: (id: string) => `/matters/${id}/command`,
+    label: BRAND.command.name,
+    icon: LayoutDashboard,
+  },
+  {
+    id: "forge",
+    href: (id: string) => `/matters/${id}/forge`,
+    label: BRAND.forge.name,
+    icon: Hammer,
+  },
+  {
+    id: "credit",
+    href: (id: string) => `/matters/${id}/credit`,
+    label: "Credit Review",
+    icon: CreditCard,
+  },
+  {
+    id: "schedules",
+    href: (id: string) => `/matters/${id}/schedules`,
+    label: "Schedules",
+    icon: FileStack,
+  },
+  {
+    id: "intake",
+    href: (id: string) => `/matters/${id}/intake`,
+    label: "Document Drop",
+    icon: Upload,
+  },
+  {
+    id: "plan",
+    href: (id: string) => `/matters/${id}/plan`,
+    label: "Ch 13 Plan",
+    icon: Calculator,
+  },
+  {
+    id: "continuum",
+    href: (id: string) => `/matters/${id}/continuum`,
+    label: BRAND.continuum.name,
+    icon: Route,
+  },
+  {
+    id: "billing",
+    href: (id: string) => `/matters/${id}/billing`,
+    label: BRAND.trustLedger.name,
+    icon: Wallet,
+  },
+  {
+    id: "audit",
+    href: (id: string) => `/matters/${id}/audit`,
+    label: "Audit Trail",
+    icon: ShieldCheck,
+  },
 ];
 
 const FORM_SECTIONS = [
@@ -37,7 +83,7 @@ const FORM_SECTIONS = [
   { id: "sofa", label: "SOFA" },
   { id: "means", label: "Means Test" },
   { id: "local", label: "CA Local Forms" },
-  { id: "filing", label: "Filing Packet" },
+  { id: "filing", label: "Petition Bundle" },
 ];
 
 export function MatterSidebar({ matterId }: { matterId: string }) {
@@ -51,8 +97,10 @@ export function MatterSidebar({ matterId }: { matterId: string }) {
             <Scale className="size-4 text-white" />
           </div>
           <div>
-            <p className="text-sm font-bold tracking-tight text-white">My Bankruptcy</p>
-            <p className="text-[10px] uppercase tracking-widest text-sidebar-muted">CACB · Demo</p>
+            <p className="text-sm font-bold tracking-tight text-white">{BRAND.name}</p>
+            <p className="text-[10px] uppercase tracking-widest text-sidebar-muted">
+              {BRAND.shortTag}
+            </p>
           </div>
         </Link>
       </div>
@@ -64,7 +112,7 @@ export function MatterSidebar({ matterId }: { matterId: string }) {
         <ul className="space-y-0.5">
           {MATTER_LINKS.map((link) => {
             const href = link.href(matterId);
-            const active = pathname === href;
+            const active = pathname === href || pathname === href.replace("/forge", "/cockpit");
             const Icon = link.icon;
             return (
               <li key={link.id}>
@@ -124,9 +172,9 @@ export function MatterShell({
   className?: string;
 }) {
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className={cn("flex min-h-screen bg-background", className)}>
       <MatterSidebar matterId={matterId} />
-      <main className={cn("flex-1 overflow-y-auto p-6 md:p-8", className)}>{children}</main>
+      <main className="flex-1 overflow-y-auto p-6 md:p-8">{children}</main>
     </div>
   );
 }

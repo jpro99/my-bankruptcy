@@ -39,6 +39,12 @@ billingRouter.get("/matter/:matterId", async (c) => {
 
 const PaymentSchema = z.object({
   amount: z.string(),
+  method: z
+    .enum(["cash", "check", "card", "zelle", "venmo", "trust", "other"])
+    .default("cash"),
+  checkNumber: z.string().optional(),
+  note: z.string().optional(),
+  receivedBy: z.string().optional(),
 });
 
 billingRouter.post(
@@ -46,7 +52,7 @@ billingRouter.post(
   zValidator("json", PaymentSchema),
   async (c) => {
     const matterId = c.req.param("matterId");
-    const { amount } = c.req.valid("json");
+    const body = c.req.valid("json");
 
     if (!isDemoMatter(matterId)) {
       return c.json({ error: "Matter not found" }, 404);
@@ -58,8 +64,9 @@ billingRouter.post(
       invoice = generateInvoice({ matterId, chapter: meta.chapter });
     }
 
-    const updated = recordPayment(invoice, amount);
+    const updated = recordPayment(invoice, body);
     setDemoBilling(matterId, updated);
-    return c.json({ invoice: updated });
+    const lastReceipt = updated.payments?.[updated.payments.length - 1];
+    return c.json({ invoice: updated, receipt: lastReceipt });
   }
 );

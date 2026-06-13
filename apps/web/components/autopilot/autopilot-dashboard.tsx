@@ -16,6 +16,7 @@ import {
   type AutopilotTask,
   type AutopilotTimeline,
 } from "@/lib/api-client";
+import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -80,13 +81,13 @@ export function AutopilotDashboard({ matterId }: AutopilotDashboardProps) {
           <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-primary-muted">
             <Plane className="size-8 text-primary" />
           </div>
-          <h2 className="font-display text-xl font-bold">Autopilot activates after filing</h2>
+          <h2 className="font-display text-xl font-bold">{BRAND.continuum.name} unlocks after filing</h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
             {message ??
-              "File the petition from the Cockpit God Button to start post-petition deadline tracking."}
+              `Strike ${BRAND.gavel.name} from ${BRAND.forge.name} to start the post-petition path.`}
           </p>
           <Button asChild>
-            <Link href={`/matters/${matterId}/cockpit`}>Go to Cockpit</Link>
+            <Link href={`/matters/${matterId}/forge`}>Go to {BRAND.forge.name}</Link>
           </Button>
         </CardContent>
       </Card>
@@ -97,8 +98,8 @@ export function AutopilotDashboard({ matterId }: AutopilotDashboardProps) {
     <div className="mx-auto max-w-4xl space-y-8 animate-fade-in">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <Badge className="mb-2">Post-Petition</Badge>
-          <h1 className="font-display text-3xl font-bold">Autopilot</h1>
+          <Badge className="mb-2">{BRAND.continuum.name}</Badge>
+          <h1 className="font-display text-3xl font-bold">{BRAND.continuum.name}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Case {timeline.caseNumber} · Ch {timeline.chapter} · Filed {timeline.filingDate}
           </p>

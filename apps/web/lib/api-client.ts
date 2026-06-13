@@ -303,7 +303,20 @@ export function fetchCommandCenter(matterId: string) {
     preflightReady: boolean;
     caseNumber?: string;
     portalUrl: string;
+    portalToken?: string;
+    counselingComplete?: boolean;
   }>(`/api/command/matter/${matterId}`);
+}
+
+export interface PaymentReceipt {
+  id: string;
+  matterId: string;
+  amount: string;
+  method: string;
+  checkNumber?: string;
+  note?: string;
+  receivedAt: string;
+  receivedBy: string;
 }
 
 export interface MatterInvoice {
@@ -316,17 +329,29 @@ export interface MatterInvoice {
   status: string;
   trustBalance: string;
   lines: Array<{ id: string; description: string; amount: string; category: string; paid: boolean }>;
+  payments?: PaymentReceipt[];
 }
 
 export function fetchBilling(matterId: string) {
   return apiFetch<{ invoice: MatterInvoice }>(`/api/billing/matter/${matterId}`);
 }
 
-export function recordBillingPayment(matterId: string, amount: string) {
-  return apiFetch<{ invoice: MatterInvoice }>(`/api/billing/matter/${matterId}/payment`, {
-    method: "POST",
-    body: JSON.stringify({ amount }),
-  });
+export function recordBillingPayment(
+  matterId: string,
+  input: {
+    amount: string;
+    method: string;
+    checkNumber?: string;
+    note?: string;
+  }
+) {
+  return apiFetch<{ invoice: MatterInvoice; receipt: PaymentReceipt }>(
+    `/api/billing/matter/${matterId}/payment`,
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    }
+  );
 }
 
 export interface PortalRequest {
@@ -338,6 +363,22 @@ export interface PortalRequest {
   uploadedFileName?: string;
 }
 
+export interface PortalCounselingCourse {
+  status: "locked" | "pending" | "complete";
+  completedAt?: string;
+  certificateFileName?: string;
+  certificateNumber?: string;
+}
+
+export interface PortalCounseling {
+  tier: "gold" | "relay" | "vault";
+  provider: string;
+  providerLabel: string;
+  providerUrl: string;
+  course1: PortalCounselingCourse;
+  course2: PortalCounselingCourse;
+}
+
 export interface PortalData {
   token: string;
   matterId: string;
@@ -346,6 +387,8 @@ export interface PortalData {
   caseNumber?: string;
   requests: PortalRequest[];
   message: string;
+  counseling: PortalCounseling;
+  filed: boolean;
 }
 
 async function portalFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
@@ -367,6 +410,46 @@ export function uploadPortalDocument(token: string, requestId: string, fileName:
   return portalFetch<{ success: boolean }>(`/api/portal/${token}/upload`, {
     method: "POST",
     body: JSON.stringify({ requestId, fileName }),
+  });
+}
+
+export function completePortalCounseling(
+  token: string,
+  course: 1 | 2,
+  options?: { certificateFileName?: string; simulateGold?: boolean }
+) {
+  return portalFetch<{ success: boolean; portal: PortalData }>(
+    `/api/portal/${token}/counseling/complete`,
+    {
+      method: "POST",
+      body: JSON.stringify({ course, ...options }),
+    }
+  );
+}
+
+export function fetchAgreement() {
+  return portalFetch<{ version: string; text: string }>(`/api/firms/agreement`);
+}
+
+export function signupFirm(input: {
+  firmName: string;
+  attorneyFirstName: string;
+  attorneyLastName: string;
+  email: string;
+  phone?: string;
+  state?: string;
+  counselingTier: "gold" | "relay" | "vault";
+  counselingProvider: "debtorcc" | "bkcert" | "advantagecc" | "creditorg";
+  agreementAccepted: true;
+}) {
+  return portalFetch<{
+    firmId: string;
+    firmName: string;
+    demoMatterUrl: string;
+    message: string;
+  }>(`/api/firms/signup`, {
+    method: "POST",
+    body: JSON.stringify(input),
   });
 }
 

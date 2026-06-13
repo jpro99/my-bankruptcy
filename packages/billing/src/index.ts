@@ -5,5 +5,8 @@ export type {
   GenerateInvoiceInput,
   InvoiceLine,
   MatterInvoice,
+  PaymentReceipt,
+  PaymentMethod,
+  RecordPaymentInput,
 } from "./types.js";
-export { MatterInvoiceSchema, FeePackageSchema } from "./types.js";
+export { MatterInvoiceSchema, FeePackageSchema, PaymentReceiptSchema } from "./types.js";

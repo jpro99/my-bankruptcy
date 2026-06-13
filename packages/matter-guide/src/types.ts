@@ -65,4 +65,6 @@ export interface ComputeProgressInput {
   petitionCompletionPercent?: number;
   /** District configured for filing */
   districtConfigured?: boolean;
+  /** BAPCPA Course 1 complete */
+  counselingComplete?: boolean;
 }

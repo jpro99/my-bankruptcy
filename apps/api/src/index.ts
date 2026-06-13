@@ -12,6 +12,7 @@ import { autopilotRouter } from "./routes/autopilot.js";
 import { billingRouter } from "./routes/billing.js";
 import { commandRouter } from "./routes/command.js";
 import { portalRouter } from "./routes/portal.js";
+import { firmsRouter } from "./routes/firms.js";
 import {
   schedulesRouter,
   districtsRouter,
@@ -51,11 +52,12 @@ app.get("/health", (c) =>
   c.json({ status: "ok", service: "my-bankruptcy-api", version: "0.8.0" })
 );
 
-/** Public client portal — magic link auth */
+/** Public routes — no attorney auth */
 app.route("/api/portal", portalRouter);
+app.route("/api/firms", firmsRouter);
 
 app.use("/api/*", async (c, next) => {
-  if (c.req.path.startsWith("/api/portal")) {
+  if (c.req.path.startsWith("/api/portal") || c.req.path.startsWith("/api/firms")) {
     await next();
     return;
   }

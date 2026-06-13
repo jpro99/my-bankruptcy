@@ -25,6 +25,9 @@ import { assemblePetition, type PetitionView, type ValuationProvenance } from "@
 import type { ProvenanceEventType } from "@chapterai/provenance";
 import { exportProvenanceBundle, type ProvenanceRecord } from "@chapterai/provenance";
 import { loadDemoStore, persistDemoStore } from "./demo-persist.js";
+import { portalTokenForMatter, verifyPortalToken } from "./secure-token.js";
+
+export { portalTokenForMatter };
 
 /** In-memory dev store when DATABASE_URL is unavailable */
 export interface DemoReviewField {
@@ -47,6 +50,22 @@ export interface PortalDocumentRequest {
   uploadedFileName?: string;
 }
 
+export interface PortalCounselingCourse {
+  status: "locked" | "pending" | "complete";
+  completedAt?: string;
+  certificateFileName?: string;
+  certificateNumber?: string;
+}
+
+export interface PortalCounseling {
+  tier: "gold" | "relay" | "vault";
+  provider: string;
+  providerLabel: string;
+  providerUrl: string;
+  course1: PortalCounselingCourse;
+  course2: PortalCounselingCourse;
+}
+
 export interface DemoPortalState {
   token: string;
   matterId: string;
@@ -55,6 +74,8 @@ export interface DemoPortalState {
   caseNumber?: string;
   requests: PortalDocumentRequest[];
   message: string;
+  counseling: PortalCounseling;
+  filed: boolean;
 }
 
 export type ScheduleBucket = "D" | "E" | "F" | "G";
@@ -104,6 +125,8 @@ interface DemoMatterState {
   autopilot?: AutopilotTimeline;
   billing?: MatterInvoice;
   portal?: DemoPortalState;
+  counselingTier?: "gold" | "relay" | "vault";
+  counselingProvider?: string;
 }
 
 const DEFAULT_DEDUCTIONS = {
@@ -920,8 +943,10 @@ export function setDemoFiling(matterId: string, filing: FilingResult): FilingRes
   const state = getOrCreate(matterId);
   state.filing = filing;
   if (state.portal) {
-    state.portal.caseNumber = filing.caseNumber;
-    state.portal.message = "Your case has been filed. Please upload the documents below.";
+    state.portal = buildPortal(matterId, state);
+  }
+  if (state.portal?.counseling.course2.status === "locked") {
+    state.portal.counseling.course2.status = "pending";
   }
   return filing;
 }
@@ -957,9 +982,36 @@ const DEFAULT_PORTAL_REQUESTS: Omit<PortalDocumentRequest, "id">[] = [
   },
 ];
 
-function buildPortal(matterId: string, state: DemoMatterState): DemoPortalState {
+const COUNSELING_PROVIDER_META: Record<
+  string,
+  { label: string; url: string }
+> = {
+  debtorcc: { label: "DebtorCC.org", url: "https://debtorcc.org" },
+  bkcert: { label: "BKCert.com (DECAF)", url: "https://www.bkcert.com" },
+  advantagecc: { label: "AdvantageCC.org", url: "https://www.advantagecc.org" },
+  creditorg: { label: "Credit.org", url: "https://www.credit.org/bankruptcy/" },
+};
+
+function buildCounseling(state: DemoMatterState): PortalCounseling {
+  const providerKey = state.counselingProvider ?? "debtorcc";
+  const meta = COUNSELING_PROVIDER_META[providerKey] ?? COUNSELING_PROVIDER_META.debtorcc;
+  const existing = state.portal?.counseling;
   return {
-    token: `${matterId}-client`,
+    tier: state.counselingTier ?? "relay",
+    provider: providerKey,
+    providerLabel: meta.label,
+    providerUrl: meta.url,
+    course1: existing?.course1 ?? { status: "pending" },
+    course2: existing?.course2 ?? {
+      status: state.filing ? "pending" : "locked",
+    },
+  };
+}
+
+function buildPortal(matterId: string, state: DemoMatterState): DemoPortalState {
+  const counseling = buildCounseling(state);
+  return {
+    token: portalTokenForMatter(matterId),
     matterId,
     debtorName: state.debtorDisplayName,
     chapter: state.chapter,
@@ -969,26 +1021,38 @@ function buildPortal(matterId: string, state: DemoMatterState): DemoPortalState 
       id: `req-${i + 1}`,
     })),
     message: state.filing
-      ? "Your case has been filed. Please upload the documents below."
-      : "Welcome — your attorney will file soon. Upload documents to speed things up.",
+      ? "Your case has been filed. Complete Course 2 (debtor education) and upload any remaining documents."
+      : "Welcome — complete Course 1 (credit counseling) and upload documents so your attorney can file.",
+    counseling,
+    filed: !!state.filing,
   };
 }
 
+export function resolvePortalMatterId(token: string): string | null {
+  const verified = verifyPortalToken(token);
+  return verified?.matterId ?? null;
+}
+
 export function isDemoPortalToken(token: string): boolean {
-  return token === "demo-client" || token.endsWith("-client");
+  return resolvePortalMatterId(token) !== null;
+}
+
+export function getSecurePortalUrl(matterId: string, webBase: string): string {
+  const token = portalTokenForMatter(matterId);
+  return `${webBase.replace(/\/$/, "")}/portal/${token}`;
 }
 
 export function getDemoPortal(token: string): DemoPortalState {
-  const matterId = token.replace(/-client$/, "") || "demo";
+  const matterId = resolvePortalMatterId(token);
+  if (!matterId) throw new Error("Invalid or expired portal link");
   const state = getOrCreate(matterId);
-  if (!state.portal) {
-    state.portal = buildPortal(matterId, state);
-  }
+  state.portal = buildPortal(matterId, state);
+  saveSnapshot();
   return state.portal;
 }
 
 export function getDemoPortalOpenCount(matterId: string): number {
-  const token = `${matterId}-client`;
+  const token = portalTokenForMatter(matterId);
   const portal = getDemoPortal(token);
   return portal.requests.filter((r) => r.status === "open").length;
 }
@@ -998,7 +1062,8 @@ export function submitPortalUpload(
   requestId: string,
   fileName: string
 ): PortalDocumentRequest | null {
-  const matterId = token.replace(/-client$/, "") || "demo";
+  const matterId = resolvePortalMatterId(token);
+  if (!matterId) return null;
   const state = getOrCreate(matterId);
   const portal = getDemoPortal(token);
   const req = portal.requests.find((r) => r.id === requestId);
@@ -1006,6 +1071,7 @@ export function submitPortalUpload(
   req.status = "uploaded";
   req.uploadedFileName = fileName;
   state.portal = portal;
+  saveSnapshot();
   return req;
 }
 
@@ -1013,14 +1079,78 @@ export function completePortalRequest(
   token: string,
   requestId: string
 ): PortalDocumentRequest | null {
-  const matterId = token.replace(/-client$/, "") || "demo";
+  const matterId = resolvePortalMatterId(token);
+  if (!matterId) return null;
   const state = getOrCreate(matterId);
   const portal = getDemoPortal(token);
   const req = portal.requests.find((r) => r.id === requestId);
   if (!req) return null;
   req.status = "complete";
   state.portal = portal;
+  saveSnapshot();
   return req;
+}
+
+export function completeCounselingCourse(
+  token: string,
+  course: 1 | 2,
+  input?: { certificateFileName?: string; certificateNumber?: string; simulateGold?: boolean }
+): DemoPortalState | null {
+  const matterId = resolvePortalMatterId(token);
+  if (!matterId) return null;
+  const state = getOrCreate(matterId);
+  const portal = getDemoPortal(token);
+  const target = course === 1 ? portal.counseling.course1 : portal.counseling.course2;
+  if (target.status === "locked") return null;
+  target.status = "complete";
+  target.completedAt = new Date().toISOString();
+  target.certificateFileName =
+    input?.certificateFileName ?? `counseling_course_${course}_${Date.now()}.pdf`;
+  target.certificateNumber =
+    input?.certificateNumber ?? `CERT-${course}-${Math.random().toString(36).slice(2, 10).toUpperCase()}`;
+
+  if (course === 1) {
+    recordDemoProvenance(matterId, {
+      formFieldId: "cert-counsel",
+      eventType: "attorney_approved",
+      newValue: target.certificateNumber,
+      metadata: {
+        source: input?.simulateGold ? "counseling_gold_webhook" : "counseling_vault",
+        completedAt: target.completedAt,
+        fileName: target.certificateFileName,
+        tier: portal.counseling.tier,
+      },
+    });
+  } else {
+    recordDemoProvenance(matterId, {
+      formFieldId: "cert-education",
+      eventType: "attorney_approved",
+      newValue: target.certificateNumber,
+      metadata: {
+        source: "counseling_vault",
+        completedAt: target.completedAt,
+        fileName: target.certificateFileName,
+      },
+    });
+  }
+
+  state.portal = portal;
+  if (state.filing && portal.counseling.course2.status === "locked") {
+    portal.counseling.course2.status = "pending";
+  }
+  saveSnapshot();
+  return portal;
+}
+
+export function setMatterCounselingConfig(
+  matterId: string,
+  config: { tier?: "gold" | "relay" | "vault"; provider?: string }
+): void {
+  const state = getOrCreate(matterId);
+  if (config.tier) state.counselingTier = config.tier;
+  if (config.provider) state.counselingProvider = config.provider;
+  if (state.portal) state.portal = buildPortal(matterId, state);
+  saveSnapshot();
 }
 
 export function getDemoBilling(matterId: string): MatterInvoice | undefined {

@@ -1,4 +1,4 @@
-import type { BillingChapter, FeePackage, GenerateInvoiceInput, MatterInvoice } from "./types.js";
+import type { BillingChapter, FeePackage, GenerateInvoiceInput, MatterInvoice, PaymentReceipt, RecordPaymentInput } from "./types.js";
 
 /** California consumer bankruptcy flat-fee packages (sandbox defaults) */
 export const FEE_PACKAGES: FeePackage[] = [
@@ -116,19 +116,39 @@ export function generateInvoice(input: GenerateInvoiceInput): MatterInvoice {
     status,
     trustBalance: input.trustBalance ?? paidAmount,
     generatedAt: new Date().toISOString(),
+    payments: [],
   };
 }
 
-export function recordPayment(invoice: MatterInvoice, amount: string): MatterInvoice {
+export function recordPayment(
+  invoice: MatterInvoice,
+  amountOrInput: string | RecordPaymentInput
+): MatterInvoice {
+  const input: RecordPaymentInput =
+    typeof amountOrInput === "string"
+      ? { amount: amountOrInput, method: "other", receivedBy: "Attorney" }
+      : amountOrInput;
+  const amount = input.amount;
   const newPaid = addMoney(invoice.paidAmount, amount);
   const balanceDue = subtractMoney(invoice.subtotal, newPaid);
   let status: MatterInvoice["status"] = "partial";
   if (parseFloat(balanceDue) === 0) status = "paid";
+  const receipt: PaymentReceipt = {
+    id: crypto.randomUUID(),
+    matterId: invoice.matterId,
+    amount: parseFloat(amount).toFixed(2),
+    method: input.method,
+    checkNumber: input.checkNumber,
+    note: input.note,
+    receivedAt: new Date().toISOString(),
+    receivedBy: input.receivedBy ?? "Attorney",
+  };
   return {
     ...invoice,
     paidAmount: newPaid,
     balanceDue,
     status,
     trustBalance: addMoney(invoice.trustBalance, amount),
+    payments: [...(invoice.payments ?? []), receipt],
   };
 }

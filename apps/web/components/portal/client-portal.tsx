@@ -3,13 +3,21 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   CheckCircle2,
+  ExternalLink,
   FileUp,
+  GraduationCap,
   Loader2,
   Lock,
   Shield,
   Upload,
 } from "lucide-react";
-import { fetchPortal, uploadPortalDocument, type PortalData } from "@/lib/api-client";
+import {
+  completePortalCounseling,
+  fetchPortal,
+  uploadPortalDocument,
+  type PortalData,
+} from "@/lib/api-client";
+import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -19,6 +27,7 @@ export function ClientPortal({ token }: { token: string }) {
   const [portal, setPortal] = useState<PortalData | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState<string | null>(null);
+  const [counselingBusy, setCounselingBusy] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -46,6 +55,102 @@ export function ClientPortal({ token }: { token: string }) {
     } finally {
       setUploading(null);
     }
+  };
+
+  const handleCounselingComplete = async (course: 1 | 2, simulateGold?: boolean) => {
+    setCounselingBusy(course);
+    try {
+      const res = await completePortalCounseling(token, course, {
+        certificateFileName: `course_${course}_cert.pdf`,
+        simulateGold,
+      });
+      setPortal(res.portal);
+    } finally {
+      setCounselingBusy(null);
+    }
+  };
+
+  const renderCourse = (
+    courseNum: 1 | 2,
+    title: string,
+    course: PortalData["counseling"]["course1"]
+  ) => {
+    const locked = course.status === "locked";
+    const done = course.status === "complete";
+    const tier = portal?.counseling.tier;
+
+    return (
+      <Card key={courseNum} className={cn("transition", done && "border-emerald-200 bg-success-muted/30")}>
+        <CardContent className="space-y-3 p-5">
+          <div className="flex items-start justify-between gap-2">
+            <div>
+              <h3 className="font-semibold">{title}</h3>
+              <p className="text-xs text-muted-foreground">
+                via {portal?.counseling.providerLabel}
+              </p>
+            </div>
+            <Badge variant={done ? "success" : locked ? "secondary" : "warning"}>
+              {locked ? "After filing" : done ? "Complete" : "Required"}
+            </Badge>
+          </div>
+
+          {!locked && !done && (
+            <>
+              <Button asChild variant="secondary" className="w-full">
+                <a
+                  href={portal?.counseling.providerUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ExternalLink className="size-4" />
+                  Take course online
+                </a>
+              </Button>
+
+              {tier === "vault" && (
+                <Button
+                  className="w-full"
+                  disabled={counselingBusy === courseNum}
+                  onClick={() => void handleCounselingComplete(courseNum)}
+                >
+                  {counselingBusy === courseNum ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <Upload />
+                  )}
+                  I finished — upload certificate
+                </Button>
+              )}
+
+              {tier === "gold" && (
+                <Button
+                  variant="outline"
+                  className="w-full text-xs"
+                  disabled={counselingBusy === courseNum}
+                  onClick={() => void handleCounselingComplete(courseNum, true)}
+                >
+                  Demo: cert received automatically (Gold tier)
+                </Button>
+              )}
+
+              {tier === "relay" && (
+                <p className="text-xs text-muted-foreground">
+                  When done, your certificate is relayed to your attorney automatically — or tap
+                  upload if you have the PDF.
+                </p>
+              )}
+            </>
+          )}
+
+          {done && (
+            <p className="flex items-center gap-1.5 text-xs font-medium text-success">
+              <CheckCircle2 className="size-3.5" />
+              {course.certificateNumber} · {course.completedAt?.slice(0, 10)}
+            </p>
+          )}
+        </CardContent>
+      </Card>
+    );
   };
 
   if (loading) {
@@ -82,7 +187,7 @@ export function ClientPortal({ token }: { token: string }) {
             <Shield className="size-8 text-white" />
           </div>
           <div>
-            <p className="text-sm font-medium text-muted-foreground">Secure client portal</p>
+            <p className="text-sm font-medium text-muted-foreground">{BRAND.portal.name}</p>
             <h1 className="font-display text-2xl font-bold">Hi, {portal.debtorName}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Chapter {portal.chapter} bankruptcy
@@ -97,6 +202,15 @@ export function ClientPortal({ token }: { token: string }) {
             Encrypted · {completedCount}/{portal.requests.length} documents submitted
           </div>
         </header>
+
+        <section className="mt-8 space-y-3">
+          <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            <GraduationCap className="size-3.5" />
+            {BRAND.counseling.name}
+          </h2>
+          {renderCourse(1, "Course 1 — Credit counseling (before filing)", portal.counseling.course1)}
+          {renderCourse(2, "Course 2 — Debtor education (after filing)", portal.counseling.course2)}
+        </section>
 
         <section className="mt-8 space-y-3">
           <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">

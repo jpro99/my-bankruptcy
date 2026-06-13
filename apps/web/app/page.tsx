@@ -2,12 +2,12 @@ import Link from "next/link";
 import {
   ArrowRight,
   CheckCircle2,
-  Gauge,
+  Hammer,
   LayoutDashboard,
   Shield,
   Sparkles,
-  Zap,
 } from "lucide-react";
+import { BRAND } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,29 +16,29 @@ const FEATURES = [
   {
     icon: Sparkles,
     title: "AI extracts everything",
-    description: "Drop paystubs, tax returns, and credit reports. AI maps fields to official forms.",
+    description: "Drop paystubs, tax returns, credit. AI maps every field to official forms.",
   },
   {
-    icon: CheckCircle2,
-    title: "You only approve",
-    description: "Review confidence-scored fields one at a time. Bulk-approve high-confidence items.",
-  },
-  {
-    icon: Zap,
-    title: "God Button e-file",
-    description: "247-rule preflight check, then one click to CACB CM/ECF sandbox filing.",
+    icon: Hammer,
+    title: BRAND.forge.name,
+    description: BRAND.forge.description,
   },
   {
     icon: Shield,
-    title: "Autopilot deadlines",
-    description: "Post-petition tasks, 341 meeting, SOFA — tracked automatically after filing.",
+    title: BRAND.gavel.name,
+    description: `${BRAND.sealCheck.name} → ${BRAND.gavel.action.toLowerCase()} to CM/ECF.`,
+  },
+  {
+    icon: CheckCircle2,
+    title: BRAND.continuum.name,
+    description: BRAND.continuum.description,
   },
 ];
 
 const STATS = [
   { label: "Ch 7 flat fee", value: "$2,500" },
   { label: "Ch 13 flat fee", value: "$4,000" },
-  { label: "E-file", value: "1 click" },
+  { label: "E-file", value: "The Gavel" },
   { label: "Your work", value: "Approve" },
 ];
 
@@ -50,36 +50,40 @@ export default function HomePage() {
           <div className="flex size-9 items-center justify-center rounded-xl bg-primary shadow-glow">
             <span className="text-sm font-black text-white">MB</span>
           </div>
-          <span className="font-display text-lg font-bold tracking-tight">My Bankruptcy</span>
+          <span className="font-display text-lg font-bold tracking-tight">{BRAND.name}</span>
         </div>
-        <Badge variant="secondary">California · CACB</Badge>
+        <div className="flex gap-2">
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/signup">Attorney signup</Link>
+          </Button>
+          <Badge variant="secondary">California · CACB</Badge>
+        </div>
       </header>
 
       <main className="mx-auto max-w-6xl px-6 pb-20 pt-8 md:pt-16">
         <section className="animate-fade-in text-center">
-          <Badge className="mb-6">Out of this world simple</Badge>
+          <Badge className="mb-6">{BRAND.shortTag}</Badge>
           <h1 className="font-display text-4xl font-extrabold tracking-tight md:text-6xl md:leading-[1.1]">
-            The easiest bankruptcies
+            The fastest relief
             <br />
             <span className="text-gradient">an attorney will ever file</span>
           </h1>
           <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            Drop documents → approve AI fields → one-click e-file → autopilot the rest.
-            Built for California Chapter 7 &amp; 13 practice.
+            Document Drop → {BRAND.forge.name} → {BRAND.gavel.name} → {BRAND.continuum.name}.
+            Counseling Bridge, Trust Ledger receipts, encrypted Client Vault — end to end.
           </p>
 
           <div className="mt-10 flex flex-col items-center justify-center gap-3 sm:flex-row">
             <Button asChild size="lg" className="min-w-[220px] shadow-glow">
-              <Link href="/matters/demo/command">
-                <LayoutDashboard />
-                Command Center
+              <Link href="/signup">
+                Start free — attorney signup
                 <ArrowRight />
               </Link>
             </Button>
             <Button asChild variant="secondary" size="lg" className="min-w-[220px]">
-              <Link href="/matters/demo/cockpit">
-                <Gauge />
-                Matter Cockpit
+              <Link href="/matters/demo/command">
+                <LayoutDashboard />
+                {BRAND.command.name}
               </Link>
             </Button>
           </div>
@@ -92,7 +96,7 @@ export default function HomePage() {
                 <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
                   {stat.label}
                 </p>
-                <p className="mt-1 font-display text-2xl font-bold text-primary">{stat.value}</p>
+                <p className="mt-1 font-display text-xl font-bold text-primary">{stat.value}</p>
               </CardContent>
             </Card>
           ))}
@@ -123,11 +127,11 @@ export default function HomePage() {
 
         <section className="mt-16 flex flex-wrap items-center justify-center gap-4 text-sm">
           <Button asChild variant="link">
-            <Link href="/matters/demo/intake">Start intake →</Link>
+            <Link href="/matters/demo/intake">Document Drop →</Link>
           </Button>
           <span className="text-muted-foreground">·</span>
           <Button asChild variant="link">
-            <Link href="/portal/demo-client">Client portal demo →</Link>
+            <Link href="/portal/demo-client">Client Vault demo →</Link>
           </Button>
         </section>
       </main>

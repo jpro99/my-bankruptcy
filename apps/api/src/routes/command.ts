@@ -11,9 +11,12 @@ import {
   getDemoDistrictInfo,
   getDemoFiling,
   getDemoMatterMeta,
+  getDemoPortal,
   getDemoPortalOpenCount,
   getDemoReviewFields,
+  getSecurePortalUrl,
   isDemoMatter,
+  portalTokenForMatter,
 } from "../lib/demo-store.js";
 
 export const commandRouter = new Hono<AppEnv>();
@@ -34,6 +37,8 @@ commandRouter.get("/matter/:matterId", async (c) => {
   const autopilot = getDemoAutopilot(matterId);
   const billing = getDemoBilling(matterId);
   const petition = assembleDemoPetition(matterId);
+  const portal = getDemoPortal(portalTokenForMatter(matterId));
+  const counselingComplete = portal.counseling.course1.status === "complete";
 
   const localFormsComplete = pending === 0;
   const districtPreflight = runDistrictPreflight({
@@ -42,7 +47,7 @@ commandRouter.get("/matter/:matterId", async (c) => {
     county: districtInfo.county,
     chapter: meta.chapter,
     localFormsComplete,
-    hasCertificateOfCreditCounseling: localFormsComplete,
+    hasCertificateOfCreditCounseling: counselingComplete,
     hasRara: localFormsComplete,
   });
 
@@ -79,13 +84,18 @@ commandRouter.get("/matter/:matterId", async (c) => {
     balanceDue: billing?.balanceDue ?? "2908.00",
     petitionCompletionPercent: petition.overallCompletion,
     districtConfigured: true,
+    counselingComplete,
   });
+
+  const webBase = process.env.WEB_URL ?? c.req.header("origin") ?? "http://localhost:3000";
 
   return c.json({
     progress,
     preflightReady,
     caseNumber: filing?.caseNumber,
-    portalUrl: `/portal/${matterId}-client`,
+    portalUrl: getSecurePortalUrl(matterId, webBase),
+    portalToken: portalTokenForMatter(matterId),
+    counselingComplete,
     district: districtInfo,
     petitionCompletion: petition.overallCompletion,
     districtPreflight,

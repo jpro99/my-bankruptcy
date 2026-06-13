@@ -5,7 +5,8 @@ import { Activity, ArrowRight, Calculator, Plane } from "lucide-react";
 import type { MatterDiagnostics } from "@/lib/types";
 import type { ApiDiagnostics } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
-import { GodButton } from "@/components/cockpit/god-button";
+import { GavelButton } from "@/components/cockpit/gavel-button";
+import { BRAND } from "@/lib/brand";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -109,7 +110,7 @@ export function DiagnosticsPanel({
           </CardContent>
         </Card>
 
-        <GodButton
+        <GavelButton
           matterId={matterId}
           chapter={diagnostics.chapterRecommendation}
           disabled={pendingCount > 0 && diagnostics.chapterRecommendation !== "review"}
@@ -117,9 +118,9 @@ export function DiagnosticsPanel({
 
         <div className="space-y-2">
           <Button asChild variant="secondary" className="w-full">
-            <Link href={`/matters/${matterId}/autopilot`}>
+            <Link href={`/matters/${matterId}/continuum`}>
               <Plane className="size-4" />
-              Autopilot
+              {BRAND.continuum.name}
               <ArrowRight className="ml-auto size-3.5" />
             </Link>
           </Button>

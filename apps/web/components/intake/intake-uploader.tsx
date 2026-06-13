@@ -80,11 +80,11 @@ export function IntakeUploader({ matterId }: { matterId: string }) {
         `Intake complete — ${result.tradelineCount} tradelines classified into Schedules D/E/F/G`
       );
       await new Promise((r) => setTimeout(r, 1200));
-      window.location.href = `/matters/${matterId}/cockpit`;
+      window.location.href = `/matters/${matterId}/forge`;
     } catch {
       setStatusMessage("Credit pull unavailable — continuing with document extraction…");
       await new Promise((r) => setTimeout(r, 1500));
-      window.location.href = `/matters/${matterId}/cockpit`;
+      window.location.href = `/matters/${matterId}/forge`;
     }
   };
 

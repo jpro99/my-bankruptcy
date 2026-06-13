@@ -1,16 +1,10 @@
-import { AutopilotDashboard } from "@/components/autopilot/autopilot-dashboard";
-import { MatterShell } from "@/components/layout/matter-shell";
+import { redirect } from "next/navigation";
 
-export default async function AutopilotPage({
+export default async function AutopilotRedirect({
   params,
 }: {
   params: Promise<{ matterId: string }>;
 }) {
   const { matterId } = await params;
-
-  return (
-    <MatterShell matterId={matterId}>
-      <AutopilotDashboard matterId={matterId} />
-    </MatterShell>
-  );
+  redirect(`/matters/${matterId}/continuum`);
 }

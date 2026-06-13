@@ -26,6 +26,29 @@ export const InvoiceLineSchema = z.object({
 
 export type InvoiceLine = z.infer<typeof InvoiceLineSchema>;
 
+export const PaymentMethodSchema = z.enum([
+  "cash",
+  "check",
+  "card",
+  "zelle",
+  "venmo",
+  "trust",
+  "other",
+]);
+export type PaymentMethod = z.infer<typeof PaymentMethodSchema>;
+
+export const PaymentReceiptSchema = z.object({
+  id: z.string(),
+  matterId: z.string(),
+  amount: z.string(),
+  method: PaymentMethodSchema,
+  checkNumber: z.string().optional(),
+  note: z.string().optional(),
+  receivedAt: z.string().datetime(),
+  receivedBy: z.string(),
+});
+export type PaymentReceipt = z.infer<typeof PaymentReceiptSchema>;
+
 export const MatterInvoiceSchema = z.object({
   matterId: z.string(),
   chapter: BillingChapterSchema,
@@ -37,9 +60,18 @@ export const MatterInvoiceSchema = z.object({
   status: z.enum(["draft", "sent", "partial", "paid"]),
   trustBalance: z.string(),
   generatedAt: z.string().datetime(),
+  payments: z.array(PaymentReceiptSchema).default([]),
 });
 
 export type MatterInvoice = z.infer<typeof MatterInvoiceSchema>;
+
+export interface RecordPaymentInput {
+  amount: string;
+  method: PaymentMethod;
+  checkNumber?: string;
+  note?: string;
+  receivedBy?: string;
+}
 
 export interface GenerateInvoiceInput {
   matterId: string;

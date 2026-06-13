@@ -12,6 +12,7 @@ import {
   Smartphone,
 } from "lucide-react";
 import { fetchCommandCenter, type MatterProgress } from "@/lib/api-client";
+import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -51,6 +52,7 @@ export function CommandCenter({ matterId }: { matterId: string }) {
   const [caseNumber, setCaseNumber] = useState<string | undefined>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -98,7 +100,7 @@ export function CommandCenter({ matterId }: { matterId: string }) {
       <header className="space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="space-y-2">
-            <Badge>Command Center</Badge>
+            <Badge>{BRAND.command.name}</Badge>
             <h1 className="font-display text-3xl font-bold tracking-tight md:text-4xl">
               {progress.tagline}
             </h1>
@@ -173,15 +175,31 @@ export function CommandCenter({ matterId }: { matterId: string }) {
       </div>
 
       <div className="flex flex-wrap gap-3 border-t border-border pt-6">
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={() => {
+            const url = portalUrl.startsWith("http")
+              ? portalUrl
+              : `${window.location.origin}${portalUrl}`;
+            void navigator.clipboard.writeText(url);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+          }}
+        >
+          <Smartphone className="size-4" />
+          {copied ? "Copied secure link!" : `Copy ${BRAND.portal.name} link`}
+        </Button>
         <Button asChild variant="secondary">
-          <Link href={portalUrl}>
-            <Smartphone className="size-4" />
-            Client portal link
-          </Link>
+          <a
+            href={`mailto:?subject=${encodeURIComponent("Your secure bankruptcy portal")}&body=${encodeURIComponent(`Complete your required steps here:\n\n${portalUrl}`)}`}
+          >
+            Email client link
+          </a>
         </Button>
         <Button asChild variant="ghost">
-          <Link href={`/matters/${matterId}/cockpit`}>
-            Open Cockpit
+          <Link href={`/matters/${matterId}/forge`}>
+            Open {BRAND.forge.name}
             <ArrowRight />
           </Link>
         </Button>

@@ -1,10 +1,10 @@
-import { MatterCockpit } from "@/components/cockpit/matter-cockpit";
+import { redirect } from "next/navigation";
 
-interface CockpitPageProps {
+export default async function CockpitRedirect({
+  params,
+}: {
   params: Promise<{ matterId: string }>;
-}
-
-export default async function CockpitPage({ params }: CockpitPageProps) {
+}) {
   const { matterId } = await params;
-  return <MatterCockpit matterId={matterId} />;
+  redirect(`/matters/${matterId}/forge`);
 }

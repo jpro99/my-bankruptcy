@@ -19,13 +19,27 @@ export function computeMatterProgress(input: ComputeProgressInput): MatterProgre
   const steps: GuideStep[] = [
     {
       id: "intake",
-      title: "One-Touch Intake",
+      title: "Document Drop",
       description: "Drop ID, paystubs, bank statements — AI populates all schedules",
       status: stepStatus(input.intakeComplete, !input.intakeComplete, false),
       weight: 15,
       actionLabel: "Upload documents",
       actionHref: `${base}/intake`,
       estimatedMinutes: 5,
+    },
+    {
+      id: "counseling",
+      title: "Counseling Bridge",
+      description: "Course 1 before filing — secure link to AOUST provider",
+      status: stepStatus(
+        input.counselingComplete ?? false,
+        input.intakeComplete && !(input.counselingComplete ?? false),
+        !input.intakeComplete
+      ),
+      weight: 8,
+      actionLabel: input.counselingComplete ? "Course 1 complete" : "Send client link",
+      actionHref: `${base}/command`,
+      estimatedMinutes: 2,
     },
     {
       id: "credit",
@@ -38,27 +52,27 @@ export function computeMatterProgress(input: ComputeProgressInput): MatterProgre
       ),
       weight: 10,
       actionLabel: input.creditPulled ? "Review credit" : "Pull credit",
-      actionHref: input.creditPulled ? `${base}/credit` : `${base}/cockpit`,
+      actionHref: input.creditPulled ? `${base}/credit` : `${base}/forge`,
       estimatedMinutes: 2,
     },
     {
       id: "review",
-      title: "Approve-Only Review",
-      description: "Swipe through AI fields — Approve, Edit, or Question",
+      title: "The Forge",
+      description: "Approve-only review — every AI field, one decision at a time",
       status: stepStatus(
         input.reviewComplete,
         input.pendingFieldCount > 0 && input.pendingFieldCount < 20,
         false
       ),
       weight: 25,
-      actionLabel: input.pendingFieldCount > 0 ? `${input.pendingFieldCount} fields left` : "Review queue",
-      actionHref: `${base}/cockpit`,
+      actionLabel: input.pendingFieldCount > 0 ? `${input.pendingFieldCount} fields left` : "Enter The Forge",
+      actionHref: `${base}/forge`,
       estimatedMinutes: Math.max(5, input.pendingFieldCount * 2),
     },
     {
       id: "schedules",
       title: "Petition Schedules",
-      description: "Full A/B–J read-only view — property, creditors, income, exemptions",
+      description: "Full A/B–J view — property, creditors, income, exemptions",
       status: stepStatus(
         (input.petitionCompletionPercent ?? 0) >= 90,
         (input.petitionCompletionPercent ?? 0) >= 40,
@@ -97,60 +111,60 @@ export function computeMatterProgress(input: ComputeProgressInput): MatterProgre
       : []),
     {
       id: "billing",
-      title: "Fees & Trust",
-      description: "Flat fee quote, court costs, client payment tracking",
+      title: "Trust Ledger",
+      description: "Flat fee, trust accounting, instant printable receipts",
       status: stepStatus(
         parseFloat(input.balanceDue) === 0,
         parseFloat(input.balanceDue) > 0,
         false
       ),
       weight: 5,
-      actionLabel: "View billing",
+      actionLabel: "View ledger",
       actionHref: `${base}/billing`,
       estimatedMinutes: 3,
     },
     {
       id: "file",
-      title: "God Button — E-File",
-      description: "247-rule preflight → one click to CACB CM/ECF",
+      title: "The Gavel",
+      description: "Seal Check → one motion to CACB CM/ECF",
       status: stepStatus(
         input.filed,
         input.preflightReady && !input.filed,
         !input.preflightReady && !input.filed
       ),
       weight: 20,
-      actionLabel: input.filed ? "Filed ✓" : "File now",
-      actionHref: `${base}/cockpit`,
+      actionLabel: input.filed ? "Filed ✓" : "Strike The Gavel",
+      actionHref: `${base}/forge`,
       estimatedMinutes: 2,
     },
     {
       id: "portal",
-      title: "Client Portal",
-      description: "Debtor uploads paystubs, tax returns — no email chasing",
+      title: "Client Vault",
+      description: "Encrypted magic link — documents & required courses",
       status: stepStatus(
         input.clientPortalRequestsOpen === 0 && input.filed,
         input.filed,
         !input.filed
       ),
       weight: 5,
-      actionLabel: "Send portal link",
-      actionHref: `/portal/${input.matterId}-client`,
+      actionLabel: "Copy secure link",
+      actionHref: `${base}/command`,
       estimatedMinutes: 1,
     },
     {
-      id: "autopilot",
-      title: "Post-Petition Autopilot",
-      description: "341 prep, §521 deadlines, discharge tracking on autopilot",
+      id: "continuum",
+      title: "Continuum",
+      description: "341 through discharge — post-fetition path, nothing missed",
       status: stepStatus(input.autopilotActive, input.filed && !input.autopilotActive, !input.filed),
       weight: 10,
-      actionLabel: "Open autopilot",
-      actionHref: `${base}/autopilot`,
+      actionLabel: "Open Continuum",
+      actionHref: `${base}/continuum`,
       estimatedMinutes: 1,
     },
     {
       id: "audit",
       title: "Provenance Audit Trail",
-      description: "Court-ready export — every field change with source docs + attorney approval",
+      description: "Court-ready export — every field change with source docs",
       status: stepStatus(input.reviewComplete, input.pendingFieldCount > 0, false),
       weight: 5,
       actionLabel: "Export audit",
@@ -172,10 +186,10 @@ export function computeMatterProgress(input: ComputeProgressInput): MatterProgre
   const next = steps.find((s) => s.status === "in_progress" || s.status === "pending");
 
   const taglines: Record<string, string> = {
-    low: `Chapter ${ch} — ${input.debtorDisplayName}: getting started`,
-    mid: `Chapter ${ch} — ${input.debtorDisplayName}: halfway there`,
-    high: `Chapter ${ch} — ${input.debtorDisplayName}: almost done`,
-    done: `Chapter ${ch} — ${input.debtorDisplayName}: case on autopilot 🚀`,
+    low: `Chapter ${ch} — ${input.debtorDisplayName}: forging your petition`,
+    mid: `Chapter ${ch} — ${input.debtorDisplayName}: halfway to relief`,
+    high: `Chapter ${ch} — ${input.debtorDisplayName}: ready for The Gavel`,
+    done: `Chapter ${ch} — ${input.debtorDisplayName}: on the Continuum`,
   };
 
   let tagline = taglines.low!;
@@ -195,7 +209,7 @@ export function computeMatterProgress(input: ComputeProgressInput): MatterProgre
       ? {
           stepId: next.id,
           title: next.title,
-          href: next.actionHref ?? `${base}/cockpit`,
+          href: next.actionHref ?? `${base}/forge`,
           label: next.actionLabel ?? "Continue",
         }
       : undefined,
