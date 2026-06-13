@@ -56,12 +56,22 @@ git push -u origin main
 
 1. [vercel.com](https://vercel.com) → Import **my-bankruptcy**
 2. Root directory: **`apps/web`**
-3. Environment variables:
+3. Framework: **Next.js**
+4. Environment variables:
    ```
-   NEXT_PUBLIC_API_URL=https://YOUR-RAILWAY-API-URL.up.railway.app
    NEXT_PUBLIC_DEV_AUTH_BYPASS=1
+   NEXT_PUBLIC_API_URL=https://YOUR-RAILWAY-API-URL.up.railway.app
    ```
-4. Deploy
+5. Deploy
+
+If the first build fails (monorepo / pnpm), open the project → **Settings → General → Build & Development** and set:
+
+- **Install Command:** `cd ../.. && corepack enable && pnpm install`
+- **Build Command:** `cd ../.. && pnpm turbo run build --filter=@chapterai/web...`
+
+Then **Deployments → Redeploy**.
+
+`apps/web/vercel.json` in the repo should apply these automatically on the next deploy after you push.
 
 ### Link them
 
