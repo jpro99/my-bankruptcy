@@ -5,7 +5,21 @@ export function adviseTradelineInclusion(tl: {
   monthlyPayment?: string;
   schedule: string;
   rationale: string;
+  isDuplicate?: boolean;
+  isManual?: boolean;
 }): { recommendation: "keep" | "exclude"; reason: string } {
+  if (tl.isDuplicate) {
+    return {
+      recommendation: "exclude",
+      reason: "Marked as duplicate — exclude from petition",
+    };
+  }
+  if (tl.isManual) {
+    return {
+      recommendation: "keep",
+      reason: `Manual creditor (not on credit report) — include on Schedule ${tl.schedule}`,
+    };
+  }
   const balance = parseFloat(tl.balance);
   const monthly = parseFloat(tl.monthlyPayment ?? "0");
 

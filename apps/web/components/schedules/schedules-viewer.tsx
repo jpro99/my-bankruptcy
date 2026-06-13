@@ -2,13 +2,18 @@
 
 import { useCallback, useEffect, useState } from "react";
 import {
+  addManualCreditor,
+  fetchCreditReview,
   fetchSchedules,
+  patchTradeline,
   setMatterDistrict,
   updateScheduleItem,
   type DistrictInfo,
+  type ManualCreditorInput,
   type PetitionLineItem,
   type PetitionSchedule,
   type PetitionView,
+  type TradelineReviewEntry,
   type ValuationProvenance,
 } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
@@ -17,8 +22,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, MapPin, Pencil, Check, X, FileSearch } from "lucide-react";
+import { Loader2, MapPin, Pencil, Check, X, FileSearch, Plus } from "lucide-react";
 import { ValuationSourceModal } from "./valuation-source-modal";
+import { AddCreditorModal } from "@/components/credit/add-creditor-modal";
+import { TradelineControls } from "@/components/credit/tradeline-controls";
+
+const DEBT_SCHEDULE_IDS = new Set(["schedule-d", "schedule-ef", "schedule-g"]);
 
 const STATUS_VARIANT: Record<string, "success" | "warning" | "default" | "secondary" | "outline"> = {
   approved: "success",
@@ -53,14 +62,21 @@ export function SchedulesViewer({ matterId }: { matterId: string }) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [valuationItem, setValuationItem] = useState<PetitionLineItem | null>(null);
+  const [tradelineEntries, setTradelineEntries] = useState<TradelineReviewEntry[]>([]);
+  const [showAddCreditor, setShowAddCreditor] = useState(false);
+  const [tradelineSavingId, setTradelineSavingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const schedData = await fetchSchedules(matterId);
+      const [schedData, creditData] = await Promise.all([
+        fetchSchedules(matterId),
+        fetchCreditReview(matterId).catch(() => null),
+      ]);
       setPetition(schedData.petition);
       setDistrict(schedData.district);
       setCountyInput(schedData.district.county);
+      if (creditData) setTradelineEntries(creditData.entries);
       if (schedData.petition.schedules[0]) {
         setActiveSchedule(schedData.petition.schedules[0].id);
       }
@@ -94,6 +110,32 @@ export function SchedulesViewer({ matterId }: { matterId: string }) {
     setDistrict(res.district);
     setCountyInput(res.district.county);
   };
+
+  const handleTradelinePatch = async (
+    tradelineId: string,
+    patch: Parameters<typeof patchTradeline>[2]
+  ) => {
+    setTradelineSavingId(tradelineId);
+    try {
+      const res = await patchTradeline(matterId, tradelineId, patch);
+      setTradelineEntries(res.entries);
+      setPetition(res.petition);
+    } finally {
+      setTradelineSavingId(null);
+    }
+  };
+
+  const handleAddCreditor = async (input: ManualCreditorInput) => {
+    const res = await addManualCreditor(matterId, input);
+    setTradelineEntries(res.entries);
+    setPetition(res.petition);
+    setShowAddCreditor(false);
+  };
+
+  const duplicateOptions = tradelineEntries.map((e) => ({
+    id: e.id,
+    creditorName: e.creditorName,
+  }));
 
   if (loading || !petition || !district) {
     return (
@@ -179,8 +221,20 @@ export function SchedulesViewer({ matterId }: { matterId: string }) {
       {current && (
         <SchedulePanel
           schedule={current}
+          tradelineEntries={tradelineEntries}
+          duplicateOptions={duplicateOptions}
+          tradelineSavingId={tradelineSavingId}
           onSaveItem={(id, value) => handleItemSave(id, value)}
           onViewValuation={setValuationItem}
+          onTradelinePatch={handleTradelinePatch}
+          onAddCreditor={() => setShowAddCreditor(true)}
+        />
+      )}
+
+      {showAddCreditor && (
+        <AddCreditorModal
+          onClose={() => setShowAddCreditor(false)}
+          onSubmit={handleAddCreditor}
         />
       )}
 
@@ -197,13 +251,27 @@ export function SchedulesViewer({ matterId }: { matterId: string }) {
 
 function SchedulePanel({
   schedule,
+  tradelineEntries,
+  duplicateOptions,
+  tradelineSavingId,
   onSaveItem,
   onViewValuation,
+  onTradelinePatch,
+  onAddCreditor,
 }: {
   schedule: PetitionSchedule;
+  tradelineEntries: TradelineReviewEntry[];
+  duplicateOptions: { id: string; creditorName: string }[];
+  tradelineSavingId: string | null;
   onSaveItem: (itemId: string, value: string) => Promise<void>;
   onViewValuation: (item: PetitionLineItem) => void;
+  onTradelinePatch: (
+    tradelineId: string,
+    patch: Parameters<typeof patchTradeline>[2]
+  ) => Promise<void>;
+  onAddCreditor: () => void;
 }) {
+  const isDebtSchedule = DEBT_SCHEDULE_IDS.has(schedule.id);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [savingId, setSavingId] = useState<string | null>(null);
@@ -234,18 +302,36 @@ function SchedulePanel({
           <Badge variant="outline">
             {schedule.approvedCount}/{schedule.itemCount} complete
           </Badge>
+          {isDebtSchedule && (
+            <Button type="button" size="sm" variant="secondary" onClick={onAddCreditor}>
+              <Plus className="size-3.5" />
+              Add creditor
+            </Button>
+          )}
         </div>
       </CardHeader>
       <CardContent className="space-y-2">
         {schedule.items.length === 0 ? (
-          <p className="py-8 text-center text-sm text-muted-foreground">
-            No items yet — run intake and pull credit to populate.
-          </p>
+          <div className="space-y-4 py-8 text-center text-sm text-muted-foreground">
+            <p>
+              {isDebtSchedule
+                ? "No creditors on this schedule yet — pull credit or add manually."
+                : "No items yet — run intake and pull credit to populate."}
+            </p>
+            {isDebtSchedule && (
+              <Button type="button" variant="secondary" size="sm" onClick={onAddCreditor}>
+                <Plus className="size-4" />
+                Add creditor not on credit report
+              </Button>
+            )}
+          </div>
         ) : (
-          schedule.items.map((item) => (
+          schedule.items.map((item) => {
+            const tradelineEntry = tradelineEntries.find((e) => e.id === item.id);
+            return (
             <div
               key={item.id}
-              className="flex flex-col gap-2 rounded-lg border border-border p-4 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-2 rounded-lg border border-border p-4 sm:flex-row sm:items-start sm:justify-between"
             >
               <div className="min-w-0 flex-1">
                 <p className="font-medium">{item.label}</p>
@@ -275,6 +361,28 @@ function SchedulePanel({
                   </div>
                 ) : (
                   <p className="mt-0.5 text-sm text-muted-foreground">{item.value}</p>
+                )}
+                {item.isManual && (
+                  <Badge variant="default" className="mt-2 text-[10px] uppercase">
+                    Not on credit report
+                  </Badge>
+                )}
+                {tradelineEntry && isDebtSchedule && (
+                  <div className="mt-3">
+                    <TradelineControls
+                      entry={tradelineEntry}
+                      duplicateOptions={duplicateOptions}
+                      saving={tradelineSavingId === item.id}
+                      compact
+                      onScheduleChange={(s) => void onTradelinePatch(item.id, { schedule: s })}
+                      onMarkDuplicate={(isDuplicate, duplicateOfId) =>
+                        void onTradelinePatch(item.id, {
+                          isDuplicate,
+                          duplicateOfId: duplicateOfId ?? null,
+                        })
+                      }
+                    />
+                  </div>
                 )}
                 {item.sourceDocument && (
                   <p className="mt-1 text-xs text-primary">{item.sourceDocument}</p>
@@ -314,7 +422,8 @@ function SchedulePanel({
                 )}
               </div>
             </div>
-          ))
+            );
+          })
         )}
       </CardContent>
     </Card>

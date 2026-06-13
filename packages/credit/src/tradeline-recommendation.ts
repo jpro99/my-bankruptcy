@@ -8,9 +8,25 @@ export interface TradelineReviewAdvice {
 }
 
 /** Attorney-facing guidance — deterministic, not LLM */
-export function adviseTradelineInclusion(tl: ClassifiedTradeline): TradelineReviewAdvice {
+export function adviseTradelineInclusion(
+  tl: ClassifiedTradeline & { isDuplicate?: boolean; isManual?: boolean }
+): TradelineReviewAdvice {
   const balance = parseFloat(tl.balance);
   const monthly = parseFloat(tl.monthlyPayment ?? "0");
+
+  if (tl.isDuplicate) {
+    return {
+      recommendation: "exclude",
+      reason: "Marked as duplicate — exclude from petition",
+    };
+  }
+
+  if (tl.isManual) {
+    return {
+      recommendation: "keep",
+      reason: `Manual creditor (not on credit report) — include on Schedule ${tl.schedule}`,
+    };
+  }
 
   if (tl.schedule === "G" && balance === 0 && monthly === 0) {
     return {

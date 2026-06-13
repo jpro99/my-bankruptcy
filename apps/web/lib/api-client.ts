@@ -394,6 +394,8 @@ export interface PetitionLineItem {
   sourceDocument?: string;
   formReference?: string;
   valuation?: ValuationProvenance;
+  isManual?: boolean;
+  scheduleBucket?: "D" | "E" | "F" | "G";
 }
 
 export interface PetitionSchedule {
@@ -487,6 +489,29 @@ export interface TradelineReviewEntry {
   included: boolean;
   fieldId: string;
   advice: { recommendation: "keep" | "exclude"; reason: string };
+  isManual?: boolean;
+  isDuplicate?: boolean;
+  duplicateOfId?: string;
+  duplicateOfName?: string;
+}
+
+export interface TradelinePatchInput {
+  included?: boolean;
+  schedule?: "D" | "E" | "F" | "G";
+  isDuplicate?: boolean;
+  duplicateOfId?: string | null;
+  creditorName?: string;
+  balance?: string;
+  monthlyPayment?: string;
+}
+
+export interface ManualCreditorInput {
+  creditorName: string;
+  balance: string;
+  schedule: "D" | "E" | "F" | "G";
+  accountType?: string;
+  monthlyPayment?: string;
+  collateralDescription?: string;
 }
 
 export function fetchCreditReview(matterId: string) {
@@ -522,15 +547,36 @@ export function fetchCreditReview(matterId: string) {
 }
 
 export function setTradelineIncluded(matterId: string, tradelineId: string, included: boolean) {
+  return patchTradeline(matterId, tradelineId, { included });
+}
+
+export function patchTradeline(
+  matterId: string,
+  tradelineId: string,
+  patch: TradelinePatchInput
+) {
   return apiFetch<{
     matterId: string;
     tradelineId: string;
-    included: boolean;
     entries: TradelineReviewEntry[];
     diagnostics: ApiDiagnostics;
+    petition: PetitionView;
   }>(`/api/credit/matter/${matterId}/tradelines/${tradelineId}`, {
     method: "PATCH",
-    body: JSON.stringify({ included }),
+    body: JSON.stringify(patch),
+  });
+}
+
+export function addManualCreditor(matterId: string, input: ManualCreditorInput) {
+  return apiFetch<{
+    matterId: string;
+    tradeline: TradelineReviewEntry;
+    entries: TradelineReviewEntry[];
+    diagnostics: ApiDiagnostics;
+    petition: PetitionView;
+  }>(`/api/credit/matter/${matterId}/tradelines`, {
+    method: "POST",
+    body: JSON.stringify(input),
   });
 }
 

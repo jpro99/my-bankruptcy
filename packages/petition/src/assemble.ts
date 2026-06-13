@@ -37,6 +37,8 @@ export const PetitionLineItemSchema = z.object({
   sourceDocument: z.string().optional(),
   formReference: z.string().optional(),
   valuation: ValuationProvenanceSchema.optional(),
+  isManual: z.boolean().optional(),
+  scheduleBucket: z.enum(["D", "E", "F", "G"]).optional(),
 });
 
 export type PetitionLineItem = z.infer<typeof PetitionLineItemSchema>;
@@ -89,6 +91,7 @@ export interface TradelineInput {
   confidence: number;
   collateralDescription?: string;
   approvalState?: "pending" | "approved" | "edited";
+  isManual?: boolean;
 }
 
 export interface AssetInput {
@@ -242,11 +245,13 @@ export function assemblePetition(input: AssemblePetitionInput): PetitionView {
     "Creditors with claims secured by property",
     bySchedule("D").map((t) => ({
       id: t.id,
-      label: t.creditorName,
+      label: `${t.isManual ? "[Not on credit] " : ""}${t.creditorName}`,
       value: `$${t.balance}${t.monthlyPayment ? ` · $${t.monthlyPayment}/mo` : ""}${t.collateralDescription ? ` · ${t.collateralDescription}` : ""}`,
       status: t.approvalState ? fieldStatus(t.approvalState) : ("imported" as const),
       confidence: t.confidence,
       formReference: "106D",
+      isManual: t.isManual,
+      scheduleBucket: "D" as const,
     }))
   );
 
@@ -257,11 +262,13 @@ export function assemblePetition(input: AssemblePetitionInput): PetitionView {
     "Priority and nonpriority unsecured claims",
     [...bySchedule("E"), ...bySchedule("F")].map((t) => ({
       id: t.id,
-      label: `${t.schedule === "E" ? "[Priority] " : ""}${t.creditorName}`,
+      label: `${t.isManual ? "[Not on credit] " : ""}${t.schedule === "E" ? "[Priority] " : ""}${t.creditorName}`,
       value: `$${t.balance}`,
       status: t.approvalState ? fieldStatus(t.approvalState) : ("imported" as const),
       confidence: t.confidence,
       formReference: "106E/F",
+      isManual: t.isManual,
+      scheduleBucket: t.schedule,
     }))
   );
 
@@ -272,11 +279,13 @@ export function assemblePetition(input: AssemblePetitionInput): PetitionView {
     "Unexpired leases and executory contracts",
     bySchedule("G").map((t) => ({
       id: t.id,
-      label: t.creditorName,
+      label: `${t.isManual ? "[Not on credit] " : ""}${t.creditorName}`,
       value: `$${t.balance}/mo`,
       status: "imported" as const,
       confidence: t.confidence,
       formReference: "106G",
+      isManual: t.isManual,
+      scheduleBucket: "G" as const,
     }))
   );
 

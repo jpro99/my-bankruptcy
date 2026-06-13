@@ -8,7 +8,9 @@ import {
   getDemoTradelines,
   getDemoDiagnostics,
   getTradelineReview,
-  setTradelineIncluded,
+  patchDemoTradeline,
+  addManualCreditor,
+  assembleDemoPetition,
   recomputeDemoDiagnostics,
 } from "../lib/demo-store.js";
 
@@ -59,7 +61,22 @@ creditRouter.get("/matter/:matterId/tradelines", async (c) => {
 });
 
 const TradelineIncludeSchema = z.object({
-  included: z.boolean(),
+  included: z.boolean().optional(),
+  schedule: z.enum(["D", "E", "F", "G"]).optional(),
+  isDuplicate: z.boolean().optional(),
+  duplicateOfId: z.string().nullable().optional(),
+  creditorName: z.string().min(1).optional(),
+  balance: z.string().optional(),
+  monthlyPayment: z.string().optional(),
+});
+
+const AddManualCreditorSchema = z.object({
+  creditorName: z.string().min(1),
+  balance: z.string().min(1),
+  schedule: z.enum(["D", "E", "F", "G"]),
+  accountType: z.string().optional(),
+  monthlyPayment: z.string().optional(),
+  collateralDescription: z.string().optional(),
 });
 
 creditRouter.get("/matter/:matterId/review", async (c) => {
@@ -87,14 +104,42 @@ creditRouter.patch(
     if (!isDemoMatter(matterId)) {
       return c.json({ error: "Matter not found" }, 404);
     }
-    const { included } = c.req.valid("json");
-    setTradelineIncluded(matterId, tradelineId, included);
+    const patch = c.req.valid("json");
+    if (Object.keys(patch).length === 0) {
+      return c.json({ error: "No updates provided" }, 400);
+    }
+    const before = getDemoTradelines(matterId);
+    if (!before.some((t) => t.id === tradelineId)) {
+      return c.json({ error: "Tradeline not found" }, 404);
+    }
+    patchDemoTradeline(matterId, tradelineId, patch);
     return c.json({
       matterId,
       tradelineId,
-      included,
+      ...patch,
       entries: getTradelineReview(matterId),
       diagnostics: getDemoDiagnostics(matterId),
+      petition: assembleDemoPetition(matterId),
+    });
+  }
+);
+
+creditRouter.post(
+  "/matter/:matterId/tradelines",
+  zValidator("json", AddManualCreditorSchema),
+  async (c) => {
+    const matterId = c.req.param("matterId");
+    if (!isDemoMatter(matterId)) {
+      return c.json({ error: "Matter not found" }, 404);
+    }
+    const body = c.req.valid("json");
+    const tradeline = addManualCreditor(matterId, body);
+    return c.json({
+      matterId,
+      tradeline,
+      entries: getTradelineReview(matterId),
+      diagnostics: getDemoDiagnostics(matterId),
+      petition: assembleDemoPetition(matterId),
     });
   }
 );

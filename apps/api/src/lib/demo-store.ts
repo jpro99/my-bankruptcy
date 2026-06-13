@@ -21,7 +21,7 @@ import {
   getDistrictForCounty,
   getDistrictProfile,
 } from "@chapterai/districts";
-import { assemblePetition, type PetitionView } from "@chapterai/petition";
+import { assemblePetition, type PetitionView, type ValuationProvenance } from "@chapterai/petition";
 import type { ProvenanceEventType } from "@chapterai/provenance";
 import { exportProvenanceBundle, type ProvenanceRecord } from "@chapterai/provenance";
 import { loadDemoStore, persistDemoStore } from "./demo-persist.js";
@@ -57,7 +57,13 @@ export interface DemoPortalState {
   message: string;
 }
 
-import type { ValuationProvenance } from "@chapterai/petition";
+export type ScheduleBucket = "D" | "E" | "F" | "G";
+
+export interface DemoTradeline extends ClassifiedTradeline {
+  isManual?: boolean;
+  isDuplicate?: boolean;
+  duplicateOfId?: string;
+}
 
 export interface DemoAsset {
   id: string;
@@ -90,7 +96,7 @@ interface DemoMatterState {
   provenanceEvents: ProvenanceRecord[];
   reviewFields: DemoReviewField[];
   diagnostics: MatterDiagnosticsPayload;
-  classifiedTradelines: ClassifiedTradeline[];
+  classifiedTradelines: DemoTradeline[];
   /** tradeline id → include on petition schedules (attorney credit review) */
   tradelineInclusion: Record<string, boolean>;
   creditPulled: boolean;
@@ -317,9 +323,42 @@ function saveSnapshot(): void {
   persistDemoStore(demoStore);
 }
 
-function getIncludedTradelines(state: DemoMatterState): ClassifiedTradeline[] {
+function formIdForSchedule(schedule: ScheduleBucket): string {
+  if (schedule === "D") return "106D";
+  if (schedule === "G") return "106G";
+  return "106E/F";
+}
+
+function recomputeTradelineDiagnostics(state: DemoMatterState): void {
+  const securedPayments = getIncludedTradelines(state)
+    .filter((t) => t.schedule === "D")
+    .reduce((acc, t) => acc + parseFloat(t.monthlyPayment ?? "0"), 0)
+    .toFixed(2);
+
+  const meansTest = evaluateUnifiedMeansTest({
+    chapter: state.chapter,
+    householdSize: 2,
+    annualIncome: "72000.00",
+    deductions: {
+      ...DEFAULT_DEDUCTIONS,
+      securedDebtPayments:
+        securedPayments !== "0.00" ? securedPayments : DEFAULT_DEDUCTIONS.securedDebtPayments,
+    },
+  });
+
+  state.diagnostics = buildDiagnosticsPayload({
+    meansTest,
+    missingFields: state.reviewFields.filter((f) => f.approvalState === "pending").length,
+    exemptionGaps: 0,
+    creditSummary: state.creditPulled
+      ? scheduleSummary(getIncludedTradelines(state))
+      : undefined,
+  });
+}
+
+function getIncludedTradelines(state: DemoMatterState): DemoTradeline[] {
   return state.classifiedTradelines.filter(
-    (t) => state.tradelineInclusion[t.id] !== false
+    (t) => state.tradelineInclusion[t.id] !== false && !t.isDuplicate
   );
 }
 
@@ -435,6 +474,7 @@ export function assembleDemoPetition(matterId: string): PetitionView {
       monthlyPayment: t.monthlyPayment,
       confidence: t.confidence,
       collateralDescription: t.collateralDescription,
+      isManual: t.isManual,
       approvalState: (() => {
         const s = state.reviewFields.find((f) => f.id === `credit-${t.id}`)?.approvalState;
         if (s === "questioned") return "pending" as const;
@@ -524,7 +564,7 @@ export async function runDemoCreditPull(matterId: string): Promise<{
   const creditFields: DemoReviewField[] = classified.map((tl, i) => ({
     id: `credit-${tl.id}`,
     fieldPath: `creditors.${i}.creditorName`,
-    formId: tl.schedule === "D" ? "106D" : tl.schedule === "G" ? "106G" : "106E/F",
+    formId: formIdForSchedule(tl.schedule),
     proposedValue: tl.creditorName,
     confidence: tl.confidence,
     approvalState: "pending" as const,
@@ -549,87 +589,201 @@ export async function runDemoCreditPull(matterId: string): Promise<{
     });
   }
 
-  const securedPayments = getIncludedTradelines(state)
-    .filter((t) => t.schedule === "D")
-    .reduce((acc, t) => acc + parseFloat(t.monthlyPayment ?? "0"), 0)
-    .toFixed(2);
-
-  const meansTest = evaluateUnifiedMeansTest({
-    chapter: state.chapter,
-    householdSize: 2,
-    annualIncome: "72000.00",
-    deductions: {
-      ...DEFAULT_DEDUCTIONS,
-      securedDebtPayments: securedPayments !== "0.00" ? securedPayments : DEFAULT_DEDUCTIONS.securedDebtPayments,
-    },
-  });
-
-  state.diagnostics = buildDiagnosticsPayload({
-    meansTest,
-    missingFields: state.reviewFields.filter((f) => f.approvalState === "pending").length,
-    exemptionGaps: 0,
-    creditSummary: scheduleSummary(getIncludedTradelines(state)),
-  });
+  recomputeTradelineDiagnostics(state);
 
   saveSnapshot();
   return { classified, summary: scheduleSummary(getIncludedTradelines(state)) };
 }
 
-export function getDemoTradelines(matterId: string): ClassifiedTradeline[] {
+export function getDemoTradelines(matterId: string): DemoTradeline[] {
   return getOrCreate(matterId).classifiedTradelines;
 }
 
 export function getTradelineReview(matterId: string) {
   const state = getOrCreate(matterId);
   return state.classifiedTradelines.map((tl) => {
-    const included = state.tradelineInclusion[tl.id] !== false;
+    const included = state.tradelineInclusion[tl.id] !== false && !tl.isDuplicate;
     const advice = adviseTradelineInclusion(tl);
+    const duplicateOfName = tl.duplicateOfId
+      ? state.classifiedTradelines.find((t) => t.id === tl.duplicateOfId)?.creditorName
+      : undefined;
     return {
       ...tl,
       included,
       advice,
       fieldId: `credit-${tl.id}`,
+      isManual: tl.isManual ?? false,
+      isDuplicate: tl.isDuplicate ?? false,
+      duplicateOfId: tl.duplicateOfId,
+      duplicateOfName,
     };
   });
+}
+
+export interface TradelinePatch {
+  included?: boolean;
+  schedule?: ScheduleBucket;
+  isDuplicate?: boolean;
+  duplicateOfId?: string | null;
+  creditorName?: string;
+  balance?: string;
+  monthlyPayment?: string;
+}
+
+export function patchDemoTradeline(
+  matterId: string,
+  tradelineId: string,
+  patch: TradelinePatch
+): DemoTradeline[] {
+  const state = getOrCreate(matterId);
+  const tl = state.classifiedTradelines.find((t) => t.id === tradelineId);
+  if (!tl) return state.classifiedTradelines;
+
+  const previousSchedule = tl.schedule;
+
+  if (patch.schedule !== undefined && patch.schedule !== tl.schedule) {
+    tl.schedule = patch.schedule;
+    tl.rationale = `Attorney reassigned from Schedule ${previousSchedule} to Schedule ${patch.schedule}`;
+  }
+  if (patch.creditorName !== undefined) tl.creditorName = patch.creditorName.trim();
+  if (patch.balance !== undefined) {
+    const amount = parseMoney(patch.balance);
+    if (amount) tl.balance = amount;
+  }
+  if (patch.monthlyPayment !== undefined) {
+    const amount = parseMoney(patch.monthlyPayment);
+    if (amount) tl.monthlyPayment = amount;
+  }
+  if (patch.isDuplicate !== undefined) {
+    tl.isDuplicate = patch.isDuplicate;
+    if (!patch.isDuplicate) delete tl.duplicateOfId;
+  }
+  if (patch.duplicateOfId !== undefined) {
+    if (patch.duplicateOfId) tl.duplicateOfId = patch.duplicateOfId;
+    else delete tl.duplicateOfId;
+  }
+  if (patch.isDuplicate === true) {
+    state.tradelineInclusion[tradelineId] = false;
+  }
+  if (patch.included !== undefined) {
+    state.tradelineInclusion[tradelineId] = patch.included;
+    if (patch.included && tl.isDuplicate) {
+      tl.isDuplicate = false;
+      delete tl.duplicateOfId;
+    }
+  }
+
+  const field = state.reviewFields.find((f) => f.id === `credit-${tradelineId}`);
+  if (field) {
+    field.formId = formIdForSchedule(tl.schedule);
+    field.proposedValue = tl.creditorName;
+    if (tl.isDuplicate) {
+      field.approvalState = "questioned";
+      const dupName = tl.duplicateOfId
+        ? state.classifiedTradelines.find((t) => t.id === tl.duplicateOfId)?.creditorName
+        : undefined;
+      field.rationale = dupName
+        ? `Duplicate of ${dupName} — excluded from petition`
+        : "Marked duplicate by attorney — excluded from petition";
+    } else if (state.tradelineInclusion[tradelineId] === false) {
+      field.approvalState = "questioned";
+      field.rationale = "Excluded from petition by attorney — credit review";
+    } else if (field.approvalState === "questioned") {
+      field.approvalState = "pending";
+      field.rationale = `${tl.rationale} — Balance $${tl.balance}`;
+    } else {
+      field.rationale = `${tl.rationale} — Balance $${tl.balance}`;
+    }
+  }
+
+  recordDemoProvenance(matterId, {
+    formFieldId: `credit-${tradelineId}`,
+    eventType: "attorney_edited",
+    previousValue: previousSchedule,
+    newValue: {
+      schedule: tl.schedule,
+      included: state.tradelineInclusion[tradelineId] !== false,
+      isDuplicate: tl.isDuplicate ?? false,
+      duplicateOfId: tl.duplicateOfId,
+    },
+    metadata: { tradelineId, patch, source: "credit_review" },
+  });
+
+  recomputeTradelineDiagnostics(state);
+  saveSnapshot();
+  return state.classifiedTradelines;
+}
+
+export interface ManualCreditorInput {
+  creditorName: string;
+  balance: string;
+  schedule: ScheduleBucket;
+  accountType?: string;
+  monthlyPayment?: string;
+  collateralDescription?: string;
+}
+
+export function addManualCreditor(matterId: string, input: ManualCreditorInput): DemoTradeline {
+  const state = getOrCreate(matterId);
+  const id = `manual-${crypto.randomUUID()}`;
+  const balance = parseMoney(input.balance) ?? input.balance;
+  const monthlyPayment = input.monthlyPayment
+    ? (parseMoney(input.monthlyPayment) ?? input.monthlyPayment)
+    : undefined;
+
+  const tl: DemoTradeline = {
+    id,
+    creditorName: input.creditorName.trim(),
+    accountType: input.accountType?.trim() || "Manual entry",
+    balance,
+    monthlyPayment,
+    collateralDescription: input.collateralDescription?.trim(),
+    schedule: input.schedule,
+    confidence: 1,
+    rationale: "Added manually by attorney — not on credit report",
+    isManual: true,
+    isSecured: input.schedule === "D",
+    isPriority: input.schedule === "E",
+  };
+
+  state.classifiedTradelines.push(tl);
+  state.tradelineInclusion[id] = true;
+
+  const field: DemoReviewField = {
+    id: `credit-${id}`,
+    fieldPath: `creditors.manual.${id}`,
+    formId: formIdForSchedule(input.schedule),
+    proposedValue: tl.creditorName,
+    confidence: 1,
+    approvalState: "pending",
+    rationale: `Manual creditor (not on credit report) — Balance $${tl.balance}`,
+    sourceDocument: { id: "manual-entry", fileName: "Attorney manual entry" },
+  };
+  state.reviewFields.push(field);
+
+  recordDemoProvenance(matterId, {
+    formFieldId: field.id,
+    eventType: "attorney_edited",
+    newValue: tl.creditorName,
+    metadata: {
+      tradelineId: id,
+      schedule: input.schedule,
+      balance: tl.balance,
+      source: "manual_creditor",
+    },
+  });
+
+  recomputeTradelineDiagnostics(state);
+  saveSnapshot();
+  return tl;
 }
 
 export function setTradelineIncluded(
   matterId: string,
   tradelineId: string,
   included: boolean
-): ClassifiedTradeline[] {
-  const state = getOrCreate(matterId);
-  state.tradelineInclusion[tradelineId] = included;
-  const field = state.reviewFields.find((f) => f.id === `credit-${tradelineId}`);
-  if (field) {
-    if (!included) {
-      field.approvalState = "questioned";
-      field.rationale = "Excluded from petition by attorney — credit review";
-    } else if (field.approvalState === "questioned") {
-      field.approvalState = "pending";
-    }
-  }
-  state.diagnostics = buildDiagnosticsPayload({
-    meansTest: evaluateUnifiedMeansTest({
-      chapter: state.chapter,
-      householdSize: 2,
-      annualIncome: "72000.00",
-      deductions: DEFAULT_DEDUCTIONS,
-    }),
-    missingFields: state.reviewFields.filter((f) => f.approvalState === "pending").length,
-    exemptionGaps: 0,
-    creditSummary: state.creditPulled
-      ? scheduleSummary(getIncludedTradelines(state))
-      : undefined,
-  });
-  recordDemoProvenance(matterId, {
-    formFieldId: `credit-${tradelineId}`,
-    eventType: "attorney_edited",
-    newValue: included ? "included" : "excluded",
-    metadata: { tradelineId, included, source: "credit_review" },
-  });
-  saveSnapshot();
-  return state.classifiedTradelines;
+): DemoTradeline[] {
+  return patchDemoTradeline(matterId, tradelineId, { included });
 }
 
 function parseMoney(value: string): string | null {
