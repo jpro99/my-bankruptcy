@@ -1,11 +1,16 @@
 function getApiBase(): string {
+  // Production deploy (Vercel + Railway) — set in Vercel env vars
+  if (process.env.NEXT_PUBLIC_API_URL) {
+    return process.env.NEXT_PUBLIC_API_URL.replace(/\/$/, "");
+  }
   if (typeof window !== "undefined") {
     const host = window.location.hostname;
+    // Phone on same Wi‑Fi as dev machine (LAN testing at home)
     if (host !== "localhost" && host !== "127.0.0.1") {
       return `http://${host}:3002`;
     }
   }
-  return process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3002";
+  return "http://localhost:3002";
 }
 
 export async function apiFetch<T>(
@@ -137,9 +142,84 @@ export function fetchPreflight(matterId: string) {
 }
 
 export function filePetition(matterId: string) {
-  return apiFetch<{ caseNumber: string; message: string; status: string }>(
-    `/api/preflight/matter/${matterId}/file`,
-    { method: "POST" }
+  return apiFetch<{
+    caseNumber: string;
+    message: string;
+    status: string;
+    receiptUrl?: string;
+    documentsFiled?: number;
+    autopilot?: { taskCount: number };
+  }>(`/api/preflight/matter/${matterId}/file`, { method: "POST" });
+}
+
+export interface FilingStatus {
+  matterId: string;
+  filed: boolean;
+  filing: {
+    caseNumber: string;
+    filedAt: string;
+    receiptNumber: string;
+    receiptUrl?: string;
+    documentsFiled: number;
+    message: string;
+  } | null;
+  packagePreview?: {
+    documentCount: number;
+    documents: Array<{ formId: string; label: string; eventCode: string }>;
+    validation: { valid: boolean; errors: string[]; warnings: string[] };
+  } | null;
+}
+
+export function fetchFilingStatus(matterId: string) {
+  return apiFetch<FilingStatus>(`/api/efile/matter/${matterId}`);
+}
+
+export interface AutopilotTask {
+  id: string;
+  title: string;
+  description: string;
+  category: string;
+  priority: string;
+  status: string;
+  dueDate: string;
+  autoAction?: string;
+}
+
+export interface AutopilotTimeline {
+  matterId: string;
+  caseNumber: string;
+  chapter: string;
+  filingDate: string;
+  tasks: AutopilotTask[];
+  summary: {
+    total: number;
+    due: number;
+    overdue: number;
+    completed: number;
+    upcoming: number;
+  };
+}
+
+export function fetchAutopilot(matterId: string) {
+  return apiFetch<{
+    matterId: string;
+    filed: boolean;
+    timeline: AutopilotTimeline | null;
+    message?: string;
+  }>(`/api/autopilot/matter/${matterId}`);
+}
+
+export function completeAutopilotTask(matterId: string, taskId: string) {
+  return apiFetch<{ timeline: AutopilotTimeline }>(
+    `/api/autopilot/matter/${matterId}/tasks/${taskId}`,
+    { method: "POST", body: JSON.stringify({ action: "complete" }) }
+  );
+}
+
+export function runAutopilotAutoAction(matterId: string, taskId: string) {
+  return apiFetch<{ task: AutopilotTask; autoActionResult: Record<string, unknown> | null }>(
+    `/api/autopilot/matter/${matterId}/tasks/${taskId}`,
+    { method: "POST", body: JSON.stringify({ action: "run-auto" }) }
   );
 }
 
@@ -164,5 +244,101 @@ export function calculatePlan(matterId: string) {
   return apiFetch<PlanFeasibilityResult>(`/api/plan/matter/${matterId}/calculate`, {
     method: "POST",
     body: JSON.stringify({}),
+  });
+}
+
+export interface MatterProgressStep {
+  id: string;
+  title: string;
+  description: string;
+  status: string;
+  actionLabel?: string;
+  actionHref?: string;
+  estimatedMinutes?: number;
+}
+
+export interface MatterProgress {
+  matterId: string;
+  chapter: string;
+  debtorDisplayName: string;
+  overallPercent: number;
+  stepsComplete: number;
+  stepsTotal: number;
+  steps: MatterProgressStep[];
+  nextAction?: { stepId: string; title: string; href: string; label: string };
+  readyToFile: boolean;
+  tagline: string;
+}
+
+export function fetchCommandCenter(matterId: string) {
+  return apiFetch<{
+    progress: MatterProgress;
+    preflightReady: boolean;
+    caseNumber?: string;
+    portalUrl: string;
+  }>(`/api/command/matter/${matterId}`);
+}
+
+export interface MatterInvoice {
+  matterId: string;
+  chapter: string;
+  packageId: string;
+  subtotal: string;
+  paidAmount: string;
+  balanceDue: string;
+  status: string;
+  trustBalance: string;
+  lines: Array<{ id: string; description: string; amount: string; category: string; paid: boolean }>;
+}
+
+export function fetchBilling(matterId: string) {
+  return apiFetch<{ invoice: MatterInvoice }>(`/api/billing/matter/${matterId}`);
+}
+
+export function recordBillingPayment(matterId: string, amount: string) {
+  return apiFetch<{ invoice: MatterInvoice }>(`/api/billing/matter/${matterId}/payment`, {
+    method: "POST",
+    body: JSON.stringify({ amount }),
+  });
+}
+
+export interface PortalRequest {
+  id: string;
+  title: string;
+  description: string;
+  dueDate: string;
+  status: string;
+  uploadedFileName?: string;
+}
+
+export interface PortalData {
+  token: string;
+  matterId: string;
+  debtorName: string;
+  chapter: string;
+  caseNumber?: string;
+  requests: PortalRequest[];
+  message: string;
+}
+
+async function portalFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+  const headers = new Headers(options.headers);
+  headers.set("Content-Type", "application/json");
+  const response = await fetch(`${getApiBase()}${path}`, { ...options, headers });
+  if (!response.ok) {
+    const error = (await response.json().catch(() => ({}))) as { error?: string };
+    throw new Error(error.error ?? `API error ${response.status}`);
+  }
+  return response.json() as Promise<T>;
+}
+
+export function fetchPortal(token: string) {
+  return portalFetch<{ portal: PortalData }>(`/api/portal/${token}`);
+}
+
+export function uploadPortalDocument(token: string, requestId: string, fileName: string) {
+  return portalFetch<{ success: boolean }>(`/api/portal/${token}/upload`, {
+    method: "POST",
+    body: JSON.stringify({ requestId, fileName }),
   });
 }

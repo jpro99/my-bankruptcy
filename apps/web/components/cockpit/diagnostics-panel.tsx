@@ -85,6 +85,13 @@ export function DiagnosticsPanel({
       />
 
       <a
+        href={`/matters/${matterId}/autopilot`}
+        className="block w-full py-2 text-center text-sm border border-[var(--border)] rounded-lg hover:bg-[var(--muted)] transition"
+      >
+        Post-Petition Autopilot →
+      </a>
+
+      <a
         href={`/matters/${matterId}/plan`}
         className="block w-full py-2 text-center text-sm border border-[var(--border)] rounded-lg hover:bg-[var(--muted)] transition"
       >

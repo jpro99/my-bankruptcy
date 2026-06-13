@@ -7,6 +7,11 @@ import { documentsRouter } from "./routes/documents.js";
 import { formFieldsRouter } from "./routes/form-fields.js";
 import { creditRouter, diagnosticsRouter } from "./routes/credit.js";
 import { planRouter, preflightRouter } from "./routes/plan-preflight.js";
+import { efileRouter } from "./routes/efile.js";
+import { autopilotRouter } from "./routes/autopilot.js";
+import { billingRouter } from "./routes/billing.js";
+import { commandRouter } from "./routes/command.js";
+import { portalRouter } from "./routes/portal.js";
 
 export type AppEnv = {
   Variables: {
@@ -35,10 +40,17 @@ app.use(
 );
 
 app.get("/health", (c) =>
-  c.json({ status: "ok", service: "chapterai-api", version: "0.1.0" })
+  c.json({ status: "ok", service: "my-bankruptcy-api", version: "0.6.0" })
 );
 
+/** Public client portal — magic link auth */
+app.route("/api/portal", portalRouter);
+
 app.use("/api/*", async (c, next) => {
+  if (c.req.path.startsWith("/api/portal")) {
+    await next();
+    return;
+  }
   const session = resolveSession(c.req.raw.headers);
   if (!session) {
     return c.json({ error: "Unauthorized" }, 401);
@@ -54,6 +66,10 @@ app.route("/api/credit", creditRouter);
 app.route("/api/diagnostics", diagnosticsRouter);
 app.route("/api/plan", planRouter);
 app.route("/api/preflight", preflightRouter);
+app.route("/api/efile", efileRouter);
+app.route("/api/autopilot", autopilotRouter);
+app.route("/api/billing", billingRouter);
+app.route("/api/command", commandRouter);
 
 app.onError((err, c) => {
   if (err instanceof AuthError) {

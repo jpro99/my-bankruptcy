@@ -2,6 +2,37 @@
 
 All notable changes to ChapterAI are documented here.
 
+## [0.6.0] — Phase 6 — Client Portal + Billing + Command Center — 2025-06-12
+
+### Easiest Ch 7 / Ch 13 Completion
+
+- **`@chapterai/matter-guide`** — one-screen completion pipeline (% progress, next action)
+- **`@chapterai/billing`** — Ch 7/Ch 13 flat-fee packages, trust tracking, payment recording
+- **Command Center** — `/matters/demo/command` — attorney sees entire case at a glance
+- **Client Portal** — `/portal/demo-client` — mobile-friendly doc uploads (paystubs, taxes, bank statements)
+- **Billing panel** — `/matters/demo/billing` — fees, court costs, trust balance
+- **API:** `GET /api/command/matter/:id`, `/api/billing/*`, public `/api/portal/:token`
+
+## [0.5.0] — Phase 5 — Post-Petition Autopilot — 2025-06-12
+
+### Post-Petition Autopilot
+
+- **`@chapterai/autopilot`** — deadline engine (341 meeting, §521 docs, discharge tracking, Ch 13 plan payments)
+- **API:** `GET /api/autopilot/matter/:id`, `POST .../tasks/:id` (complete / run-auto)
+- **Inngest:** daily deadline tick, auto-action runner, timeline spawn on e-file
+- **Autopilot Dashboard** — `/matters/demo/autopilot` with task queue + one-click auto-actions
+- **God Button** — after filing, links directly to autopilot with task count
+
+## [0.4.0] — Phase 4 — PACER / CM-ECF E-File Bridge — 2025-06-12
+
+### E-File Bridge
+
+- **`@chapterai/efile`** — filing package builder, CACB NextGen event codes, sandbox CM/ECF submission
+- **`@chapterai/efile-bridge`** — Playwright PACER filer (live mode) + standalone service on `:3003`
+- **API:** `GET /api/efile/matter/:id`, `POST .../submit`, `GET /api/efile/status`
+- **God Button wired to real e-file pipeline** — builds PDF packet → sandbox CM/ECF → case number + receipt
+- **Worker:** `efile/submit.requested` → `efile/submit.completed` → autopilot spawn
+
 ## [0.3.0] — Phase 3 — God Button + CACB Local Forms — 2025-06-12
 
 ### Chapter 13 Plan + CACB Local Forms

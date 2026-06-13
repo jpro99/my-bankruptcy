@@ -3,7 +3,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 export const metadata: Metadata = {
-  title: "ChapterAI — Bankruptcy Practice Platform",
+  title: "My Bankruptcy — Practice Platform",
   description: "AI-native bankruptcy practice platform for California attorneys",
 };
 

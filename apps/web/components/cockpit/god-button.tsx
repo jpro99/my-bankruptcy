@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { fetchPreflight, filePetition, type PreflightReport } from "@/lib/api-client";
 
 interface GodButtonProps {
@@ -13,7 +14,11 @@ export function GodButton({ matterId, chapter, disabled }: GodButtonProps) {
   const [open, setOpen] = useState(false);
   const [report, setReport] = useState<PreflightReport | null>(null);
   const [filing, setFiling] = useState(false);
-  const [result, setResult] = useState<{ caseNumber: string; message: string } | null>(null);
+  const [result, setResult] = useState<{
+    caseNumber: string;
+    message: string;
+    autopilotTaskCount?: number;
+  } | null>(null);
 
   const chapterLabel = chapter === "review" ? "7" : chapter;
 
@@ -28,7 +33,11 @@ export function GodButton({ matterId, chapter, disabled }: GodButtonProps) {
     setFiling(true);
     try {
       const res = await filePetition(matterId);
-      setResult(res);
+      setResult({
+        caseNumber: res.caseNumber,
+        message: res.message,
+        autopilotTaskCount: res.autopilot?.taskCount,
+      });
     } catch {
       setResult({ caseNumber: "", message: "Preflight blocked filing — resolve errors first." });
     } finally {
@@ -58,9 +67,27 @@ export function GodButton({ matterId, chapter, disabled }: GodButtonProps) {
             </div>
 
             {result ? (
-              <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                <p className="font-semibold text-green-800">Filed — Case #{result.caseNumber}</p>
-                <p className="text-sm text-green-700 mt-1">{result.message}</p>
+              <div className="space-y-3">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <p className="font-semibold text-green-800">
+                    {result.caseNumber ? `Filed — Case #${result.caseNumber}` : "Filing blocked"}
+                  </p>
+                  <p className="text-sm text-green-700 mt-1">{result.message}</p>
+                  {result.autopilotTaskCount !== undefined && (
+                    <p className="text-xs text-green-600 mt-2">
+                      Post-petition autopilot activated — {result.autopilotTaskCount} tasks scheduled
+                    </p>
+                  )}
+                </div>
+                {result.caseNumber && (
+                  <Link
+                    href={`/matters/${matterId}/autopilot`}
+                    className="block w-full py-2 text-center text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+                    onClick={() => setOpen(false)}
+                  >
+                    Open Autopilot Dashboard →
+                  </Link>
+                )}
               </div>
             ) : report ? (
               <>
@@ -95,12 +122,12 @@ export function GodButton({ matterId, chapter, disabled }: GodButtonProps) {
                     disabled={filing}
                     className="w-full py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 disabled:opacity-50"
                   >
-                    {filing ? "E-filing…" : "Confirm E-File to CACB"}
+                    {filing ? "Submitting to CM/ECF…" : "Confirm E-File to CACB"}
                   </button>
                 )}
               </>
             ) : (
-              <p className="text-center text-gray-500">Running 247 validation rules…</p>
+              <p className="text-center text-gray-500">Running validation rules…</p>
             )}
           </div>
         </div>

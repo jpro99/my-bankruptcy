@@ -40,7 +40,7 @@ export function MatterCockpit({ matterId }: { matterId: string }) {
 
   return (
     <div className="flex h-screen">
-      <MatterTree activeSection="ef" />
+      <MatterTree activeSection="ef" matterId={matterId} />
 
       <main className="flex-1 flex flex-col overflow-hidden">
         <header className="border-b border-[var(--border)] bg-white px-6 py-3 flex items-center justify-between">

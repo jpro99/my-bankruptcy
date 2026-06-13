@@ -6,13 +6,19 @@
   "scripts": {
     "build": "tsc",
     "dev": "tsx watch src/server.ts",
+    "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
     "lint": "echo lint ok"
   },
   "dependencies": {
     "@chapterai/auth": "workspace:*",
+    "@chapterai/autopilot": "workspace:*",
+    "@chapterai/billing": "workspace:*",
+    "@chapterai/matter-guide": "workspace:*",
     "@chapterai/ch13-plan": "workspace:*",
+    "@chapterai/efile": "workspace:*",
+    "@chapterai/efile-bridge": "workspace:*",
     "@chapterai/preflight": "workspace:*",
     "@chapterai/credit": "workspace:*",
     "@chapterai/db": "workspace:*",

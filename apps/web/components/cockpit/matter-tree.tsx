@@ -1,5 +1,17 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+
+const MATTER_LINKS = [
+  { id: "command", href: (id: string) => `/matters/${id}/command`, label: "⭐ Command Center" },
+  { id: "cockpit", href: (id: string) => `/matters/${id}/cockpit`, label: "Cockpit" },
+  { id: "intake", href: (id: string) => `/matters/${id}/intake`, label: "One-Touch Intake" },
+  { id: "plan", href: (id: string) => `/matters/${id}/plan`, label: "Ch 13 Plan Builder" },
+  { id: "autopilot", href: (id: string) => `/matters/${id}/autopilot`, label: "Post-Petition Autopilot" },
+  { id: "billing", href: (id: string) => `/matters/${id}/billing`, label: "Fees & Trust" },
+];
+
 const MATTER_TREE = [
   { id: "petition", label: "Petition (101)", children: [] },
   {
@@ -19,20 +31,46 @@ const MATTER_TREE = [
   { id: "sofa", label: "Statement of Financial Affairs", children: [] },
   { id: "means", label: "Means Test (122A/C)", children: [] },
   { id: "local", label: "CA Local Forms", children: [] },
-  { id: "plan", label: "Chapter 13 Plan", children: [] },
   { id: "filing", label: "Filing Packet", children: [] },
 ];
 
 interface MatterTreeProps {
+  matterId?: string;
   activeSection?: string;
   onSelect?: (sectionId: string) => void;
 }
 
-export function MatterTree({ activeSection = "ab", onSelect }: MatterTreeProps) {
+export function MatterTree({ matterId = "demo", activeSection = "ef", onSelect }: MatterTreeProps) {
+  const pathname = usePathname();
+
   return (
     <nav className="w-56 border-r border-[var(--border)] bg-white p-4 overflow-y-auto">
       <h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)] mb-3">
-        Matter Tree
+        Matter
+      </h2>
+      <ul className="space-y-1 mb-6">
+        {MATTER_LINKS.map((link) => {
+          const href = link.href(matterId);
+          const active = pathname === href;
+          return (
+            <li key={link.id}>
+              <Link
+                href={href}
+                className={`block w-full text-left text-sm py-1.5 px-2 rounded transition ${
+                  active
+                    ? "bg-blue-50 text-blue-700 font-medium"
+                    : "hover:bg-[var(--muted)] text-[var(--foreground)]"
+                }`}
+              >
+                {link.label}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+
+      <h2 className="text-xs font-semibold uppercase tracking-wide text-[var(--muted-foreground)] mb-3">
+        Forms
       </h2>
       <ul className="space-y-1">
         {MATTER_TREE.map((item) => (

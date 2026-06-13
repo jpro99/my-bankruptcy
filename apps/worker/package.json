@@ -13,7 +13,10 @@
   },
   "dependencies": {
     "@chapterai/ai-pipeline": "workspace:*",
+    "@chapterai/autopilot": "workspace:*",
     "@chapterai/credit": "workspace:*",
+    "@chapterai/efile": "workspace:*",
+    "@chapterai/efile-bridge": "workspace:*",
     "@chapterai/db": "workspace:*",
     "@chapterai/exemption-optimizer": "workspace:*",
     "@chapterai/forms": "workspace:*",

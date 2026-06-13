@@ -3,8 +3,20 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { evaluatePlanFeasibility } from "@chapterai/ch13-plan";
 import { runPreflight } from "@chapterai/preflight";
+import { buildFilingPackage } from "@chapterai/efile";
+import { submitViaBridge } from "@chapterai/efile-bridge";
+import { generateTimeline } from "@chapterai/autopilot";
 import type { AppEnv } from "../index.js";
-import { getDemoDiagnostics, getDemoReviewFields, isDemoMatter } from "../lib/demo-store.js";
+import {
+  getApprovedFormIds,
+  getDemoDiagnostics,
+  getDemoFiling,
+  getDemoMatterMeta,
+  getDemoReviewFields,
+  isDemoMatter,
+  setDemoAutopilot,
+  setDemoFiling,
+} from "../lib/demo-store.js";
 
 const PlanCalcSchema = z.object({
   planLengthMonths: z.number().int().min(36).max(60).default(60),
@@ -122,10 +134,44 @@ preflightRouter.post("/matter/:matterId/file", async (c) => {
     return c.json({ error: "Preflight failed", report }, 400);
   }
 
+  const existing = getDemoFiling(matterId);
+  if (existing) {
+    return c.json({
+      status: "filed",
+      caseNumber: existing.caseNumber,
+      message: "Petition already filed",
+      receiptUrl: existing.receiptUrl,
+      filing: existing,
+    });
+  }
+
+  const meta = getDemoMatterMeta(matterId);
+  const approvedFormIds = getApprovedFormIds(matterId);
+  const pkg = buildFilingPackage({
+    ...meta,
+    attorneyName: "Dev Attorney",
+    approvedFormIds,
+    district: "CACB",
+  });
+
+  const result = await submitViaBridge(pkg);
+  setDemoFiling(matterId, result);
+
+  const timeline = generateTimeline({
+    matterId,
+    caseNumber: result.caseNumber,
+    chapter: meta.chapter,
+    filingDate: result.filedAt.slice(0, 10),
+  });
+  setDemoAutopilot(matterId, timeline);
+
   return c.json({
     status: "filed",
-    caseNumber: "2:26-bk-04821",
-    message: "Petition package submitted to CACB CM/ECF (sandbox)",
-    receiptUrl: "/receipts/demo-filing.pdf",
+    caseNumber: result.caseNumber,
+    message: result.message,
+    receiptUrl: result.receiptUrl,
+    documentsFiled: result.documentsFiled,
+    filing: result,
+    autopilot: { taskCount: timeline.summary.total },
   });
 });

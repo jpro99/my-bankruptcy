@@ -11,6 +11,9 @@ import {
   createCreditProvider,
 } from "@chapterai/credit";
 import { optimizeExemptions } from "@chapterai/exemption-optimizer";
+import type { FilingResult } from "@chapterai/efile";
+import type { AutopilotTimeline } from "@chapterai/autopilot";
+import type { MatterInvoice } from "@chapterai/billing";
 
 /** In-memory dev store when DATABASE_URL is unavailable */
 export interface DemoReviewField {
@@ -24,6 +27,25 @@ export interface DemoReviewField {
   sourceDocument?: { id: string; fileName: string };
 }
 
+export interface PortalDocumentRequest {
+  id: string;
+  title: string;
+  description: string;
+  dueDate: string;
+  status: "open" | "uploaded" | "complete";
+  uploadedFileName?: string;
+}
+
+export interface DemoPortalState {
+  token: string;
+  matterId: string;
+  debtorName: string;
+  chapter: "7" | "13";
+  caseNumber?: string;
+  requests: PortalDocumentRequest[];
+  message: string;
+}
+
 interface DemoMatterState {
   matterId: string;
   debtorDisplayName: string;
@@ -32,6 +54,10 @@ interface DemoMatterState {
   diagnostics: MatterDiagnosticsPayload;
   classifiedTradelines: ClassifiedTradeline[];
   creditPulled: boolean;
+  filing?: FilingResult;
+  autopilot?: AutopilotTimeline;
+  billing?: MatterInvoice;
+  portal?: DemoPortalState;
 }
 
 const DEFAULT_DEDUCTIONS = {
@@ -241,4 +267,167 @@ export function recomputeDemoDiagnostics(
   });
 
   return state.diagnostics;
+}
+
+export function getDemoMatterMeta(matterId: string) {
+  const state = getOrCreate(matterId);
+  return {
+    matterId: state.matterId,
+    debtorDisplayName: state.debtorDisplayName,
+    chapter: state.chapter,
+    firmId: "00000000-0000-0000-0000-000000000010",
+  };
+}
+
+export function getApprovedFormIds(matterId: string): string[] {
+  const state = getOrCreate(matterId);
+  const formIds = new Set<string>();
+  for (const field of state.reviewFields) {
+    if (field.approvalState === "approved" || field.approvalState === "edited") {
+      formIds.add(field.formId);
+    }
+  }
+  // Demo matter includes full petition packet once fields approved
+  if (formIds.size >= state.reviewFields.length && state.reviewFields.length > 0) {
+    return [
+      "101",
+      "106A/B",
+      "106C",
+      "106D",
+      "106E/F",
+      "106G",
+      "106H",
+      "106I",
+      "106J",
+      "107",
+      state.chapter === "13" ? "122C-1" : "122A-1",
+      state.chapter === "13" ? "122C-2" : "122A-2",
+      "cert-counsel",
+      "3015-1.7",
+      "MML",
+      ...(state.chapter === "13" ? ["3015-1.01"] : []),
+    ];
+  }
+  return [...formIds];
+}
+
+export function getDemoFiling(matterId: string): FilingResult | undefined {
+  return getOrCreate(matterId).filing;
+}
+
+export function setDemoFiling(matterId: string, filing: FilingResult): FilingResult {
+  const state = getOrCreate(matterId);
+  state.filing = filing;
+  if (state.portal) {
+    state.portal.caseNumber = filing.caseNumber;
+    state.portal.message = "Your case has been filed. Please upload the documents below.";
+  }
+  return filing;
+}
+
+export function getDemoAutopilot(matterId: string): AutopilotTimeline | undefined {
+  return getOrCreate(matterId).autopilot;
+}
+
+export function setDemoAutopilot(matterId: string, timeline: AutopilotTimeline): AutopilotTimeline {
+  const state = getOrCreate(matterId);
+  state.autopilot = timeline;
+  return timeline;
+}
+
+const DEFAULT_PORTAL_REQUESTS: Omit<PortalDocumentRequest, "id">[] = [
+  {
+    title: "Pay stubs (last 60 days)",
+    description: "Upload all pay advices received in the 60 days before filing",
+    dueDate: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+    status: "open",
+  },
+  {
+    title: "Tax returns (last 2 years)",
+    description: "Federal returns for the year filed and prior year",
+    dueDate: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+    status: "open",
+  },
+  {
+    title: "Bank statements (last 3 months)",
+    description: "All accounts — checking, savings, Venmo, etc.",
+    dueDate: new Date(Date.now() + 10 * 86400000).toISOString().slice(0, 10),
+    status: "open",
+  },
+];
+
+function buildPortal(matterId: string, state: DemoMatterState): DemoPortalState {
+  return {
+    token: `${matterId}-client`,
+    matterId,
+    debtorName: state.debtorDisplayName,
+    chapter: state.chapter,
+    caseNumber: state.filing?.caseNumber,
+    requests: state.portal?.requests ?? DEFAULT_PORTAL_REQUESTS.map((r, i) => ({
+      ...r,
+      id: `req-${i + 1}`,
+    })),
+    message: state.filing
+      ? "Your case has been filed. Please upload the documents below."
+      : "Welcome — your attorney will file soon. Upload documents to speed things up.",
+  };
+}
+
+export function isDemoPortalToken(token: string): boolean {
+  return token === "demo-client" || token.endsWith("-client");
+}
+
+export function getDemoPortal(token: string): DemoPortalState {
+  const matterId = token.replace(/-client$/, "") || "demo";
+  const state = getOrCreate(matterId);
+  if (!state.portal) {
+    state.portal = buildPortal(matterId, state);
+  }
+  return state.portal;
+}
+
+export function getDemoPortalOpenCount(matterId: string): number {
+  const token = `${matterId}-client`;
+  const portal = getDemoPortal(token);
+  return portal.requests.filter((r) => r.status === "open").length;
+}
+
+export function submitPortalUpload(
+  token: string,
+  requestId: string,
+  fileName: string
+): PortalDocumentRequest | null {
+  const matterId = token.replace(/-client$/, "") || "demo";
+  const state = getOrCreate(matterId);
+  const portal = getDemoPortal(token);
+  const req = portal.requests.find((r) => r.id === requestId);
+  if (!req) return null;
+  req.status = "uploaded";
+  req.uploadedFileName = fileName;
+  state.portal = portal;
+  return req;
+}
+
+export function completePortalRequest(
+  token: string,
+  requestId: string
+): PortalDocumentRequest | null {
+  const matterId = token.replace(/-client$/, "") || "demo";
+  const state = getOrCreate(matterId);
+  const portal = getDemoPortal(token);
+  const req = portal.requests.find((r) => r.id === requestId);
+  if (!req) return null;
+  req.status = "complete";
+  state.portal = portal;
+  return req;
+}
+
+export function getDemoBilling(matterId: string): MatterInvoice | undefined {
+  return getOrCreate(matterId).billing;
+}
+
+export function setDemoBilling(matterId: string, invoice: MatterInvoice): MatterInvoice {
+  const state = getOrCreate(matterId);
+  state.billing = invoice;
+  return invoice;
 }
