@@ -15,10 +15,12 @@ import {
   FileStack,
   ShieldCheck,
   CreditCard,
+  Compass,
 } from "lucide-react";
 import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { ApiStatusDot } from "@/components/layout/api-status-banner";
+import { BenchNotesSheet } from "@/components/notes/bench-notes-sheet";
 
 const MATTER_LINKS = [
   {
@@ -26,6 +28,12 @@ const MATTER_LINKS = [
     href: (id: string) => `/matters/${id}/command`,
     label: BRAND.command.name,
     icon: LayoutDashboard,
+  },
+  {
+    id: "scout",
+    href: (id: string) => `/matters/${id}/scout`,
+    label: BRAND.reliefScout.name,
+    icon: Compass,
   },
   {
     id: "forge",
@@ -175,6 +183,7 @@ export function MatterShell({
     <div className={cn("flex min-h-screen bg-background", className)}>
       <MatterSidebar matterId={matterId} />
       <main className="flex-1 overflow-y-auto p-6 md:p-8">{children}</main>
+      <BenchNotesSheet matterId={matterId} />
     </div>
   );
 }

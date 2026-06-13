@@ -19,6 +19,9 @@ const display = Plus_Jakarta_Sans({
 export const metadata: Metadata = {
   title: "My Bankruptcy — Practice Platform",
   description: "AI-native bankruptcy practice platform for California attorneys",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true },
+  applicationName: "My Bankruptcy",
 };
 
 export const viewport: Viewport = {

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { DischargeFollowUpPanel } from "@/components/continuum/discharge-follow-up-panel";
 import {
   CheckCircle2,
   Clock,
@@ -111,6 +112,8 @@ export function AutopilotDashboard({ matterId }: AutopilotDashboardProps) {
           <Stat label="Done" value={timeline.summary.completed} variant="success" />
         </div>
       </header>
+
+      <DischargeFollowUpPanel matterId={matterId} />
 
       {autoResult && (
         <Card className="border-primary/20 bg-primary-muted/30">

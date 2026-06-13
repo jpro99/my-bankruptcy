@@ -14,7 +14,9 @@ import {
 import { optimizeExemptions } from "@chapterai/exemption-optimizer";
 import type { FilingResult } from "@chapterai/efile";
 import type { AutopilotTimeline } from "@chapterai/autopilot";
+import { generateTimeline } from "@chapterai/autopilot";
 import type { MatterInvoice } from "@chapterai/billing";
+import { generateInvoice } from "@chapterai/billing";
 import type { CaliforniaDistrict } from "@chapterai/districts";
 import {
   getDefaultDivision,
@@ -78,6 +80,75 @@ export interface DemoPortalState {
   filed: boolean;
 }
 
+export interface MatterNote {
+  id: string;
+  text: string;
+  source: "attorney" | "voice" | "system";
+  createdAt: string;
+  authorLabel: string;
+}
+
+export interface PortalMessage {
+  id: string;
+  direction: "inbound" | "outbound";
+  body: string;
+  createdAt: string;
+  readAt?: string;
+  staffAuthor?: string;
+}
+
+export interface PortalActivityEvent {
+  id: string;
+  alertType: string;
+  body: string;
+  createdAt: string;
+  acknowledgedAt?: string;
+}
+
+export type IntakeDocStatus = "received" | "processed" | "applied";
+
+export interface IntakeDocument {
+  id: string;
+  fileName: string;
+  documentType: string;
+  uploadedAt: string;
+  uploadedBy: "client" | "attorney";
+  source: "portal" | "portal_general" | "attorney_drop" | "consult";
+  requestId?: string;
+  status: IntakeDocStatus;
+  appliedFieldIds?: string[];
+  mimeType?: string;
+}
+
+export interface ConsultSnapshot {
+  debtorName: string;
+  householdSize: number;
+  annualIncome: string;
+  monthlyExpenses: string;
+  securedDebt: string;
+  unsecuredDebt: string;
+  chapterPreference: "7" | "13" | "undecided";
+  takeCase: "yes" | "maybe" | "no" | null;
+  attorneyNotes: string;
+  evaluatedAt?: string;
+  recommendation?: "chapter_7" | "chapter_13" | "review_required";
+  meansTestStatus?: "pass" | "fail" | "review";
+  recommendationRationale?: string;
+  presumptionOfAbuse?: boolean;
+}
+
+export interface DemoMatterSummary {
+  matterId: string;
+  debtorDisplayName: string;
+  chapter: "7" | "13";
+  status: "prospect" | "active" | "filed";
+  consultComplete: boolean;
+  pendingDocuments: number;
+  noteCount: number;
+  unreadPortalMessages: number;
+  createdAt: string;
+}
+
 export type ScheduleBucket = "D" | "E" | "F" | "G";
 
 export interface DemoTradeline extends ClassifiedTradeline {
@@ -127,6 +198,18 @@ interface DemoMatterState {
   portal?: DemoPortalState;
   counselingTier?: "gold" | "relay" | "vault";
   counselingProvider?: string;
+  notes: MatterNote[];
+  intakeDocuments: IntakeDocument[];
+  portalMessages: PortalMessage[];
+  portalActivity: PortalActivityEvent[];
+  consult?: ConsultSnapshot;
+  createdAt: string;
+  dischargeFollowUp?: {
+    clientEmail: string;
+    includePiCrossSell: boolean;
+    sentAt: string;
+    emailOk: boolean;
+  };
 }
 
 const DEFAULT_DEDUCTIONS = {
@@ -336,6 +419,43 @@ function buildInitialState(matterId: string): DemoMatterState {
     classifiedTradelines: [],
     tradelineInclusion: {},
     creditPulled: false,
+    notes: [],
+    intakeDocuments: [],
+    portalMessages: [],
+    portalActivity: [],
+    createdAt: "2025-06-01T00:00:00.000Z",
+  };
+}
+
+function buildProspectState(
+  matterId: string,
+  input: { debtorDisplayName: string; chapter?: "7" | "13"; county?: string }
+): DemoMatterState {
+  const county = input.county ?? "Los Angeles";
+  const district = getDistrictForCounty(county);
+  const division = getDefaultDivision(district, county);
+  const chapter = input.chapter ?? "7";
+
+  return {
+    matterId,
+    debtorDisplayName: input.debtorDisplayName,
+    chapter,
+    district,
+    county,
+    divisionId: division.id,
+    divisionName: division.name,
+    assets: [],
+    provenanceEvents: [],
+    reviewFields: [],
+    diagnostics: buildInitialDiagnostics(),
+    classifiedTradelines: [],
+    tradelineInclusion: {},
+    creditPulled: false,
+    notes: [],
+    intakeDocuments: [],
+    portalMessages: [],
+    portalActivity: [],
+    createdAt: new Date().toISOString(),
   };
 }
 
@@ -397,6 +517,11 @@ function getOrCreate(matterId: string): DemoMatterState {
       state.tradelineInclusion[tl.id] = true;
     }
   }
+  if (!state.notes) state.notes = [];
+  if (!state.intakeDocuments) state.intakeDocuments = [];
+  if (!state.portalMessages) state.portalMessages = [];
+  if (!state.portalActivity) state.portalActivity = [];
+  if (!state.createdAt) state.createdAt = new Date().toISOString();
   for (const asset of state.assets) {
     if (!asset.valuation) {
       const seed = DEFAULT_ASSETS.find((a) => a.id === asset.id);
@@ -929,6 +1054,7 @@ export function getApprovedFormIds(matterId: string): string[] {
       "cert-counsel",
       "3015-1.7",
       "MML",
+      "341",
       ...(state.chapter === "13" ? ["3015-1.01"] : []),
     ];
   }
@@ -963,6 +1089,12 @@ export function setDemoAutopilot(matterId: string, timeline: AutopilotTimeline):
 
 const DEFAULT_PORTAL_REQUESTS: Omit<PortalDocumentRequest, "id">[] = [
   {
+    title: "Photo ID (driver's license or passport)",
+    description: "Clear photo of government-issued ID — front and back if applicable",
+    dueDate: new Date(Date.now() + 3 * 86400000).toISOString().slice(0, 10),
+    status: "open",
+  },
+  {
     title: "Pay stubs (last 60 days)",
     description: "Upload all pay advices received in the 60 days before filing",
     dueDate: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
@@ -994,7 +1126,7 @@ const COUNSELING_PROVIDER_META: Record<
 
 function buildCounseling(state: DemoMatterState): PortalCounseling {
   const providerKey = state.counselingProvider ?? "debtorcc";
-  const meta = COUNSELING_PROVIDER_META[providerKey] ?? COUNSELING_PROVIDER_META.debtorcc;
+  const meta = COUNSELING_PROVIDER_META[providerKey] ?? COUNSELING_PROVIDER_META.debtorcc!;
   const existing = state.portal?.counseling;
   return {
     tier: state.counselingTier ?? "relay",
@@ -1060,7 +1192,8 @@ export function getDemoPortalOpenCount(matterId: string): number {
 export function submitPortalUpload(
   token: string,
   requestId: string,
-  fileName: string
+  fileName: string,
+  documentType?: string
 ): PortalDocumentRequest | null {
   const matterId = resolvePortalMatterId(token);
   if (!matterId) return null;
@@ -1071,6 +1204,29 @@ export function submitPortalUpload(
   req.status = "uploaded";
   req.uploadedFileName = fileName;
   state.portal = portal;
+
+  const docType = documentType ?? inferDocumentType(fileName, req.title);
+  addIntakeDocument(matterId, {
+    fileName,
+    documentType: docType,
+    uploadedBy: "client",
+    source: "portal",
+    requestId,
+  });
+
+  addMatterNote(matterId, {
+    text: `Client uploaded: ${req.title} (${fileName})`,
+    source: "system",
+    authorLabel: "Client Vault",
+  });
+
+  state.portalActivity.unshift({
+    id: `act-${crypto.randomUUID().slice(0, 8)}`,
+    alertType: "document_uploaded",
+    body: `${req.title}: ${fileName}`,
+    createdAt: new Date().toISOString(),
+  });
+
   saveSnapshot();
   return req;
 }
@@ -1161,4 +1317,745 @@ export function setDemoBilling(matterId: string, invoice: MatterInvoice): Matter
   const state = getOrCreate(matterId);
   state.billing = invoice;
   return invoice;
+}
+
+function inferDocumentType(fileName: string, requestTitle?: string): string {
+  const hay = `${fileName} ${requestTitle ?? ""}`.toLowerCase();
+  if (hay.includes("license") || hay.includes("passport") || hay.includes("photo id") || hay.includes(" id")) {
+    return "drivers_license";
+  }
+  if (hay.includes("pay") || hay.includes("stub") || hay.includes("wage")) return "paystub";
+  if (hay.includes("bank") || hay.includes("statement")) return "bank_statement";
+  if (hay.includes("tax") || hay.includes("1040") || hay.includes("return")) return "tax_return";
+  return "other";
+}
+
+export function addIntakeDocument(
+  matterId: string,
+  input: {
+    fileName: string;
+    documentType?: string;
+    uploadedBy: "client" | "attorney";
+    source: IntakeDocument["source"];
+    requestId?: string;
+    mimeType?: string;
+  }
+): IntakeDocument {
+  const state = getOrCreate(matterId);
+  const doc: IntakeDocument = {
+    id: `doc-${crypto.randomUUID().slice(0, 8)}`,
+    fileName: input.fileName,
+    documentType: input.documentType ?? inferDocumentType(input.fileName),
+    uploadedAt: new Date().toISOString(),
+    uploadedBy: input.uploadedBy,
+    source: input.source,
+    requestId: input.requestId,
+    status: "received",
+    mimeType: input.mimeType,
+  };
+  state.intakeDocuments.push(doc);
+  saveSnapshot();
+  return doc;
+}
+
+export function addMatterNote(
+  matterId: string,
+  input: { text: string; source?: MatterNote["source"]; authorLabel?: string }
+): MatterNote {
+  const state = getOrCreate(matterId);
+  const note: MatterNote = {
+    id: `note-${crypto.randomUUID().slice(0, 8)}`,
+    text: input.text.trim(),
+    source: input.source ?? "attorney",
+    createdAt: new Date().toISOString(),
+    authorLabel: input.authorLabel ?? "Attorney",
+  };
+  state.notes.unshift(note);
+  recordDemoProvenance(matterId, {
+    formFieldId: `note-${note.id}`,
+    eventType: "attorney_edited",
+    newValue: note.text,
+    metadata: { source: note.source, type: "matter_note" },
+  });
+  saveSnapshot();
+  return note;
+}
+
+export function getMatterNotes(matterId: string): MatterNote[] {
+  return getOrCreate(matterId).notes;
+}
+
+export function getIntakeDossier(matterId: string): {
+  documents: IntakeDocument[];
+  notes: MatterNote[];
+  consult?: ConsultSnapshot;
+  pendingApplyCount: number;
+} {
+  const state = getOrCreate(matterId);
+  const pendingApplyCount = state.intakeDocuments.filter((d) => d.status !== "applied").length;
+  return {
+    documents: state.intakeDocuments,
+    notes: state.notes,
+    consult: state.consult,
+    pendingApplyCount,
+  };
+}
+
+export function saveConsultSnapshot(
+  matterId: string,
+  input: Omit<ConsultSnapshot, "evaluatedAt" | "recommendation" | "meansTestStatus" | "recommendationRationale" | "presumptionOfAbuse"> & {
+    evaluate?: boolean;
+  }
+): ConsultSnapshot {
+  const state = getOrCreate(matterId);
+  if (input.debtorName.trim()) {
+    state.debtorDisplayName = input.debtorName.trim();
+  }
+  if (input.chapterPreference !== "undecided") {
+    state.chapter = input.chapterPreference;
+  }
+
+  const snapshot: ConsultSnapshot = {
+    debtorName: input.debtorName,
+    householdSize: input.householdSize,
+    annualIncome: input.annualIncome,
+    monthlyExpenses: input.monthlyExpenses,
+    securedDebt: input.securedDebt,
+    unsecuredDebt: input.unsecuredDebt,
+    chapterPreference: input.chapterPreference,
+    takeCase: input.takeCase,
+    attorneyNotes: input.attorneyNotes,
+  };
+
+  if (input.evaluate !== false) {
+    const livingExpenses = input.monthlyExpenses || "3200.00";
+    const securedPayments = input.securedDebt
+      ? (parseFloat(parseMoney(input.securedDebt) ?? "0") / 12).toFixed(2)
+      : DEFAULT_DEDUCTIONS.securedDebtPayments;
+
+    const meansTest = evaluateUnifiedMeansTest({
+      chapter: input.chapterPreference === "13" ? "13" : "7",
+      householdSize: input.householdSize,
+      annualIncome: input.annualIncome,
+      deductions: {
+        ...DEFAULT_DEDUCTIONS,
+        livingExpenses,
+        securedDebtPayments: securedPayments,
+      },
+    });
+
+    snapshot.evaluatedAt = new Date().toISOString();
+    snapshot.recommendation = meansTest.recommendation;
+    snapshot.meansTestStatus = meansTest.meansTestStatus;
+    snapshot.recommendationRationale = meansTest.recommendationRationale;
+    snapshot.presumptionOfAbuse = meansTest.presumptionOfAbuse;
+
+    state.diagnostics = buildDiagnosticsPayload({
+      meansTest,
+      missingFields: state.reviewFields.filter((f) => f.approvalState === "pending").length,
+      exemptionGaps: 0,
+      creditSummary: state.creditPulled
+        ? scheduleSummary(getIncludedTradelines(state))
+        : undefined,
+    });
+  }
+
+  state.consult = snapshot;
+  saveSnapshot();
+  return snapshot;
+}
+
+function splitDebtorName(full: string): { first: string; last: string } {
+  const parts = full.trim().split(/\s+/);
+  if (parts.length === 0) return { first: "Debtor", last: "Unknown" };
+  if (parts.length === 1) return { first: parts[0]!, last: parts[0]! };
+  return { first: parts[0]!, last: parts.slice(1).join(" ") };
+}
+
+function upsertReviewField(
+  state: DemoMatterState,
+  matterId: string,
+  spec: {
+    id: string;
+    fieldPath: string;
+    formId: string;
+    value: unknown;
+    confidence: number;
+    rationale: string;
+    sourceDocument: { id: string; fileName: string };
+  }
+): string {
+  let field = state.reviewFields.find((f) => f.id === spec.id);
+  if (!field) {
+    field = {
+      id: spec.id,
+      fieldPath: spec.fieldPath,
+      formId: spec.formId,
+      proposedValue: spec.value,
+      confidence: spec.confidence,
+      approvalState: "pending",
+      rationale: spec.rationale,
+      sourceDocument: spec.sourceDocument,
+    };
+    state.reviewFields.push(field);
+  } else {
+    field.proposedValue = spec.value;
+    field.approvalState = "pending";
+    field.rationale = spec.rationale;
+    field.sourceDocument = spec.sourceDocument;
+  }
+
+  recordDemoProvenance(matterId, {
+    formFieldId: spec.id,
+    eventType: "ai_extracted",
+    newValue: spec.value,
+    confidence: spec.confidence,
+    metadata: {
+      fieldPath: spec.fieldPath,
+      formId: spec.formId,
+      sourceFile: spec.sourceDocument.fileName,
+      via: "forge_sync",
+    },
+  });
+
+  return spec.id;
+}
+
+export function applyPendingIntake(matterId: string): {
+  appliedCount: number;
+  fieldIds: string[];
+  message: string;
+} {
+  const state = getOrCreate(matterId);
+  const pending = state.intakeDocuments.filter((d) => d.status !== "applied");
+  const fieldIds: string[] = [];
+
+  for (const doc of pending) {
+    const src = { id: doc.id, fileName: doc.fileName };
+    const applied: string[] = [];
+
+    if (doc.documentType === "drivers_license") {
+      const name = state.consult?.debtorName ?? state.debtorDisplayName;
+      const { first, last } = splitDebtorName(name.includes(" ") ? name : `Maria ${name}`);
+      applied.push(
+        upsertReviewField(state, matterId, {
+          id: "f1",
+          fieldPath: "debtor1.firstName",
+          formId: "101",
+          value: first,
+          confidence: 0.96,
+          rationale: `Extracted from ${doc.fileName} — ID OCR`,
+          sourceDocument: src,
+        }),
+        upsertReviewField(state, matterId, {
+          id: "f2",
+          fieldPath: "debtor1.lastName",
+          formId: "101",
+          value: last,
+          confidence: 0.96,
+          rationale: `Extracted from ${doc.fileName} — ID OCR`,
+          sourceDocument: src,
+        })
+      );
+    } else if (doc.documentType === "paystub") {
+      const monthly =
+        state.consult?.annualIncome
+          ? (parseFloat(parseMoney(state.consult.annualIncome) ?? "72000") / 12).toFixed(2)
+          : "6000.00";
+      applied.push(
+        upsertReviewField(state, matterId, {
+          id: "f3",
+          fieldPath: "debtor1MonthlyIncome",
+          formId: "106I",
+          value: monthly,
+          confidence: 0.93,
+          rationale: `Gross monthly from ${doc.fileName}`,
+          sourceDocument: src,
+        })
+      );
+    } else if (doc.documentType === "bank_statement") {
+      if (!state.assets.find((a) => a.id === "checking")) {
+        state.assets.push({
+          id: "checking",
+          description: "Checking account — from client upload",
+          category: "cash",
+          currentValue: "1250.00",
+          exemptionSystem: "Wildcard",
+          exemptionAmount: "1250.00",
+        });
+      }
+      applied.push(
+        upsertReviewField(state, matterId, {
+          id: "f-bank",
+          fieldPath: "assets.checking",
+          formId: "106A/B",
+          value: "1250.00",
+          confidence: 0.88,
+          rationale: `Balance from ${doc.fileName}`,
+          sourceDocument: src,
+        })
+      );
+    } else if (doc.documentType === "tax_return") {
+      applied.push(
+        upsertReviewField(state, matterId, {
+          id: "f-tax",
+          fieldPath: "income.taxReturnYear",
+          formId: "106I",
+          value: "2024",
+          confidence: 0.9,
+          rationale: `Tax year from ${doc.fileName}`,
+          sourceDocument: src,
+        })
+      );
+    }
+
+    doc.status = "applied";
+    doc.appliedFieldIds = applied;
+    fieldIds.push(...applied);
+  }
+
+  if (state.consult) {
+    recomputeDemoDiagnostics(matterId, {
+      householdSize: state.consult.householdSize,
+      annualIncome: state.consult.annualIncome,
+      chapter: state.consult.chapterPreference === "13" ? "13" : "7",
+    });
+  } else {
+    recomputeDemoDiagnostics(matterId, {});
+  }
+
+  if (pending.length > 0) {
+    addMatterNote(matterId, {
+      text: `Forge Sync applied ${pending.length} document(s) — ${fieldIds.length} petition field(s) updated`,
+      source: "system",
+      authorLabel: "Forge Sync",
+    });
+  }
+
+  saveSnapshot();
+
+  return {
+    appliedCount: pending.length,
+    fieldIds,
+    message:
+      pending.length === 0
+        ? "No new documents to sync — upload from Client Vault or Document Drop first"
+        : `Synced ${pending.length} document(s) into the petition`,
+  };
+}
+
+export function createDemoMatter(input: {
+  debtorDisplayName: string;
+  chapter?: "7" | "13";
+  county?: string;
+}): DemoMatterSummary {
+  const matterId = `demo-${crypto.randomUUID().slice(0, 8)}`;
+  const state = buildProspectState(matterId, input);
+  demoStore.set(matterId, state);
+  saveSnapshot();
+  return summarizeDemoMatter(state);
+}
+
+function summarizeDemoMatter(state: DemoMatterState): DemoMatterSummary {
+  return {
+    matterId: state.matterId,
+    debtorDisplayName: state.debtorDisplayName,
+    chapter: state.chapter,
+    status: state.filing ? "filed" : state.consult?.takeCase === "yes" ? "active" : "prospect",
+    consultComplete: !!state.consult?.evaluatedAt,
+    pendingDocuments: state.intakeDocuments.filter((d) => d.status !== "applied").length,
+    noteCount: state.notes.length,
+    unreadPortalMessages: state.portalMessages.filter(
+      (m) => m.direction === "inbound" && !m.readAt
+    ).length,
+    createdAt: state.createdAt,
+  };
+}
+
+/** Fake client email for discharge / PI follow-up testing (no real mail unless Resend configured) */
+export const DEMO_TEST_CLIENT_EMAIL = "maria.test@example.com";
+
+function syncSandboxCreditToState(state: DemoMatterState, approveFields = false): void {
+  if (state.creditPulled && state.classifiedTradelines.length > 0) return;
+  const classified = classifyCreditTradelines(SANDBOX_TRADELINES);
+  const creditFields: DemoReviewField[] = classified.map((tl, i) => ({
+    id: `credit-${tl.id}`,
+    fieldPath: `creditors.${i}.creditorName`,
+    formId: formIdForSchedule(tl.schedule),
+    proposedValue: tl.creditorName,
+    confidence: tl.confidence,
+    approvalState: approveFields ? ("approved" as const) : ("pending" as const),
+    rationale: `${tl.rationale} — Balance $${tl.balance}`,
+    sourceDocument: { id: "credit-report", fileName: "tri_merge_credit_report.pdf" },
+  }));
+  state.reviewFields = [...state.reviewFields, ...creditFields];
+  state.classifiedTradelines = classified;
+  for (const tl of classified) {
+    state.tradelineInclusion[tl.id] = true;
+  }
+  state.creditPulled = true;
+  recomputeTradelineDiagnostics(state);
+}
+
+function seedFiledTestMatter(): void {
+  const matterId = "demo-filed";
+  const state = buildInitialState(matterId);
+  state.debtorDisplayName = "Martinez, Maria (TEST — filed)";
+  state.createdAt = "2025-03-01T00:00:00.000Z";
+
+  for (const field of state.reviewFields) {
+    field.approvalState = "approved";
+  }
+  syncSandboxCreditToState(state, true);
+
+  state.consult = {
+    debtorName: "Maria Martinez",
+    householdSize: 2,
+    annualIncome: "52000.00",
+    monthlyExpenses: "3200.00",
+    securedDebt: "18500.00",
+    unsecuredDebt: "42000.00",
+    chapterPreference: "7",
+    takeCase: "yes",
+    attorneyNotes: "Test matter — Ch 7 recommended, filed for Continuum / discharge follow-up testing.",
+    evaluatedAt: "2025-03-02T00:00:00.000Z",
+    recommendation: "chapter_7",
+    meansTestStatus: "pass",
+    recommendationRationale: "Below median income — presumption of abuse does not apply.",
+    presumptionOfAbuse: false,
+  };
+
+  state.intakeDocuments = [
+    {
+      id: "intake-paystub",
+      fileName: "paystub_march_2025.pdf",
+      documentType: "pay_stub",
+      uploadedAt: "2025-03-03T00:00:00.000Z",
+      uploadedBy: "client",
+      source: "portal",
+      status: "applied",
+      appliedFieldIds: [],
+    },
+    {
+      id: "intake-id",
+      fileName: "drivers_license.jpg",
+      documentType: "photo_id",
+      uploadedAt: "2025-03-03T00:00:00.000Z",
+      uploadedBy: "client",
+      source: "portal",
+      status: "applied",
+    },
+  ];
+
+  const filedAt = new Date();
+  filedAt.setUTCDate(filedAt.getUTCDate() - 95);
+  const filingDate = filedAt.toISOString().slice(0, 10);
+
+  state.filing = {
+    jobId: "job-demo-filed-sandbox",
+    matterId,
+    status: "filed",
+    mode: "sandbox",
+    caseNumber: "2:25-bk-12345",
+    filedAt: filedAt.toISOString(),
+    receiptNumber: "SANDBOX-RECEIPT-DEMO-FILED",
+    receiptUrl: undefined,
+    documentsFiled: 16,
+    district: "CACB",
+    message: "Sandbox filing — use this matter to test Continuum and discharge + PI follow-up.",
+  };
+
+  state.autopilot = generateTimeline({
+    matterId,
+    caseNumber: state.filing.caseNumber,
+    chapter: state.chapter,
+    filingDate,
+  });
+
+  state.billing = generateInvoice({
+    matterId,
+    chapter: state.chapter,
+    paidAmount: "1500.00",
+  });
+
+  state.portalMessages = [
+    {
+      id: "msg-test-inbound",
+      direction: "inbound",
+      body: "Hi — I finished Course 2. When will I get my discharge?",
+      createdAt: new Date(Date.now() - 86400000).toISOString(),
+    },
+  ];
+
+  state.notes = [
+    {
+      id: "note-test-email",
+      text: `TEST client email for discharge follow-up: ${DEMO_TEST_CLIENT_EMAIL}`,
+      source: "system",
+      createdAt: new Date().toISOString(),
+      authorLabel: "Demo seed",
+    },
+    {
+      id: "note-filed",
+      text: "Sandbox filed ~95 days ago — discharge track task should be due/overdue on Continuum.",
+      source: "system",
+      createdAt: new Date().toISOString(),
+      authorLabel: "Demo seed",
+    },
+  ];
+
+  state.portal = buildPortal(matterId, state);
+  state.portal.counseling.course1 = {
+    status: "complete",
+    completedAt: "2025-03-05T00:00:00.000Z",
+    certificateNumber: "DEMO-C1-12345",
+  };
+  state.portal.counseling.course2 = { status: "complete", completedAt: new Date().toISOString() };
+
+  demoStore.set(matterId, state);
+}
+
+function seedIntakeTestMatter(): void {
+  const matterId = "demo-intake";
+  const state = buildProspectState(matterId, {
+    debtorDisplayName: "Johnson, Robert (TEST — intake)",
+    chapter: "7",
+    county: "Orange",
+  });
+  state.createdAt = "2025-06-10T00:00:00.000Z";
+
+  state.intakeDocuments = [
+    {
+      id: "intake-w2",
+      fileName: "w2_2024.pdf",
+      documentType: "tax_w2",
+      uploadedAt: new Date().toISOString(),
+      uploadedBy: "client",
+      source: "portal",
+      status: "received",
+    },
+    {
+      id: "intake-bank",
+      fileName: "bank_statement_may.pdf",
+      documentType: "bank_statement",
+      uploadedAt: new Date().toISOString(),
+      uploadedBy: "client",
+      source: "portal_general",
+      status: "received",
+    },
+  ];
+
+  state.portalMessages = [
+    {
+      id: "msg-intake-inbound",
+      direction: "inbound",
+      body: "I uploaded my W-2 and bank statement — what else do you need?",
+      createdAt: new Date().toISOString(),
+    },
+  ];
+
+  state.notes = [
+    {
+      id: "note-intake",
+      text: "TEST matter — run Relief Scout, then Forge Sync from Document Drop.",
+      source: "system",
+      createdAt: new Date().toISOString(),
+      authorLabel: "Demo seed",
+    },
+  ];
+
+  state.portal = buildPortal(matterId, state);
+  demoStore.set(matterId, state);
+}
+
+/** Pre-seed predictable test matters for staging / demo deploys */
+export function ensureTestDemoMatters(): void {
+  if (!demoStore.has("demo-filed")) seedFiledTestMatter();
+  if (!demoStore.has("demo-intake")) seedIntakeTestMatter();
+  saveSnapshot();
+}
+
+export function listDemoMatters(): DemoMatterSummary[] {
+  ensureTestDemoMatters();
+  for (const id of ["demo", "demo-filed", "demo-intake"]) {
+    getOrCreate(id);
+  }
+  return Array.from(demoStore.values())
+    .map(summarizeDemoMatter)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export function submitPortalGeneralUpload(
+  token: string,
+  fileName: string,
+  documentType?: string
+): IntakeDocument | null {
+  const matterId = resolvePortalMatterId(token);
+  if (!matterId) return null;
+
+  const doc = addIntakeDocument(matterId, {
+    fileName,
+    documentType,
+    uploadedBy: "client",
+    source: "portal_general",
+  });
+
+  addMatterNote(matterId, {
+    text: `Client uploaded additional file: ${fileName}`,
+    source: "system",
+    authorLabel: "Client Vault",
+  });
+
+  const state = getOrCreate(matterId);
+  state.portalActivity.unshift({
+    id: `act-${crypto.randomUUID().slice(0, 8)}`,
+    alertType: "document_uploaded",
+    body: `Additional upload: ${fileName}`,
+    createdAt: new Date().toISOString(),
+  });
+  saveSnapshot();
+
+  return doc;
+}
+
+export function getPortalStaffData(matterId: string) {
+  const state = getOrCreate(matterId);
+  return {
+    messages: state.portalMessages,
+    activity: state.portalActivity,
+    portalUrl: getSecurePortalUrl(matterId, process.env.WEB_URL ?? "http://localhost:3000"),
+  };
+}
+
+export function addPortalStaffMessage(
+  matterId: string,
+  input: { body: string; direction: "inbound" | "outbound"; staffAuthor?: string }
+): PortalMessage {
+  const state = getOrCreate(matterId);
+  const msg: PortalMessage = {
+    id: `msg-${crypto.randomUUID().slice(0, 8)}`,
+    direction: input.direction,
+    body: input.body.trim(),
+    createdAt: new Date().toISOString(),
+    staffAuthor: input.staffAuthor,
+    readAt: input.direction === "outbound" ? new Date().toISOString() : undefined,
+  };
+  state.portalMessages.unshift(msg);
+  if (input.direction === "outbound") {
+    state.portalActivity.unshift({
+      id: `act-${crypto.randomUUID().slice(0, 8)}`,
+      alertType: "new_message",
+      body: `Staff: ${input.body.slice(0, 80)}`,
+      createdAt: new Date().toISOString(),
+    });
+  }
+  saveSnapshot();
+  return msg;
+}
+
+export function addPortalClientMessage(token: string, body: string): PortalMessage | null {
+  const matterId = resolvePortalMatterId(token);
+  if (!matterId) return null;
+  const state = getOrCreate(matterId);
+  const msg: PortalMessage = {
+    id: `msg-${crypto.randomUUID().slice(0, 8)}`,
+    direction: "inbound",
+    body: body.trim(),
+    createdAt: new Date().toISOString(),
+  };
+  state.portalMessages.unshift(msg);
+  state.portalActivity.unshift({
+    id: `act-${crypto.randomUUID().slice(0, 8)}`,
+    alertType: "new_message",
+    body: `Client: ${body.slice(0, 80)}`,
+    createdAt: new Date().toISOString(),
+  });
+  addMatterNote(matterId, {
+    text: `Client message: ${body}`,
+    source: "system",
+    authorLabel: "Client Vault",
+  });
+  saveSnapshot();
+  return msg;
+}
+
+export function markPortalMessagesRead(matterId: string): void {
+  const state = getOrCreate(matterId);
+  for (const m of state.portalMessages) {
+    if (m.direction === "inbound" && !m.readAt) {
+      m.readAt = new Date().toISOString();
+    }
+  }
+  saveSnapshot();
+}
+
+export function markDischargeFollowUpSent(
+  matterId: string,
+  input: {
+    clientEmail: string;
+    includePiCrossSell: boolean;
+    sentAt: string;
+    emailOk: boolean;
+  }
+): void {
+  const state = getOrCreate(matterId);
+  state.dischargeFollowUp = input;
+  saveSnapshot();
+}
+
+export function getDischargeFollowUp(matterId: string) {
+  return getOrCreate(matterId).dischargeFollowUp;
+}
+
+export function getFilingPackagePreview(matterId: string) {
+  const state = getOrCreate(matterId);
+  const formIds = getApprovedFormIds(matterId);
+  const petition = assembleDemoPetition(matterId);
+  return {
+    matterId,
+    chapter: state.chapter,
+    district: state.district,
+    divisionName: state.divisionName,
+    formIds,
+    petitionCompletion: petition.overallCompletion,
+    documents: formIds.map((formId) => ({
+      formId,
+      label: formLabel(formId),
+      eventCode: cmecfEventCode(formId),
+      status: "ready_for_preflight",
+    })),
+    efileMode: process.env.EFILE_MODE ?? "sandbox",
+  };
+}
+
+function formLabel(formId: string): string {
+  const labels: Record<string, string> = {
+    "101": "Voluntary Petition",
+    "106A/B": "Schedule A/B — Property",
+    "106C": "Schedule C — Exemptions",
+    "106D": "Schedule D — Secured Creditors",
+    "106E/F": "Schedule E/F — Unsecured Creditors",
+    "106G": "Schedule G — Executory Contracts",
+    "106H": "Schedule H — Codebtors",
+    "106I": "Schedule I — Income",
+    "106J": "Schedule J — Expenses",
+    "107": "Statement of Financial Affairs",
+    "122A-1": "Form 122A-1 — Means Test",
+    "122A-2": "Form 122A-2 — Means Test",
+    "122C-1": "Form 122C-1 — Ch 13 Means Test",
+    "122C-2": "Form 122C-2 — Ch 13 Means Test",
+    "cert-counsel": "Credit Counseling Certificate",
+    "3015-1.7": "CACB Local Form 3015-1.7",
+    MML: "Creditor Matrix (MML)",
+    "3015-1.01": "Ch 13 Plan (CACB)",
+    "341": "341 Meeting Notice",
+  };
+  return labels[formId] ?? formId;
+}
+
+function cmecfEventCode(formId: string): string {
+  if (formId === "101") return "PETITION";
+  if (formId.startsWith("106")) return "SCHEDULE";
+  if (formId.startsWith("122")) return "MEANS_TEST";
+  return "MISC";
 }

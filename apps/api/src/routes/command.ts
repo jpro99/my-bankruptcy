@@ -14,7 +14,9 @@ import {
   getDemoPortal,
   getDemoPortalOpenCount,
   getDemoReviewFields,
+  getIntakeDossier,
   getSecurePortalUrl,
+  getDischargeFollowUp,
   isDemoMatter,
   portalTokenForMatter,
 } from "../lib/demo-store.js";
@@ -39,6 +41,7 @@ commandRouter.get("/matter/:matterId", async (c) => {
   const petition = assembleDemoPetition(matterId);
   const portal = getDemoPortal(portalTokenForMatter(matterId));
   const counselingComplete = portal.counseling.course1.status === "complete";
+  const dossier = getIntakeDossier(matterId);
 
   const localFormsComplete = pending === 0;
   const districtPreflight = runDistrictPreflight({
@@ -85,6 +88,9 @@ commandRouter.get("/matter/:matterId", async (c) => {
     petitionCompletionPercent: petition.overallCompletion,
     districtConfigured: true,
     counselingComplete,
+    consultComplete: !!dossier.consult?.evaluatedAt,
+    pendingIntakeCount: dossier.pendingApplyCount,
+    dischargeFollowUpSent: !!getDischargeFollowUp(matterId)?.sentAt,
   });
 
   const webBase = process.env.WEB_URL ?? c.req.header("origin") ?? "http://localhost:3000";
@@ -96,6 +102,9 @@ commandRouter.get("/matter/:matterId", async (c) => {
     portalUrl: getSecurePortalUrl(matterId, webBase),
     portalToken: portalTokenForMatter(matterId),
     counselingComplete,
+    pendingIntakeCount: dossier.pendingApplyCount,
+    noteCount: dossier.notes.length,
+    consultComplete: !!dossier.consult?.evaluatedAt,
     district: districtInfo,
     petitionCompletion: petition.overallCompletion,
     districtPreflight,

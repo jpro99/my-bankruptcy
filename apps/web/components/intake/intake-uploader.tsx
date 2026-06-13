@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
 import {
   CreditCard,
   FileText,
@@ -10,11 +10,13 @@ import {
   Sparkles,
   Upload,
 } from "lucide-react";
-import { pullCredit } from "@/lib/api-client";
+import { pullCredit, uploadIntakeDocument } from "@/lib/api-client";
+import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { MatterDossierPanel } from "@/components/intake/matter-dossier-panel";
 
 const DOCUMENT_TYPES = [
   { id: "drivers_license", label: "Driver's License", icon: IdCard },
@@ -23,57 +25,50 @@ const DOCUMENT_TYPES = [
   { id: "tax_return", label: "Tax Returns", icon: FileText },
 ] as const;
 
-interface UploadedFile {
-  id: string;
-  name: string;
-  type: string;
-  size: number;
-  status: "uploading" | "encrypted" | "ready";
+function inferType(fileName: string): string {
+  const lower = fileName.toLowerCase();
+  if (lower.includes("license") || lower.includes("id")) return "drivers_license";
+  if (lower.includes("pay")) return "paystub";
+  if (lower.includes("bank")) return "bank_statement";
+  if (lower.includes("tax") || lower.includes("1040")) return "tax_return";
+  return "other";
 }
 
 export function IntakeUploader({ matterId }: { matterId: string }) {
-  const [files, setFiles] = useState<UploadedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [dossierKey, setDossierKey] = useState(0);
 
-  const handleFiles = useCallback((fileList: FileList) => {
-    const newFiles: UploadedFile[] = Array.from(fileList).map((f) => ({
-      id: crypto.randomUUID(),
-      name: f.name,
-      type: f.type,
-      size: f.size,
-      status: "uploading" as const,
-    }));
-
-    setFiles((prev) => [...prev, ...newFiles]);
-
-    for (const file of newFiles) {
-      setTimeout(() => {
-        setFiles((prev) =>
-          prev.map((f) => (f.id === file.id ? { ...f, status: "encrypted" } : f))
-        );
-        setTimeout(() => {
-          setFiles((prev) =>
-            prev.map((f) => (f.id === file.id ? { ...f, status: "ready" } : f))
-          );
-        }, 500);
-      }, 800);
-    }
-  }, []);
+  const handleFiles = useCallback(
+    async (fileList: FileList) => {
+      setUploading(true);
+      try {
+        for (const file of Array.from(fileList)) {
+          await uploadIntakeDocument(matterId, file.name, inferType(file.name));
+        }
+        setDossierKey((k) => k + 1);
+        setStatusMessage(`Uploaded ${fileList.length} file(s) to ${BRAND.dossier.name}`);
+      } finally {
+        setUploading(false);
+      }
+    },
+    [matterId]
+  );
 
   const onDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       setIsDragging(false);
-      if (e.dataTransfer.files.length > 0) handleFiles(e.dataTransfer.files);
+      if (e.dataTransfer.files.length > 0) void handleFiles(e.dataTransfer.files);
     },
     [handleFiles]
   );
 
-  const startIntake = async () => {
+  const startFullIntake = async () => {
     setIsProcessing(true);
-    setStatusMessage("Running AI extraction + tri-merge credit pull…");
+    setStatusMessage("Forge Sync + tri-merge credit pull…");
     try {
       const result = await pullCredit(matterId);
       setStatusMessage(
@@ -82,21 +77,21 @@ export function IntakeUploader({ matterId }: { matterId: string }) {
       await new Promise((r) => setTimeout(r, 1200));
       window.location.href = `/matters/${matterId}/forge`;
     } catch {
-      setStatusMessage("Credit pull unavailable — continuing with document extraction…");
-      await new Promise((r) => setTimeout(r, 1500));
+      setStatusMessage("Continuing to The Forge…");
+      await new Promise((r) => setTimeout(r, 800));
       window.location.href = `/matters/${matterId}/forge`;
     }
   };
 
-  const readyCount = files.filter((f) => f.status === "ready").length;
-
   return (
-    <div className="mx-auto max-w-3xl space-y-8 animate-fade-in">
+    <div className="mx-auto max-w-3xl space-y-10 animate-fade-in">
       <header>
-        <Badge className="mb-2">Intake</Badge>
-        <h1 className="font-display text-3xl font-bold">One-Touch Intake</h1>
+        <Badge className="mb-2">Document Drop</Badge>
+        <h1 className="font-display text-3xl font-bold">Collect & sync</h1>
         <p className="mt-2 text-muted-foreground">
-          Drop documents — AI extracts everything, pulls tri-merge credit, and populates schedules.
+          Client uploads from their phone land in the {BRAND.dossier.name}. Tap{" "}
+          <strong>{BRAND.forgeSync.action}</strong> anytime — IDs today, paystubs tomorrow, petition
+          fills as you go.
         </p>
       </header>
 
@@ -119,18 +114,27 @@ export function IntakeUploader({ matterId }: { matterId: string }) {
         </div>
         <p className="font-semibold">Drop files here or browse</p>
         <p className="mt-2 text-sm text-muted-foreground">
-          Driver&apos;s license · Pay stubs · Bank statements · Tax returns
+          Phone or computer — same matter file
         </p>
         <input
           type="file"
           multiple
+          accept="image/*,.pdf,.PDF"
+          capture="environment"
           className="hidden"
           id="file-upload"
-          onChange={(e) => e.target.files && handleFiles(e.target.files)}
+          onChange={(e) => e.target.files && void handleFiles(e.target.files)}
         />
-        <Button asChild className="mt-6">
+        <Button asChild className="mt-6" disabled={uploading}>
           <label htmlFor="file-upload" className="cursor-pointer">
-            Browse files
+            {uploading ? (
+              <>
+                <Loader2 className="animate-spin" />
+                Uploading…
+              </>
+            ) : (
+              "Browse files"
+            )}
           </label>
         </Button>
       </div>
@@ -151,43 +155,21 @@ export function IntakeUploader({ matterId }: { matterId: string }) {
         })}
       </div>
 
-      {files.length > 0 && (
-        <div className="space-y-2">
-          <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
-            Uploaded ({readyCount}/{files.length} ready)
-          </h2>
-          {files.map((file) => (
-            <Card key={file.id}>
-              <CardContent className="flex items-center justify-between p-4">
-                <span className="truncate text-sm font-medium">{file.name}</span>
-                <Badge
-                  variant={
-                    file.status === "ready"
-                      ? "success"
-                      : file.status === "encrypted"
-                        ? "default"
-                        : "secondary"
-                  }
-                >
-                  {file.status === "uploading" && "Uploading…"}
-                  {file.status === "encrypted" && "Encrypting…"}
-                  {file.status === "ready" && "Ready"}
-                </Badge>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
       {statusMessage && (
         <p className="text-center text-sm font-medium text-primary">{statusMessage}</p>
       )}
 
+      <MatterDossierPanel
+        key={dossierKey}
+        matterId={matterId}
+        onSyncComplete={() => setDossierKey((k) => k + 1)}
+      />
+
       <Button
         size="lg"
         className="w-full shadow-glow"
-        onClick={() => void startIntake()}
-        disabled={readyCount === 0 || isProcessing}
+        onClick={() => void startFullIntake()}
+        disabled={isProcessing}
       >
         {isProcessing ? (
           <>
@@ -197,7 +179,7 @@ export function IntakeUploader({ matterId }: { matterId: string }) {
         ) : (
           <>
             <Sparkles />
-            Start AI Extraction + Credit Pull
+            Full intake — sync + credit pull → The Forge
             <CreditCard className="opacity-70" />
           </>
         )}

@@ -81,6 +81,41 @@ export const BRAND = {
     name: "Client Vault",
     description: "Encrypted magic link — documents & required courses",
   },
+
+  /** Relief Scout — first consult means-test snapshot */
+  reliefScout: {
+    name: "Relief Scout",
+    short: "Scout",
+    description: "60-second means test — take the case or pass, with notes on file",
+  },
+
+  /** Bench Notes — attorney voice/text notes from phone */
+  benchNotes: {
+    name: "Bench Notes",
+    action: "Leave a note",
+    description: "Tap, speak, done — lands in the matter file instantly",
+  },
+
+  /** Matter Dossier — every document from client & attorney */
+  dossier: {
+    name: "Matter Dossier",
+    description: "Everything they sent — tracked, printable, ready to forge",
+  },
+
+  /** Forge Sync — push collected intake into the petition */
+  forgeSync: {
+    name: "Forge Sync",
+    action: "Sync to petition",
+    description: "One button — IDs, paystubs, uploads fill the bankruptcy",
+  },
+
+  /** Relief Pocket — installable Android / phone attorney app */
+  reliefPocket: {
+    name: "Relief Pocket",
+    shortName: "Matters",
+    tagline: "Bankruptcy on your phone",
+    description: "Install to home screen — pick a matter, note, calendar, Gmail",
+  },
 } as const;
 
 export type CounselingTier = keyof typeof BRAND.counseling.tiers;

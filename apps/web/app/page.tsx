@@ -5,6 +5,7 @@ import {
   Hammer,
   LayoutDashboard,
   Shield,
+  Smartphone,
   Sparkles,
 } from "lucide-react";
 import { BRAND } from "@/lib/brand";
@@ -54,6 +55,12 @@ export default function HomePage() {
         </div>
         <div className="flex gap-2">
           <Button asChild variant="secondary" size="sm">
+            <Link href="/dashboard">Dashboard</Link>
+          </Button>
+          <Button asChild variant="secondary" size="sm">
+            <Link href="/matters">Matters</Link>
+          </Button>
+          <Button asChild variant="secondary" size="sm">
             <Link href="/signup">Attorney signup</Link>
           </Button>
           <Badge variant="secondary">California · CACB</Badge>
@@ -84,6 +91,12 @@ export default function HomePage() {
               <Link href="/matters/demo/command">
                 <LayoutDashboard />
                 {BRAND.command.name}
+              </Link>
+            </Button>
+            <Button asChild variant="secondary" size="lg" className="min-w-[220px] border-primary/30">
+              <Link href="/mobile/install">
+                <Smartphone />
+                {BRAND.reliefPocket.name}
               </Link>
             </Button>
           </div>

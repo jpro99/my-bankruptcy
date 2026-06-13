@@ -15,6 +15,8 @@ import {
   completePortalCounseling,
   fetchPortal,
   uploadPortalDocument,
+  uploadPortalGeneralDocument,
+  sendPortalClientMessage,
   type PortalData,
 } from "@/lib/api-client";
 import { BRAND } from "@/lib/brand";
@@ -29,6 +31,8 @@ export function ClientPortal({ token }: { token: string }) {
   const [uploading, setUploading] = useState<string | null>(null);
   const [counselingBusy, setCounselingBusy] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [clientMessage, setClientMessage] = useState("");
+  const [messageSending, setMessageSending] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -47,10 +51,20 @@ export function ClientPortal({ token }: { token: string }) {
     void load();
   }, [load]);
 
-  const handleUpload = async (requestId: string) => {
+  const handleUpload = async (requestId: string, file: File) => {
     setUploading(requestId);
     try {
-      await uploadPortalDocument(token, requestId, `upload_${Date.now()}.pdf`);
+      await uploadPortalDocument(token, requestId, file.name);
+      await load();
+    } finally {
+      setUploading(null);
+    }
+  };
+
+  const handleGeneralUpload = async (file: File) => {
+    setUploading("general");
+    try {
+      await uploadPortalGeneralDocument(token, file.name);
       await load();
     } finally {
       setUploading(null);
@@ -241,23 +255,38 @@ export function ClientPortal({ token }: { token: string }) {
                     </p>
                   )}
                   {req.status === "open" && (
-                    <Button
-                      className="w-full"
-                      disabled={uploading === req.id}
-                      onClick={() => void handleUpload(req.id)}
-                    >
-                      {uploading === req.id ? (
-                        <>
-                          <Loader2 className="animate-spin" />
-                          Uploading…
-                        </>
-                      ) : (
-                        <>
-                          <Upload />
-                          Upload photo or PDF
-                        </>
-                      )}
-                    </Button>
+                    <>
+                      <input
+                        type="file"
+                        accept="image/*,.pdf,.PDF"
+                        capture="environment"
+                        className="hidden"
+                        id={`upload-${req.id}`}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) void handleUpload(req.id, file);
+                        }}
+                      />
+                      <Button
+                        className="w-full"
+                        disabled={uploading === req.id}
+                        asChild
+                      >
+                        <label htmlFor={`upload-${req.id}`} className="cursor-pointer">
+                          {uploading === req.id ? (
+                            <>
+                              <Loader2 className="animate-spin" />
+                              Uploading…
+                            </>
+                          ) : (
+                            <>
+                              <Upload />
+                              Upload photo or PDF
+                            </>
+                          )}
+                        </label>
+                      </Button>
+                    </>
                   )}
                   {req.status === "uploaded" && (
                     <p className="text-xs font-medium text-success">Attorney reviewing</p>
@@ -266,6 +295,74 @@ export function ClientPortal({ token }: { token: string }) {
               </Card>
             );
           })}
+        </section>
+
+        <section className="mt-8 space-y-3">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            Anything else?
+          </h2>
+          <Card>
+            <CardContent className="space-y-3 p-5">
+              <p className="text-sm text-muted-foreground">
+                Upload any other document — W-2s, bills, court papers. Your attorney sees it
+                instantly.
+              </p>
+              <input
+                type="file"
+                accept="image/*,.pdf,.PDF"
+                capture="environment"
+                className="hidden"
+                id="upload-general"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleGeneralUpload(file);
+                }}
+              />
+              <Button className="w-full" variant="secondary" disabled={uploading === "general"} asChild>
+                <label htmlFor="upload-general" className="cursor-pointer">
+                  {uploading === "general" ? (
+                    <Loader2 className="animate-spin" />
+                  ) : (
+                    <>
+                      <FileUp />
+                      Upload additional file
+                    </>
+                  )}
+                </label>
+              </Button>
+            </CardContent>
+          </Card>
+        </section>
+
+        <section className="mt-8 space-y-3">
+          <h2 className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
+            Message your attorney
+          </h2>
+          <Card>
+            <CardContent className="space-y-3 p-5">
+              <textarea
+                className="w-full rounded-lg border px-3 py-2 text-sm min-h-[72px]"
+                placeholder="Questions or updates for your attorney…"
+                value={clientMessage}
+                onChange={(e) => setClientMessage(e.target.value)}
+              />
+              <Button
+                className="w-full"
+                disabled={!clientMessage.trim() || messageSending}
+                onClick={async () => {
+                  setMessageSending(true);
+                  try {
+                    await sendPortalClientMessage(token, clientMessage.trim());
+                    setClientMessage("");
+                  } finally {
+                    setMessageSending(false);
+                  }
+                }}
+              >
+                {messageSending ? <Loader2 className="animate-spin" /> : "Send message"}
+              </Button>
+            </CardContent>
+          </Card>
         </section>
 
         <footer className="mt-12 flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">

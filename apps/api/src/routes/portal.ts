@@ -8,7 +8,9 @@ import {
   isDemoPortalToken,
   portalTokenForMatter,
   submitPortalUpload,
+  submitPortalGeneralUpload,
   completePortalRequest,
+  addPortalClientMessage,
 } from "../lib/demo-store.js";
 
 /** Public client portal — magic link, no attorney auth */
@@ -37,10 +39,30 @@ portalRouter.post("/:token/upload", zValidator("json", UploadSchema), async (c) 
   }
 
   const body = c.req.valid("json");
-  const result = submitPortalUpload(token, body.requestId, body.fileName);
+  const result = submitPortalUpload(token, body.requestId, body.fileName, body.documentType);
   if (!result) return c.json({ error: "Request not found" }, 404);
   return c.json({ success: true, request: result });
 });
+
+const GeneralUploadSchema = z.object({
+  fileName: z.string().min(1),
+  documentType: z.string().optional(),
+});
+
+portalRouter.post(
+  "/:token/upload-general",
+  zValidator("json", GeneralUploadSchema),
+  async (c) => {
+    const token = c.req.param("token");
+    if (!isDemoPortalToken(token)) {
+      return c.json({ error: "Invalid portal link" }, 404);
+    }
+    const body = c.req.valid("json");
+    const document = submitPortalGeneralUpload(token, body.fileName, body.documentType);
+    if (!document) return c.json({ error: "Upload failed" }, 400);
+    return c.json({ success: true, document });
+  }
+);
 
 portalRouter.post("/:token/complete/:requestId", async (c) => {
   const token = c.req.param("token");
@@ -60,6 +82,21 @@ const CounselingCompleteSchema = z.object({
   certificateNumber: z.string().optional(),
   simulateGold: z.boolean().optional(),
 });
+
+portalRouter.post(
+  "/:token/messages",
+  zValidator("json", z.object({ body: z.string().min(1) })),
+  async (c) => {
+    const token = c.req.param("token");
+    if (!isDemoPortalToken(token)) {
+      return c.json({ error: "Invalid portal link" }, 404);
+    }
+    const { body } = c.req.valid("json");
+    const message = addPortalClientMessage(token, body);
+    if (!message) return c.json({ error: "Failed" }, 400);
+    return c.json({ success: true, message }, 201);
+  }
+);
 
 portalRouter.post(
   "/:token/counseling/complete",

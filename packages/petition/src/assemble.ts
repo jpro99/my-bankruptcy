@@ -365,6 +365,23 @@ export function assemblePetition(input: AssemblePetitionInput): PetitionView {
     scheduleD,
     scheduleEF,
     scheduleG,
+    buildSchedule(
+      "schedule-h",
+      "106H",
+      "Schedule H — Codebtors",
+      "Non-filing spouses, guarantors, and other codebtors",
+      [
+        {
+          id: "placeholder-h",
+          label: "Codebtors",
+          value: input.reviewFields.some((f) => f.fieldPath.includes("codebtor"))
+            ? "See intake"
+            : "None identified",
+          status: "pending" as const,
+          formReference: "106H",
+        },
+      ]
+    ),
     scheduleI,
     scheduleJ,
     meansTest,

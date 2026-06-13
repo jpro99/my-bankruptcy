@@ -305,7 +305,183 @@ export function fetchCommandCenter(matterId: string) {
     portalUrl: string;
     portalToken?: string;
     counselingComplete?: boolean;
+    pendingIntakeCount?: number;
+    noteCount?: number;
+    consultComplete?: boolean;
   }>(`/api/command/matter/${matterId}`);
+}
+
+export interface MatterNote {
+  id: string;
+  text: string;
+  source: "attorney" | "voice" | "system";
+  createdAt: string;
+  authorLabel: string;
+}
+
+export interface IntakeDocument {
+  id: string;
+  fileName: string;
+  documentType: string;
+  uploadedAt: string;
+  uploadedBy: "client" | "attorney";
+  source: string;
+  requestId?: string;
+  status: "received" | "processed" | "applied";
+  appliedFieldIds?: string[];
+}
+
+export interface ConsultSnapshot {
+  debtorName: string;
+  householdSize: number;
+  annualIncome: string;
+  monthlyExpenses: string;
+  securedDebt: string;
+  unsecuredDebt: string;
+  chapterPreference: "7" | "13" | "undecided";
+  takeCase: "yes" | "maybe" | "no" | null;
+  attorneyNotes: string;
+  evaluatedAt?: string;
+  recommendation?: string;
+  meansTestStatus?: string;
+  recommendationRationale?: string;
+  presumptionOfAbuse?: boolean;
+}
+
+export interface MatterDossier {
+  documents: IntakeDocument[];
+  notes: MatterNote[];
+  consult?: ConsultSnapshot;
+  pendingApplyCount: number;
+}
+
+export interface DemoMatterSummary {
+  matterId: string;
+  debtorDisplayName: string;
+  chapter: "7" | "13";
+  status: "prospect" | "active" | "filed";
+  consultComplete: boolean;
+  pendingDocuments: number;
+  noteCount: number;
+  unreadPortalMessages?: number;
+  createdAt: string;
+}
+
+export function fetchMatterDossier(matterId: string) {
+  return apiFetch<{ dossier: MatterDossier }>(`/api/intake/matter/${matterId}/dossier`);
+}
+
+export function fetchMatterNotes(matterId: string) {
+  return apiFetch<{ notes: MatterNote[] }>(`/api/intake/matter/${matterId}/notes`);
+}
+
+export function addMatterNoteApi(
+  matterId: string,
+  text: string,
+  source: "attorney" | "voice" = "attorney"
+) {
+  return apiFetch<{ note: MatterNote }>(`/api/intake/matter/${matterId}/notes`, {
+    method: "POST",
+    body: JSON.stringify({ text, source }),
+  });
+}
+
+export function saveConsultApi(
+  matterId: string,
+  consult: Omit<
+    ConsultSnapshot,
+    | "evaluatedAt"
+    | "recommendation"
+    | "meansTestStatus"
+    | "recommendationRationale"
+    | "presumptionOfAbuse"
+  > & { evaluate?: boolean }
+) {
+  return apiFetch<{ consult: ConsultSnapshot }>(`/api/intake/matter/${matterId}/consult`, {
+    method: "POST",
+    body: JSON.stringify(consult),
+  });
+}
+
+export function uploadIntakeDocument(
+  matterId: string,
+  fileName: string,
+  documentType?: string
+) {
+  return apiFetch<{ document: IntakeDocument }>(`/api/intake/matter/${matterId}/upload`, {
+    method: "POST",
+    body: JSON.stringify({ fileName, documentType }),
+  });
+}
+
+export function applyForgeSync(matterId: string) {
+  return apiFetch<{ appliedCount: number; fieldIds: string[]; message: string }>(
+    `/api/intake/matter/${matterId}/apply`,
+    { method: "POST", body: "{}" }
+  );
+}
+
+export function listDemoMatters() {
+  return apiFetch<{ matters: DemoMatterSummary[] }>(`/api/intake/matters`);
+}
+
+export function createDemoMatter(input: {
+  debtorDisplayName: string;
+  chapter?: "7" | "13";
+  county?: string;
+}) {
+  return apiFetch<{ matter: DemoMatterSummary }>(`/api/intake/matters`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export interface PortalMessage {
+  id: string;
+  direction: "inbound" | "outbound";
+  body: string;
+  createdAt: string;
+  readAt?: string;
+  staffAuthor?: string;
+}
+
+export interface PortalActivityEvent {
+  id: string;
+  alertType: string;
+  body: string;
+  createdAt: string;
+}
+
+export function fetchPortalStaff(matterId: string) {
+  return apiFetch<{
+    messages: PortalMessage[];
+    activity: PortalActivityEvent[];
+    portalUrl: string;
+  }>(`/api/portal/staff/${matterId}`);
+}
+
+export function sendPortalStaffMessage(matterId: string, body: string) {
+  return apiFetch<{ message: PortalMessage }>(`/api/portal/staff/${matterId}/messages`, {
+    method: "POST",
+    body: JSON.stringify({ body }),
+  });
+}
+
+export function sendPortalInvite(
+  matterId: string,
+  input: { channel: "email" | "sms"; recipient: string; clientName?: string }
+) {
+  return apiFetch<{ ok: boolean; link: string; message: string; mailto?: string }>(
+    `/api/portal/staff/${matterId}/invite`,
+    { method: "POST", body: JSON.stringify(input) }
+  );
+}
+
+export function sendPortalClientMessage(token: string, body: string) {
+  return portalFetch<{ success: boolean }>(`/api/portal/${token}/messages`, {
+    method: "POST",
+    body: JSON.stringify({ body }),
+  });
 }
 
 export interface PaymentReceipt {
@@ -406,11 +582,30 @@ export function fetchPortal(token: string) {
   return portalFetch<{ portal: PortalData }>(`/api/portal/${token}`);
 }
 
-export function uploadPortalDocument(token: string, requestId: string, fileName: string) {
+export function uploadPortalDocument(
+  token: string,
+  requestId: string,
+  fileName: string,
+  documentType?: string
+) {
   return portalFetch<{ success: boolean }>(`/api/portal/${token}/upload`, {
     method: "POST",
-    body: JSON.stringify({ requestId, fileName }),
+    body: JSON.stringify({ requestId, fileName, documentType }),
   });
+}
+
+export function uploadPortalGeneralDocument(
+  token: string,
+  fileName: string,
+  documentType?: string
+) {
+  return portalFetch<{ success: boolean; document: { id: string; fileName: string } }>(
+    `/api/portal/${token}/upload-general`,
+    {
+      method: "POST",
+      body: JSON.stringify({ fileName, documentType }),
+    }
+  );
 }
 
 export function completePortalCounseling(
@@ -684,4 +879,75 @@ export function exportProvenance(matterId: string) {
     events: ProvenanceEvent[];
     integrityHash: string;
   }>(`/api/provenance/matter/${matterId}/export`);
+}
+
+export interface FilingPackageDocument {
+  formId: string;
+  label: string;
+  eventCode: string;
+  status: string;
+}
+
+export interface FilingPackage {
+  matterId: string;
+  chapter: "7" | "13";
+  district: string;
+  divisionName: string;
+  formIds: string[];
+  petitionCompletion: number;
+  documents: FilingPackageDocument[];
+  efileMode: string;
+}
+
+export function fetchFilingPackage(matterId: string) {
+  return apiFetch<{ package: FilingPackage }>(`/api/filing/matter/${matterId}/package`);
+}
+
+export function fetchDischargeFollowUpPreview(matterId: string) {
+  return apiFetch<{ template: { subject: string; text?: string; preview?: string } }>(
+    `/api/follow-up/matter/${matterId}/discharge/preview`
+  );
+}
+
+export function sendDischargeFollowUp(
+  matterId: string,
+  body: { clientEmail: string; includePiCrossSell?: boolean; sendEmail?: boolean }
+) {
+  return apiFetch<{
+    success: boolean;
+    template: { subject: string; preview?: string };
+    email: { ok: boolean; messageId?: string; error?: string; mailto?: string };
+  }>(`/api/follow-up/matter/${matterId}/discharge`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+}
+
+export interface IntegrationStatusBlock {
+  status: string;
+  note?: string;
+  provider?: string;
+  fromAddress?: string | null;
+  missing?: string[];
+  bridge?: string;
+  firmName?: string;
+  url?: string | null;
+  phone?: string | null;
+}
+
+export function fetchIntegrationsStatus() {
+  return apiFetch<{
+    integrations: {
+      database: IntegrationStatusBlock;
+      outboundEmail: IntegrationStatusBlock;
+      clientPortal: IntegrationStatusBlock;
+      creditPull: IntegrationStatusBlock;
+      efile: IntegrationStatusBlock;
+      counseling: IntegrationStatusBlock;
+      worker: IntegrationStatusBlock;
+      piCrossSell: IntegrationStatusBlock;
+    };
+    courtConnections: Record<string, { cmEcf: string; localForms: string[] }>;
+    filingPackage: { formsIncluded: string[]; pdfGeneration: string; note: string };
+  }>("/api/integrations/status");
 }

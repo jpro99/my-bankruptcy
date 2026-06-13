@@ -67,4 +67,10 @@ export interface ComputeProgressInput {
   districtConfigured?: boolean;
   /** BAPCPA Course 1 complete */
   counselingComplete?: boolean;
+  /** Relief Scout consult evaluated */
+  consultComplete?: boolean;
+  /** Documents waiting for Forge Sync */
+  pendingIntakeCount?: number;
+  /** Discharge congratulations + PI cross-sell email sent */
+  dischargeFollowUpSent?: boolean;
 }

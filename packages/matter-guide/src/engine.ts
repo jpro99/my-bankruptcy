@@ -18,12 +18,33 @@ export function computeMatterProgress(input: ComputeProgressInput): MatterProgre
 
   const steps: GuideStep[] = [
     {
+      id: "scout",
+      title: "Relief Scout",
+      description: "Quick means test — take the case, pass, or maybe — notes on file",
+      status: stepStatus(
+        input.consultComplete ?? false,
+        !(input.consultComplete ?? false),
+        false
+      ),
+      weight: 5,
+      actionLabel: input.consultComplete ? "Scout complete" : "Run Relief Scout",
+      actionHref: `${base}/scout`,
+      estimatedMinutes: 3,
+    },
+    {
       id: "intake",
       title: "Document Drop",
-      description: "Drop ID, paystubs, bank statements — AI populates all schedules",
-      status: stepStatus(input.intakeComplete, !input.intakeComplete, false),
+      description: "Client Vault + attorney uploads — Forge Sync fills the petition",
+      status: stepStatus(
+        input.intakeComplete,
+        (input.pendingIntakeCount ?? 0) > 0 || !input.intakeComplete,
+        !(input.consultComplete ?? false)
+      ),
       weight: 15,
-      actionLabel: "Upload documents",
+      actionLabel:
+        (input.pendingIntakeCount ?? 0) > 0
+          ? `${input.pendingIntakeCount} ready to sync`
+          : "Upload documents",
       actionHref: `${base}/intake`,
       estimatedMinutes: 5,
     },
@@ -160,6 +181,34 @@ export function computeMatterProgress(input: ComputeProgressInput): MatterProgre
       actionLabel: "Open Continuum",
       actionHref: `${base}/continuum`,
       estimatedMinutes: 1,
+    },
+    {
+      id: "discharge-follow-up",
+      title: "Discharge + PI follow-up",
+      description: "Congratulate client on discharge — mention personal injury if interested",
+      status: stepStatus(
+        !!input.dischargeFollowUpSent,
+        input.filed && !input.dischargeFollowUpSent,
+        !input.filed
+      ),
+      weight: 5,
+      actionLabel: input.dischargeFollowUpSent ? "Sent ✓" : "Send follow-up",
+      actionHref: `${base}/continuum`,
+      estimatedMinutes: 2,
+    },
+    {
+      id: "filing-packet",
+      title: "Filing packet",
+      description: "Full CM/ECF bundle — petition, schedules, locals, matrix",
+      status: stepStatus(
+        input.preflightReady || input.filed,
+        !input.preflightReady && !input.filed,
+        false
+      ),
+      weight: 5,
+      actionLabel: "View packet",
+      actionHref: `${base}/filing-packet`,
+      estimatedMinutes: 2,
     },
     {
       id: "audit",

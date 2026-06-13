@@ -1,6 +1,9 @@
 import { networkInterfaces } from "node:os";
 import { serve } from "@hono/node-server";
 import app from "./index.js";
+import { ensureTestDemoMatters } from "./lib/demo-store.js";
+
+ensureTestDemoMatters();
 
 const port = parseInt(process.env.PORT ?? "3002", 10);
 const hostname = process.env.HOST ?? "0.0.0.0";
