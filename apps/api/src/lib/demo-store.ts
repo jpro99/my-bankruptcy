@@ -14,6 +14,15 @@ import { optimizeExemptions } from "@chapterai/exemption-optimizer";
 import type { FilingResult } from "@chapterai/efile";
 import type { AutopilotTimeline } from "@chapterai/autopilot";
 import type { MatterInvoice } from "@chapterai/billing";
+import type { CaliforniaDistrict } from "@chapterai/districts";
+import {
+  getDefaultDivision,
+  getDistrictForCounty,
+  getDistrictProfile,
+} from "@chapterai/districts";
+import { assemblePetition, type PetitionView } from "@chapterai/petition";
+import type { ProvenanceEventType } from "@chapterai/provenance";
+import { exportProvenanceBundle, type ProvenanceRecord } from "@chapterai/provenance";
 
 /** In-memory dev store when DATABASE_URL is unavailable */
 export interface DemoReviewField {
@@ -46,10 +55,34 @@ export interface DemoPortalState {
   message: string;
 }
 
+export interface DemoAsset {
+  id: string;
+  description: string;
+  category: string;
+  currentValue: string;
+  securedAmount?: string;
+  exemptionSystem?: string;
+  exemptionAmount?: string;
+}
+
+export interface DemoDistrictInfo {
+  district: CaliforniaDistrict;
+  county: string;
+  divisionId: string;
+  divisionName: string;
+  courtName: string;
+}
+
 interface DemoMatterState {
   matterId: string;
   debtorDisplayName: string;
   chapter: "7" | "13";
+  district: CaliforniaDistrict;
+  county: string;
+  divisionId: string;
+  divisionName: string;
+  assets: DemoAsset[];
+  provenanceEvents: ProvenanceRecord[];
   reviewFields: DemoReviewField[];
   diagnostics: MatterDiagnosticsPayload;
   classifiedTradelines: ClassifiedTradeline[];
@@ -134,23 +167,188 @@ const INITIAL_FIELDS: DemoReviewField[] = [
   },
 ];
 
+const DEFAULT_ASSETS: DemoAsset[] = [
+  {
+    id: "home",
+    description: "Primary residence — 1234 Oak Ave, Los Angeles CA",
+    category: "homestead",
+    currentValue: "685000.00",
+    securedAmount: "200000.00",
+    exemptionSystem: "System 2",
+    exemptionAmount: "685000.00",
+  },
+  {
+    id: "vehicle",
+    description: "2019 Toyota Camry",
+    category: "motor_vehicle",
+    currentValue: "12000.00",
+    securedAmount: "8500.00",
+    exemptionSystem: "System 2",
+    exemptionAmount: "7500.00",
+  },
+  {
+    id: "retirement",
+    description: "401(k) — Fidelity",
+    category: "retirement",
+    currentValue: "45000.00",
+    exemptionSystem: "Federal",
+    exemptionAmount: "45000.00",
+  },
+];
+
+const FIRM_ID = "00000000-0000-0000-0000-000000000010";
+const DEV_USER_ID = "00000000-0000-0000-0000-000000000001";
+
+function seedProvenanceForFields(
+  matterId: string,
+  fields: DemoReviewField[]
+): ProvenanceRecord[] {
+  return fields.map((f, i) => ({
+    id: `prov-seed-${f.id}`,
+    formFieldId: f.id,
+    matterId,
+    firmId: FIRM_ID,
+    eventType: "ai_extracted" as const,
+    newValue: f.proposedValue,
+    sourceDocumentId: f.sourceDocument?.id,
+    modelName: "claude-sonnet-4.5",
+    modelVersion: "2025-06",
+    confidence: f.confidence,
+    createdAt: new Date(Date.now() - (fields.length - i) * 60_000).toISOString(),
+    metadata: { fieldPath: f.fieldPath, formId: f.formId, rationale: f.rationale },
+  }));
+}
+
+function buildInitialState(matterId: string): DemoMatterState {
+  const county = "Los Angeles";
+  const district = getDistrictForCounty(county);
+  const division = getDefaultDivision(district, county);
+  const fields = [...INITIAL_FIELDS];
+
+  return {
+    matterId,
+    debtorDisplayName: "Martinez",
+    chapter: "7",
+    district,
+    county,
+    divisionId: division.id,
+    divisionName: division.name,
+    assets: [...DEFAULT_ASSETS],
+    provenanceEvents: seedProvenanceForFields(matterId, fields),
+    reviewFields: fields,
+    diagnostics: buildInitialDiagnostics(),
+    classifiedTradelines: [],
+    creditPulled: false,
+  };
+}
+
 const demoStore = new Map<string, DemoMatterState>();
 
 function getOrCreate(matterId: string): DemoMatterState {
   let state = demoStore.get(matterId);
   if (!state) {
-    state = {
-      matterId,
-      debtorDisplayName: "Martinez",
-      chapter: "7",
-      reviewFields: [...INITIAL_FIELDS],
-      diagnostics: buildInitialDiagnostics(),
-      classifiedTradelines: [],
-      creditPulled: false,
-    };
+    state = buildInitialState(matterId);
     demoStore.set(matterId, state);
   }
   return state;
+}
+
+export function recordDemoProvenance(
+  matterId: string,
+  input: {
+    formFieldId: string;
+    eventType: ProvenanceEventType;
+    previousValue?: unknown;
+    newValue: unknown;
+    actorUserId?: string;
+    confidence?: number;
+    metadata?: Record<string, unknown>;
+  }
+): ProvenanceRecord {
+  const state = getOrCreate(matterId);
+  const record: ProvenanceRecord = {
+    id: crypto.randomUUID(),
+    formFieldId: input.formFieldId,
+    matterId,
+    firmId: FIRM_ID,
+    eventType: input.eventType,
+    previousValue: input.previousValue,
+    newValue: input.newValue,
+    actorUserId: input.actorUserId ?? DEV_USER_ID,
+    confidence: input.confidence,
+    createdAt: new Date().toISOString(),
+    metadata: input.metadata,
+  };
+  state.provenanceEvents.push(record);
+  return record;
+}
+
+export function getDemoProvenanceEvents(matterId: string): ProvenanceRecord[] {
+  return getOrCreate(matterId).provenanceEvents;
+}
+
+export function exportDemoProvenance(matterId: string) {
+  return exportProvenanceBundle(getDemoProvenanceEvents(matterId), matterId);
+}
+
+export function getDemoDistrictInfo(matterId: string): DemoDistrictInfo {
+  const state = getOrCreate(matterId);
+  const profile = getDistrictProfile(state.district);
+  return {
+    district: state.district,
+    county: state.county,
+    divisionId: state.divisionId,
+    divisionName: state.divisionName,
+    courtName: profile.courtName,
+  };
+}
+
+export function setDemoDistrict(
+  matterId: string,
+  input: { district?: CaliforniaDistrict; county?: string }
+): DemoDistrictInfo {
+  const state = getOrCreate(matterId);
+  if (input.county) {
+    state.county = input.county;
+    if (!input.district) {
+      state.district = getDistrictForCounty(input.county);
+    }
+  }
+  if (input.district) {
+    state.district = input.district;
+  }
+  const division = getDefaultDivision(state.district, state.county);
+  state.divisionId = division.id;
+  state.divisionName = division.name;
+  return getDemoDistrictInfo(matterId);
+}
+
+export function assembleDemoPetition(matterId: string): PetitionView {
+  const state = getOrCreate(matterId);
+  return assemblePetition({
+    matterId,
+    district: state.district,
+    division: state.divisionName,
+    county: state.county,
+    chapter: state.chapter,
+    debtorDisplayName: state.debtorDisplayName,
+    reviewFields: state.reviewFields,
+    tradelines: state.classifiedTradelines.map((t) => ({
+      id: t.id,
+      creditorName: t.creditorName,
+      schedule: t.schedule,
+      balance: t.balance,
+      monthlyPayment: t.monthlyPayment,
+      confidence: t.confidence,
+      collateralDescription: t.collateralDescription,
+      approvalState: (() => {
+        const s = state.reviewFields.find((f) => f.id === `credit-${t.id}`)?.approvalState;
+        if (s === "questioned") return "pending" as const;
+        return s;
+      })(),
+    })),
+    assets: state.assets,
+  });
 }
 
 export function isDemoMatter(matterId: string): boolean {
@@ -174,8 +372,30 @@ export function updateDemoFieldApproval(
   const state = getOrCreate(matterId);
   const field = state.reviewFields.find((f) => f.id === fieldId);
   if (!field) return null;
+  const previousValue = field.proposedValue;
   field.approvalState = approvalState;
   if (approvedValue !== undefined) field.proposedValue = approvedValue;
+
+  const eventType: ProvenanceEventType =
+    approvalState === "approved"
+      ? "attorney_approved"
+      : approvalState === "edited"
+        ? "attorney_edited"
+        : approvalState === "questioned"
+          ? "attorney_questioned"
+          : "ai_extracted";
+
+  if (eventType !== "ai_extracted") {
+    recordDemoProvenance(matterId, {
+      formFieldId: fieldId,
+      eventType,
+      previousValue,
+      newValue: field.proposedValue,
+      confidence: field.confidence,
+      metadata: { fieldPath: field.fieldPath, formId: field.formId },
+    });
+  }
+
   return field;
 }
 
@@ -211,6 +431,16 @@ export async function runDemoCreditPull(matterId: string): Promise<{
   state.reviewFields = [...state.reviewFields, ...creditFields];
   state.classifiedTradelines = classified;
   state.creditPulled = true;
+
+  for (const cf of creditFields) {
+    recordDemoProvenance(matterId, {
+      formFieldId: cf.id,
+      eventType: "credit_imported",
+      newValue: cf.proposedValue,
+      confidence: cf.confidence,
+      metadata: { fieldPath: cf.fieldPath, formId: cf.formId, source: "tri_merge" },
+    });
+  }
 
   const securedPayments = classified
     .filter((t) => t.schedule === "D")
@@ -275,7 +505,10 @@ export function getDemoMatterMeta(matterId: string) {
     matterId: state.matterId,
     debtorDisplayName: state.debtorDisplayName,
     chapter: state.chapter,
-    firmId: "00000000-0000-0000-0000-000000000010",
+    firmId: FIRM_ID,
+    district: state.district,
+    county: state.county,
+    divisionName: state.divisionName,
   };
 }
 

@@ -61,4 +61,8 @@ export interface ComputeProgressInput {
   autopilotActive: boolean;
   clientPortalRequestsOpen: number;
   balanceDue: string;
+  /** Petition schedules assembled (0–100) */
+  petitionCompletionPercent?: number;
+  /** District configured for filing */
+  districtConfigured?: boolean;
 }

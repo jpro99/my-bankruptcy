@@ -57,6 +57,9 @@ importers:
       '@chapterai/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@chapterai/districts':
+        specifier: workspace:*
+        version: link:../../packages/districts
       '@chapterai/efile':
         specifier: workspace:*
         version: link:../../packages/efile
@@ -75,6 +78,9 @@ importers:
       '@chapterai/means-test':
         specifier: workspace:*
         version: link:../../packages/means-test
+      '@chapterai/petition':
+        specifier: workspace:*
+        version: link:../../packages/petition
       '@chapterai/preflight':
         specifier: workspace:*
         version: link:../../packages/preflight
@@ -372,6 +378,22 @@ importers:
         specifier: ^5.7.2
         version: 5.9.3
 
+  packages/districts:
+    dependencies:
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.19.21
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.19.21)(lightningcss@1.32.0)
+
   packages/efile:
     dependencies:
       zod:
@@ -451,6 +473,22 @@ importers:
       fast-check:
         specifier: ^3.23.2
         version: 3.23.2
+      typescript:
+        specifier: ^5.7.2
+        version: 5.9.3
+      vitest:
+        specifier: ^2.1.8
+        version: 2.1.9(@types/node@22.19.21)(lightningcss@1.32.0)
+
+  packages/petition:
+    dependencies:
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.19.21
       typescript:
         specifier: ^5.7.2
         version: 5.9.3

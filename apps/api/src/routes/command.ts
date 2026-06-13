@@ -1,11 +1,14 @@
 import { Hono } from "hono";
 import { computeMatterProgress } from "@chapterai/matter-guide";
 import { runPreflight } from "@chapterai/preflight";
+import { runDistrictPreflight } from "@chapterai/districts";
 import type { AppEnv } from "../index.js";
 import {
+  assembleDemoPetition,
   getDemoAutopilot,
   getDemoBilling,
   getDemoDiagnostics,
+  getDemoDistrictInfo,
   getDemoFiling,
   getDemoMatterMeta,
   getDemoPortalOpenCount,
@@ -23,17 +26,30 @@ commandRouter.get("/matter/:matterId", async (c) => {
   }
 
   const meta = getDemoMatterMeta(matterId);
+  const districtInfo = getDemoDistrictInfo(matterId);
   const fields = getDemoReviewFields(matterId);
   const pending = fields.filter((f) => f.approvalState === "pending").length;
   const diagnostics = getDemoDiagnostics(matterId);
   const filing = getDemoFiling(matterId);
   const autopilot = getDemoAutopilot(matterId);
   const billing = getDemoBilling(matterId);
+  const petition = assembleDemoPetition(matterId);
 
-  const preflight = runPreflight({
+  const localFormsComplete = pending === 0;
+  const districtPreflight = runDistrictPreflight({
+    district: districtInfo.district,
+    divisionId: districtInfo.divisionId,
+    county: districtInfo.county,
+    chapter: meta.chapter,
+    localFormsComplete,
+    hasCertificateOfCreditCounseling: localFormsComplete,
+    hasRara: localFormsComplete,
+  });
+
+  const report = runPreflight({
     matterId,
     chapter: meta.chapter,
-    district: "CACB",
+    district: districtInfo.district,
     hasDebtor1: true,
     hasIncomeSchedule: true,
     hasExpenseSchedule: true,
@@ -43,8 +59,10 @@ commandRouter.get("/matter/:matterId", async (c) => {
     creditPulled: !!diagnostics.creditSummary,
     planFeasible: true,
     bestInterestPassed: true,
-    localFormsComplete: pending === 0,
+    localFormsComplete,
   });
+
+  const preflightReady = report.readyToFile && districtPreflight.errors === 0;
 
   const progress = computeMatterProgress({
     matterId,
@@ -54,17 +72,22 @@ commandRouter.get("/matter/:matterId", async (c) => {
     reviewComplete: pending === 0 && fields.length > 0,
     pendingFieldCount: pending,
     creditPulled: !!diagnostics.creditSummary,
-    preflightReady: preflight.readyToFile,
+    preflightReady,
     filed: !!filing,
     autopilotActive: !!autopilot,
     clientPortalRequestsOpen: getDemoPortalOpenCount(matterId),
     balanceDue: billing?.balanceDue ?? "2908.00",
+    petitionCompletionPercent: petition.overallCompletion,
+    districtConfigured: true,
   });
 
   return c.json({
     progress,
-    preflightReady: preflight.readyToFile,
+    preflightReady,
     caseNumber: filing?.caseNumber,
     portalUrl: `/portal/${matterId}-client`,
+    district: districtInfo,
+    petitionCompletion: petition.overallCompletion,
+    districtPreflight,
   });
 });

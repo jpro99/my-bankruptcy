@@ -55,6 +55,32 @@ export function computeMatterProgress(input: ComputeProgressInput): MatterProgre
       actionHref: `${base}/cockpit`,
       estimatedMinutes: Math.max(5, input.pendingFieldCount * 2),
     },
+    {
+      id: "schedules",
+      title: "Petition Schedules",
+      description: "Full A/B–J read-only view — property, creditors, income, exemptions",
+      status: stepStatus(
+        (input.petitionCompletionPercent ?? 0) >= 90,
+        (input.petitionCompletionPercent ?? 0) >= 40,
+        !input.reviewComplete
+      ),
+      weight: 10,
+      actionLabel: "View schedules",
+      actionHref: `${base}/schedules`,
+      estimatedMinutes: 5,
+    },
+    {
+      id: "district",
+      title: "Filing District",
+      description: input.districtConfigured
+        ? "California district + division confirmed"
+        : "Select county — auto-routes to CACB, CAEB, CANB, or CASB",
+      status: stepStatus(!!input.districtConfigured, !input.districtConfigured, false),
+      weight: 5,
+      actionLabel: "Confirm district",
+      actionHref: `${base}/schedules`,
+      estimatedMinutes: 1,
+    },
     ...(ch === "13"
       ? [
           {
@@ -120,6 +146,16 @@ export function computeMatterProgress(input: ComputeProgressInput): MatterProgre
       actionLabel: "Open autopilot",
       actionHref: `${base}/autopilot`,
       estimatedMinutes: 1,
+    },
+    {
+      id: "audit",
+      title: "Provenance Audit Trail",
+      description: "Court-ready export — every field change with source docs + attorney approval",
+      status: stepStatus(input.reviewComplete, input.pendingFieldCount > 0, false),
+      weight: 5,
+      actionLabel: "Export audit",
+      actionHref: `${base}/audit`,
+      estimatedMinutes: 2,
     },
   ];
 

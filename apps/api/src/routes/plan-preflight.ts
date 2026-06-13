@@ -10,6 +10,7 @@ import type { AppEnv } from "../index.js";
 import {
   getApprovedFormIds,
   getDemoDiagnostics,
+  getDemoDistrictInfo,
   getDemoFiling,
   getDemoMatterMeta,
   getDemoReviewFields,
@@ -17,6 +18,7 @@ import {
   setDemoAutopilot,
   setDemoFiling,
 } from "../lib/demo-store.js";
+import { runDistrictPreflight } from "@chapterai/districts";
 
 const PlanCalcSchema = z.object({
   planLengthMonths: z.number().int().min(36).max(60).default(60),
@@ -83,11 +85,13 @@ preflightRouter.get("/matter/:matterId", async (c) => {
   const fields = getDemoReviewFields(matterId);
   const pending = fields.filter((f) => f.approvalState === "pending").length;
   const creditPulled = !!diagnostics.creditSummary;
+  const districtInfo = getDemoDistrictInfo(matterId);
+  const localFormsComplete = pending === 0;
 
   const report = runPreflight({
     matterId,
     chapter: diagnostics.chapterRecommendation === "13" ? "13" : "7",
-    district: "CACB",
+    district: districtInfo.district,
     hasDebtor1: true,
     hasIncomeSchedule: true,
     hasExpenseSchedule: true,
@@ -97,10 +101,38 @@ preflightRouter.get("/matter/:matterId", async (c) => {
     creditPulled,
     planFeasible: true,
     bestInterestPassed: true,
-    localFormsComplete: pending === 0,
+    localFormsComplete,
   });
 
-  return c.json({ report });
+  const districtReport = runDistrictPreflight({
+    district: districtInfo.district,
+    divisionId: districtInfo.divisionId,
+    county: districtInfo.county,
+    chapter: diagnostics.chapterRecommendation === "13" ? "13" : "7",
+    localFormsComplete,
+    hasCertificateOfCreditCounseling: localFormsComplete,
+    hasRara: localFormsComplete,
+  });
+
+  return c.json({
+    report: {
+      ...report,
+      readyToFile: report.readyToFile && districtReport.errors === 0,
+      totalRules: report.totalRules + districtReport.results.length,
+      passed: report.passed + districtReport.passed,
+      errors: report.errors + districtReport.errors,
+      warnings: report.warnings + districtReport.warnings,
+      results: [
+        ...report.results,
+        ...districtReport.results.map((r) => ({
+          ...r,
+          passed: r.passed,
+        })),
+      ],
+    },
+    district: districtInfo,
+    districtReport,
+  });
 });
 
 preflightRouter.post("/matter/:matterId/file", async (c) => {
@@ -113,11 +145,13 @@ preflightRouter.post("/matter/:matterId/file", async (c) => {
   const diagnostics = getDemoDiagnostics(matterId);
   const fields = getDemoReviewFields(matterId);
   const pending = fields.filter((f) => f.approvalState === "pending").length;
+  const districtInfo = getDemoDistrictInfo(matterId);
+  const localFormsComplete = pending === 0;
 
   const report = runPreflight({
     matterId,
     chapter: diagnostics.chapterRecommendation === "13" ? "13" : "7",
-    district: "CACB",
+    district: districtInfo.district,
     hasDebtor1: true,
     hasIncomeSchedule: true,
     hasExpenseSchedule: true,
@@ -127,11 +161,21 @@ preflightRouter.post("/matter/:matterId/file", async (c) => {
     creditPulled: !!diagnostics.creditSummary,
     planFeasible: true,
     bestInterestPassed: true,
-    localFormsComplete: pending === 0,
+    localFormsComplete,
   });
 
-  if (!report.readyToFile) {
-    return c.json({ error: "Preflight failed", report }, 400);
+  const districtReport = runDistrictPreflight({
+    district: districtInfo.district,
+    divisionId: districtInfo.divisionId,
+    county: districtInfo.county,
+    chapter: diagnostics.chapterRecommendation === "13" ? "13" : "7",
+    localFormsComplete,
+    hasCertificateOfCreditCounseling: localFormsComplete,
+    hasRara: localFormsComplete,
+  });
+
+  if (!report.readyToFile || districtReport.errors > 0) {
+    return c.json({ error: "Preflight failed", report, districtReport }, 400);
   }
 
   const existing = getDemoFiling(matterId);
@@ -151,7 +195,7 @@ preflightRouter.post("/matter/:matterId/file", async (c) => {
     ...meta,
     attorneyName: "Dev Attorney",
     approvedFormIds,
-    district: "CACB",
+    district: districtInfo.district,
   });
 
   const result = await submitViaBridge(pkg);

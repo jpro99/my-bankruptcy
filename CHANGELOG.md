@@ -2,6 +2,18 @@
 
 All notable changes to ChapterAI are documented here.
 
+## [0.7.0] — Phase 7 — Multi-District + Schedules + Provenance — 2025-06-12
+
+### California Multi-District Rollout
+
+- **`@chapterai/districts`** — all 4 CA bankruptcy districts (CACB, CAEB, CANB, CASB) with divisions, county routing, district preflight rules
+- **`@chapterai/petition`** — assembles full petition schedule view (Forms 101, A/B–J, means test) from matter data
+- **Schedules page** — `/matters/demo/schedules` — tabbed read-only petition view + county/district selector
+- **Audit Trail page** — `/matters/demo/audit` — provenance timeline + court-ready JSON export with integrity hash
+- **Provenance wired** — every approve/edit/credit import records audit events in demo store
+- **God Button preflight** — now merges core rules + district-specific rules (RARA, MML, cert counseling)
+- **API:** `GET /api/schedules/matter/:id`, `/api/districts/*`, `/api/provenance/matter/:id/export`
+
 ## [0.6.0] — Phase 6 — Client Portal + Billing + Command Center — 2025-06-12
 
 ### Easiest Ch 7 / Ch 13 Completion

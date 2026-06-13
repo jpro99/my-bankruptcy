@@ -12,6 +12,8 @@ import {
   Home,
   ChevronRight,
   Scale,
+  FileStack,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ApiStatusDot } from "@/components/layout/api-status-banner";
@@ -19,10 +21,12 @@ import { ApiStatusDot } from "@/components/layout/api-status-banner";
 const MATTER_LINKS = [
   { id: "command", href: (id: string) => `/matters/${id}/command`, label: "Command Center", icon: LayoutDashboard },
   { id: "cockpit", href: (id: string) => `/matters/${id}/cockpit`, label: "Cockpit", icon: Gauge },
+  { id: "schedules", href: (id: string) => `/matters/${id}/schedules`, label: "Schedules", icon: FileStack },
   { id: "intake", href: (id: string) => `/matters/${id}/intake`, label: "Intake", icon: Upload },
   { id: "plan", href: (id: string) => `/matters/${id}/plan`, label: "Ch 13 Plan", icon: Calculator },
   { id: "autopilot", href: (id: string) => `/matters/${id}/autopilot`, label: "Autopilot", icon: Plane },
   { id: "billing", href: (id: string) => `/matters/${id}/billing`, label: "Fees & Trust", icon: Wallet },
+  { id: "audit", href: (id: string) => `/matters/${id}/audit`, label: "Audit Trail", icon: ShieldCheck },
 ];
 
 const FORM_SECTIONS = [

@@ -367,3 +367,110 @@ export function uploadPortalDocument(token: string, requestId: string, fileName:
     body: JSON.stringify({ requestId, fileName }),
   });
 }
+
+// --- Phase 7: Schedules, Districts, Provenance ---
+
+export interface PetitionLineItem {
+  id: string;
+  label: string;
+  value: string;
+  status: string;
+  confidence?: number;
+  sourceDocument?: string;
+  formReference?: string;
+}
+
+export interface PetitionSchedule {
+  id: string;
+  formId: string;
+  title: string;
+  description: string;
+  items: PetitionLineItem[];
+  completionPercent: number;
+  itemCount: number;
+  approvedCount: number;
+}
+
+export interface PetitionView {
+  matterId: string;
+  district: string;
+  division?: string;
+  county: string;
+  chapter: string;
+  debtorName: string;
+  schedules: PetitionSchedule[];
+  totalFields: number;
+  approvedFields: number;
+  overallCompletion: number;
+  assembledAt: string;
+}
+
+export interface DistrictInfo {
+  district: string;
+  county: string;
+  divisionId: string;
+  divisionName: string;
+  courtName: string;
+}
+
+export interface CaliforniaDistrictListItem {
+  code: string;
+  name: string;
+  shortName: string;
+  courtName: string;
+  primaryCounties: string[];
+}
+
+export interface ProvenanceEvent {
+  id: string;
+  formFieldId: string;
+  matterId: string;
+  eventType: string;
+  previousValue?: unknown;
+  newValue: unknown;
+  confidence?: number;
+  modelName?: string;
+  actorUserId?: string;
+  createdAt: string;
+  metadata?: Record<string, unknown>;
+}
+
+export function fetchSchedules(matterId: string) {
+  return apiFetch<{ petition: PetitionView; district: DistrictInfo }>(
+    `/api/schedules/matter/${matterId}`
+  );
+}
+
+export function fetchDistrict(matterId: string) {
+  return apiFetch<{ district: DistrictInfo }>(`/api/districts/matter/${matterId}`);
+}
+
+export function listDistricts() {
+  return apiFetch<{ districts: CaliforniaDistrictListItem[] }>(`/api/districts`);
+}
+
+export function setMatterDistrict(
+  matterId: string,
+  input: { district?: string; county?: string }
+) {
+  return apiFetch<{ district: DistrictInfo; petition: PetitionView }>(
+    `/api/districts/matter/${matterId}`,
+    { method: "PATCH", body: JSON.stringify(input) }
+  );
+}
+
+export function fetchProvenance(matterId: string) {
+  return apiFetch<{ matterId: string; eventCount: number; events: ProvenanceEvent[] }>(
+    `/api/provenance/matter/${matterId}`
+  );
+}
+
+export function exportProvenance(matterId: string) {
+  return apiFetch<{
+    matterId: string;
+    exportedAt: string;
+    eventCount: number;
+    events: ProvenanceEvent[];
+    integrityHash: string;
+  }>(`/api/provenance/matter/${matterId}/export`);
+}

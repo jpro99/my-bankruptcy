@@ -12,6 +12,11 @@ import { autopilotRouter } from "./routes/autopilot.js";
 import { billingRouter } from "./routes/billing.js";
 import { commandRouter } from "./routes/command.js";
 import { portalRouter } from "./routes/portal.js";
+import {
+  schedulesRouter,
+  districtsRouter,
+  provenanceRouter,
+} from "./routes/schedules-districts-provenance.js";
 
 export type AppEnv = {
   Variables: {
@@ -43,7 +48,7 @@ app.use(
 );
 
 app.get("/health", (c) =>
-  c.json({ status: "ok", service: "my-bankruptcy-api", version: "0.6.0" })
+  c.json({ status: "ok", service: "my-bankruptcy-api", version: "0.7.0" })
 );
 
 /** Public client portal — magic link auth */
@@ -73,6 +78,9 @@ app.route("/api/efile", efileRouter);
 app.route("/api/autopilot", autopilotRouter);
 app.route("/api/billing", billingRouter);
 app.route("/api/command", commandRouter);
+app.route("/api/schedules", schedulesRouter);
+app.route("/api/districts", districtsRouter);
+app.route("/api/provenance", provenanceRouter);
 
 app.onError((err, c) => {
   if (err instanceof AuthError) {

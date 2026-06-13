@@ -40,8 +40,17 @@ describe("matter-guide", () => {
       autopilotActive: true,
       clientPortalRequestsOpen: 0,
       balanceDue: "0.00",
+      petitionCompletionPercent: 100,
+      districtConfigured: true,
     });
-    expect(p.overallPercent).toBeGreaterThanOrEqual(90);
+    expect(p.overallPercent).toBeGreaterThanOrEqual(85);
     expect(p.readyToFile).toBe(false);
+  });
+
+  it("includes schedules and audit steps", () => {
+    const p = computeMatterProgress(BASE);
+    expect(p.steps.some((s) => s.id === "schedules")).toBe(true);
+    expect(p.steps.some((s) => s.id === "audit")).toBe(true);
+    expect(p.steps.some((s) => s.id === "district")).toBe(true);
   });
 });
