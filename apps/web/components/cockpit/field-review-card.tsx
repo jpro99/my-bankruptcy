@@ -104,7 +104,7 @@ export function FieldReviewCard({
             <p className="text-sm italic leading-relaxed text-muted-foreground">{field.rationale}</p>
           )}
 
-          {!editing && (
+          {!editing && field.approvalState === "pending" ? (
             <div className="grid grid-cols-3 gap-2 pt-2">
               <Button variant="success" className="h-12" onClick={onApprove}>
                 <Check />
@@ -119,7 +119,11 @@ export function FieldReviewCard({
                 Ask AI
               </Button>
             </div>
-          )}
+          ) : !editing ? (
+            <div className="flex justify-center pt-2">
+              <ApprovalBadge state={field.approvalState} />
+            </div>
+          ) : null}
         </CardContent>
       </Card>
     </motion.div>

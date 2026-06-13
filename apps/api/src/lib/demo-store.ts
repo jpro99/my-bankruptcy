@@ -404,6 +404,13 @@ export async function runDemoCreditPull(matterId: string): Promise<{
   summary: ReturnType<typeof scheduleSummary>;
 }> {
   const state = getOrCreate(matterId);
+  if (state.creditPulled && state.classifiedTradelines.length > 0) {
+    return {
+      classified: state.classifiedTradelines,
+      summary: scheduleSummary(state.classifiedTradelines),
+    };
+  }
+
   const provider = createCreditProvider();
   const pull = await provider.pullTriMerge({
     matterId: "00000000-0000-0000-0000-000000000099",

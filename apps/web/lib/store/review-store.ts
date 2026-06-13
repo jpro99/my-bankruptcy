@@ -31,6 +31,7 @@ interface ReviewStore {
   next: () => void;
   prev: () => void;
   pendingCount: () => number;
+  pendingFields: () => ReviewField[];
 }
 
 function mapDiagnostics(d: ApiDiagnostics): MatterDiagnostics {
@@ -107,31 +108,44 @@ export const useReviewStore = create<ReviewStore>((set, get) => ({
   },
 
   approve: async (fieldId) => {
-    const { matterId, fields } = get();
+    const { matterId } = get();
     if (!matterId) {
-      set((s) => ({
-        fields: s.fields.map((f) =>
+      set((s) => {
+        const fields = s.fields.map((f) =>
           f.id === fieldId ? { ...f, approvalState: "approved" as const } : f
-        ),
-        currentIndex: Math.min(s.currentIndex + 1, s.fields.length - 1),
-      }));
+        );
+        const pending = fields.filter((f) => f.approvalState === "pending");
+        return {
+          fields,
+          currentIndex: Math.min(s.currentIndex, Math.max(0, pending.length - 1)),
+        };
+      });
       return;
     }
     try {
       await apiApprove(matterId, fieldId);
-      set((s) => ({
-        fields: s.fields.map((f) =>
+      set((s) => {
+        const fields = s.fields.map((f) =>
           f.id === fieldId ? { ...f, approvalState: "approved" as const } : f
-        ),
-        currentIndex: Math.min(s.currentIndex + 1, fields.length - 1),
-      }));
+        );
+        const pending = fields.filter((f) => f.approvalState === "pending");
+        return {
+          fields,
+          currentIndex: Math.min(s.currentIndex, Math.max(0, pending.length - 1)),
+        };
+      });
       await get().refreshDiagnostics();
     } catch {
-      set((s) => ({
-        fields: s.fields.map((f) =>
+      set((s) => {
+        const fields = s.fields.map((f) =>
           f.id === fieldId ? { ...f, approvalState: "approved" as const } : f
-        ),
-      }));
+        );
+        const pending = fields.filter((f) => f.approvalState === "pending");
+        return {
+          fields,
+          currentIndex: Math.min(s.currentIndex, Math.max(0, pending.length - 1)),
+        };
+      });
     }
   },
 
@@ -181,10 +195,16 @@ export const useReviewStore = create<ReviewStore>((set, get) => ({
     return count;
   },
 
-  next: () =>
-    set((s) => ({ currentIndex: Math.min(s.currentIndex + 1, s.fields.length - 1) })),
+  next: () => {
+    const pending = get().fields.filter((f) => f.approvalState === "pending");
+    set((s) => ({
+      currentIndex: Math.min(s.currentIndex + 1, Math.max(0, pending.length - 1)),
+    }));
+  },
 
   prev: () => set((s) => ({ currentIndex: Math.max(s.currentIndex - 1, 0) })),
 
   pendingCount: () => get().fields.filter((f) => f.approvalState === "pending").length,
+
+  pendingFields: () => get().fields.filter((f) => f.approvalState === "pending"),
 }));

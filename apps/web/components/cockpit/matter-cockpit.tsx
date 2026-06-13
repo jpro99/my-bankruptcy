@@ -10,7 +10,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useReviewStore } from "@/lib/store/review-store";
-import { FieldReviewCard } from "@/components/cockpit/field-review-card";
+import { FieldReviewCard, ApprovalBadge } from "@/components/cockpit/field-review-card";
 import { DiagnosticsPanel } from "@/components/cockpit/diagnostics-panel";
 import { MatterSidebar } from "@/components/layout/matter-shell";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,7 @@ export function MatterCockpit({ matterId }: { matterId: string }) {
     bulkApprove,
     pullTriMerge,
     pendingCount,
+    pendingFields,
   } = useReviewStore();
 
   const [editValue, setEditValue] = useState("");
@@ -43,7 +44,8 @@ export function MatterCockpit({ matterId }: { matterId: string }) {
     void init(matterId);
   }, [matterId, init]);
 
-  const currentField = fields[currentIndex];
+  const queue = pendingFields();
+  const currentField = queue[currentIndex];
   const approvedCount = fields.filter((f) => f.approvalState === "approved").length;
   const pending = pendingCount();
 
@@ -107,13 +109,13 @@ export function MatterCockpit({ matterId }: { matterId: string }) {
                   Previous
                 </Button>
                 <span className="text-sm tabular-nums text-muted-foreground">
-                  {fields.length > 0 ? currentIndex + 1 : 0} / {fields.length}
+                  {queue.length > 0 ? currentIndex + 1 : 0} / {queue.length} pending
                 </span>
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={next}
-                  disabled={currentIndex >= fields.length - 1}
+                  disabled={currentIndex >= queue.length - 1}
                 >
                   Next
                   <ChevronRight />
@@ -121,7 +123,7 @@ export function MatterCockpit({ matterId }: { matterId: string }) {
               </div>
 
               <AnimatePresence mode="wait">
-                {currentField && (
+                {currentField ? (
                   <FieldReviewCard
                     key={currentField.id}
                     field={currentField}
@@ -134,7 +136,14 @@ export function MatterCockpit({ matterId }: { matterId: string }) {
                     onCancelEdit={() => setEditing(false)}
                     onQuestion={() => void question(currentField.id)}
                   />
-                )}
+                ) : !loading ? (
+                  <div className="rounded-2xl border border-emerald-200 bg-success-muted p-8 text-center">
+                    <p className="font-display text-lg font-bold text-success">All caught up</p>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      {approvedCount} field{approvedCount === 1 ? "" : "s"} approved — review schedules or run preflight.
+                    </p>
+                  </div>
+                ) : null}
               </AnimatePresence>
             </div>
           </div>
