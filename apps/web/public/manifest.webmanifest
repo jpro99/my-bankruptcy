@@ -1,13 +1,13 @@
 {
-  "name": "Relief Pocket — Bankruptcy Matters",
-  "short_name": "Matters",
-  "description": "Pick a bankruptcy matter, leave Bench Notes, add to Google Calendar, email clients — from your phone.",
+  "name": "Edgar Lombera — Bankruptcy Matters",
+  "short_name": "Lombera",
+  "description": "The Law Offices of Edgar Lombera — bankruptcy practice on your phone.",
   "start_url": "/mobile",
   "scope": "/mobile",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0f172a",
-  "theme_color": "#4f46e5",
+  "background_color": "#0f1c2e",
+  "theme_color": "#1a2744",
   "categories": ["business", "productivity", "finance"],
   "icons": [
     {

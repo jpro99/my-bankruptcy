@@ -1,9 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
-  <rect width="512" height="512" rx="108" fill="#4f46e5"/>
-  <rect x="32" y="32" width="448" height="448" rx="88" fill="#4338ca" opacity="0.35"/>
-  <path d="M256 96c-61.9 0-112 50.1-112 112v16h224v-16c0-61.9-50.1-112-112-112z" fill="#fff" opacity="0.95"/>
-  <rect x="128" y="224" width="256" height="192" rx="24" fill="#fff" opacity="0.95"/>
-  <path d="M176 288h160M176 336h120M176 384h80" stroke="#4f46e5" stroke-width="20" stroke-linecap="round"/>
-  <circle cx="368" cy="368" r="56" fill="#10b981"/>
-  <path d="M348 368l14 14 28-28" stroke="#fff" stroke-width="14" stroke-linecap="round" stroke-linejoin="round"/>
+  <rect width="512" height="512" rx="96" fill="#0f1c2e"/>
+  <rect x="24" y="24" width="464" height="464" rx="80" stroke="#b8975a" stroke-width="3" opacity="0.85"/>
+  <path d="M148 352V160h62c48 0 78 24 78 64 0 26-12 46-34 56l36 72h-52l-42-68h-26v68h-22zm52-106h10c22 0 34-10 34-28 0-18-12-28-34-28h-10v56z" fill="#faf9f7"/>
+  <path d="M315 160h45l55 200h-53l-9-36h-58l-9 36h-51l90-200zm38 122l-18-74-18 74h36z" fill="#b8975a"/>
+  <line x1="96" y1="400" x2="416" y2="400" stroke="#b8975a" stroke-width="4" opacity="0.5"/>
 </svg>

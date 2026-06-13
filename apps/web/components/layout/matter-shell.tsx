@@ -8,10 +8,10 @@ import {
   Wallet,
   Home,
   ChevronRight,
-  Scale,
   ShieldCheck,
   Compass,
 } from "lucide-react";
+import { LomberaLogo } from "@/components/brand/lombera-logo";
 import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { ApiStatusDot } from "@/components/layout/api-status-banner";
@@ -71,16 +71,8 @@ export function MatterSidebar({ matterId }: { matterId: string }) {
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r border-sidebar-active bg-sidebar text-sidebar-foreground">
       <div className="border-b border-sidebar-active p-5">
-        <Link href="/matters" className="flex items-center gap-2.5">
-          <div className="flex size-9 items-center justify-center rounded-lg bg-primary">
-            <Scale className="size-4 text-white" />
-          </div>
-          <div>
-            <p className="text-sm font-bold tracking-tight text-white">{BRAND.name}</p>
-            <p className="text-[10px] uppercase tracking-widest text-sidebar-muted">
-              {BRAND.shortTag}
-            </p>
-          </div>
+        <Link href="/matters" className="block">
+          <LomberaLogo variant="compact" invert />
         </Link>
       </div>
 

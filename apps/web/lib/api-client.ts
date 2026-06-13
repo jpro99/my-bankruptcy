@@ -392,6 +392,47 @@ export function addMatterNoteApi(
   });
 }
 
+function authHeaders(): Headers {
+  const headers = new Headers();
+  if (process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "1") {
+    headers.set("x-firm-id", "00000000-0000-0000-0000-000000000010");
+    headers.set("x-user-id", "00000000-0000-0000-0000-000000000001");
+    headers.set("x-clerk-user-id", "dev_clerk_user");
+    headers.set("x-user-email", "attorney@chapterai.dev");
+    headers.set("x-user-role", "attorney");
+  }
+  return headers;
+}
+
+export async function uploadMatterRecording(
+  matterId: string,
+  form: FormData
+): Promise<{ ok: boolean; title?: string }> {
+  const headers = authHeaders();
+  let response: Response;
+  try {
+    response = await fetch(`${getApiBase()}/api/intake/matter/${matterId}/recording`, {
+      method: "POST",
+      headers,
+      body: form,
+    });
+  } catch {
+    throw new Error(
+      "Cannot reach API — start the backend locally or set NEXT_PUBLIC_API_URL on Vercel"
+    );
+  }
+
+  const data = (await response.json().catch(() => ({}))) as {
+    ok?: boolean;
+    title?: string;
+    error?: string;
+  };
+  if (!response.ok) {
+    throw new Error(data.error ?? `API error ${response.status}`);
+  }
+  return { ok: true, title: data.title };
+}
+
 export function saveConsultApi(
   matterId: string,
   consult: Omit<

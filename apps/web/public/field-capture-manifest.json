@@ -1,0 +1,19 @@
+{
+  "name": "Field capture — bankruptcy",
+  "short_name": "Capture",
+  "description": "Record bankruptcy consults and calls into the matter timeline.",
+  "start_url": "/field-capture",
+  "scope": "/field-capture",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0f172a",
+  "theme_color": "#0f172a",
+  "icons": [
+    {
+      "src": "/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

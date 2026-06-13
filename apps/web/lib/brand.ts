@@ -1,9 +1,11 @@
-/** My Bankruptcy — product vocabulary (no aviation metaphors) */
+/** Practice vocabulary — firm identity lives in lib/firm.ts */
+
+import { FIRM } from "./firm";
 
 export const BRAND = {
-  name: "My Bankruptcy",
-  tagline: "The fastest relief an attorney will ever file",
-  shortTag: "Forged for California bankruptcy",
+  name: FIRM.name,
+  tagline: FIRM.tagline,
+  shortTag: "Bankruptcy & debt relief",
 
   /** Relief Command — progress rail across Scout → Forge → Gavel → Continuum */
   command: {
@@ -79,8 +81,8 @@ export const BRAND = {
   },
 
   portal: {
-    name: "Client Vault",
-    description: "Encrypted magic link — documents & required courses",
+    name: FIRM.portal.title,
+    description: FIRM.portal.subtitle,
   },
 
   /** Relief Scout — first consult gate before The Forge */

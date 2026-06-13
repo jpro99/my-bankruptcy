@@ -74,6 +74,87 @@ intakeMatterRouter.post(
   }
 );
 
+const MAX_AUDIO_BYTES = 18 * 1024 * 1024;
+
+intakeMatterRouter.post("/matter/:matterId/recording", async (c) => {
+  const matterId = c.req.param("matterId");
+  if (!isDemoMatter(matterId)) return c.json({ error: "Matter not found" }, 404);
+
+  let form: FormData;
+  try {
+    form = await c.req.formData();
+  } catch {
+    return c.json({ error: "Expected multipart form data" }, 400);
+  }
+
+  const audio = form.get("audio");
+  if (!audio || typeof audio === "string") {
+    return c.json({ error: "Missing audio file" }, 400);
+  }
+
+  const buf = Buffer.from(await (audio as Blob).arrayBuffer());
+  if (buf.length === 0) return c.json({ error: "Empty recording" }, 400);
+  if (buf.length > MAX_AUDIO_BYTES) {
+    return c.json(
+      {
+        error: `Recording too large (max ${Math.round(MAX_AUDIO_BYTES / (1024 * 1024))} MB). Try a shorter clip.`,
+      },
+      413
+    );
+  }
+
+  const mimeRaw =
+    (audio as Blob).type ||
+    String(form.get("mimeType") || "").trim() ||
+    "audio/webm";
+  const mimeType = mimeRaw.split(";")[0]!.trim() || "audio/webm";
+
+  const { transcribeRecordingAudio, summarizeRecordingTranscript, buildRecordingNoteText } =
+    await import("../lib/matter-recording.js");
+
+  let transcript: string;
+  let engine: string;
+  try {
+    const t = await transcribeRecordingAudio(buf, mimeType);
+    transcript = t.text;
+    engine = t.engine;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : "Transcription failed";
+    return c.json({ error: msg }, 502);
+  }
+
+  if (/^\(no speech detected\)/i.test(transcript) || transcript.length < 3) {
+    return c.json(
+      {
+        error:
+          "No usable speech detected. Check the microphone, speaker volume, or try again closer to the mic.",
+      },
+      422
+    );
+  }
+
+  const summary = summarizeRecordingTranscript(transcript);
+  const noteText = buildRecordingNoteText({
+    title: summary.title,
+    synopsis: summary.synopsis,
+    transcript,
+    engine,
+  });
+
+  const note = addMatterNote(matterId, {
+    text: noteText,
+    source: "voice",
+    authorLabel: "Field capture (recording)",
+  });
+
+  return c.json({
+    ok: true,
+    title: summary.title,
+    entry: { title: summary.title, synopsis: summary.synopsis, at: note.createdAt },
+    note,
+  });
+});
+
 const ConsultSchema = z.object({
   debtorName: z.string().min(1),
   householdSize: z.number().int().min(1).max(20),

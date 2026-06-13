@@ -8,15 +8,15 @@
   --color-foreground: #0f172a;
   --color-card: #ffffff;
   --color-card-foreground: #0f172a;
-  --color-primary: #4f46e5;
-  --color-primary-foreground: #ffffff;
-  --color-primary-muted: #eef2ff;
-  --color-accent: #0d9488;
+  --color-primary: #1a2744;
+  --color-primary-foreground: #faf9f7;
+  --color-primary-muted: #f3f1ec;
+  --color-accent: #b8975a;
   --color-accent-foreground: #ffffff;
   --color-muted: #f1f5f9;
   --color-muted-foreground: #64748b;
   --color-border: #e2e8f0;
-  --color-ring: #6366f1;
+  --color-ring: #b8975a;
   --color-success: #059669;
   --color-success-muted: #ecfdf5;
   --color-warning: #d97706;
@@ -35,7 +35,11 @@
 
   --shadow-card: 0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.06);
   --shadow-elevated: 0 10px 40px -10px rgb(15 23 42 / 0.12), 0 4px 12px -4px rgb(15 23 42 / 0.08);
-  --shadow-glow: 0 0 0 1px rgb(79 70 229 / 0.08), 0 8px 32px -8px rgb(79 70 229 / 0.25);
+  --shadow-glow: 0 0 0 1px rgb(184 151 90 / 0.12), 0 8px 32px -8px rgb(15 28 46 / 0.18);
+
+  --color-firm-navy: #0f1c2e;
+  --color-firm-gold: #b8975a;
+  --color-firm-cream: #faf9f7;
 }
 
 @layer base {
@@ -64,15 +68,29 @@
   }
 
   .mesh-hero {
-    background-color: #f8fafc;
+    background-color: #faf9f7;
     background-image:
-      radial-gradient(at 0% 0%, rgb(79 70 229 / 0.12) 0, transparent 50%),
-      radial-gradient(at 100% 0%, rgb(13 148 136 / 0.1) 0, transparent 45%),
-      radial-gradient(at 50% 100%, rgb(99 102 241 / 0.08) 0, transparent 50%);
+      radial-gradient(at 0% 0%, rgb(26 39 68 / 0.06) 0, transparent 50%),
+      radial-gradient(at 100% 0%, rgb(184 151 90 / 0.08) 0, transparent 45%),
+      radial-gradient(at 50% 100%, rgb(15 28 46 / 0.04) 0, transparent 50%);
+  }
+
+  .lombera-hero {
+    background-color: var(--color-firm-cream);
+    background-image:
+      linear-gradient(180deg, rgb(250 249 247) 0%, rgb(243 241 236) 100%),
+      radial-gradient(at 50% 0%, rgb(184 151 90 / 0.07) 0, transparent 55%);
+  }
+
+  .lombera-card {
+    background: #fff;
+    border: 1px solid #e8e4dc;
+    border-radius: var(--radius-lg);
+    box-shadow: 0 1px 2px rgb(15 28 46 / 0.04), 0 12px 40px -16px rgb(15 28 46 / 0.1);
   }
 
   .text-gradient {
-    background: linear-gradient(135deg, #312e81 0%, #4f46e5 45%, #0d9488 100%);
+    background: linear-gradient(135deg, #0f1c2e 0%, #1a2744 45%, #b8975a 100%);
     -webkit-background-clip: text;
     background-clip: text;
     color: transparent;

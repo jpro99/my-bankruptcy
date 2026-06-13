@@ -1,17 +1,22 @@
 /** Post-discharge and cross-sell templates (bankruptcy → personal injury) */
 
-export const PI_FIRM_NAME =
-  process.env.PI_FIRM_NAME?.trim() || "Russell Injury Group (demo — replace with your firm)";
-export const PI_FIRM_PHONE = process.env.PI_FIRM_PHONE?.trim() || "(555) 867-5309";
-export const PI_FIRM_URL =
-  process.env.PI_FIRM_URL?.trim() || "https://example.com/personal-injury";
+import {
+  FIRM_NAME,
+  FIRM_SHORT,
+  PI_FIRM_NAME,
+  PI_FIRM_PHONE,
+  PI_FIRM_URL,
+  PI_SUBTLE_LINE,
+} from "./firm-brand.js";
+
+export { PI_FIRM_NAME, PI_FIRM_PHONE, PI_FIRM_URL };
 
 export function dischargeCongratulationsEmail(input: {
   debtorName: string;
   caseNumber?: string;
   chapter: "7" | "13";
 }): { subject: string; text: string; html: string } {
-  const subject = `Congratulations on your discharge — ${input.debtorName}`;
+  const subject = `Congratulations on your discharge — ${FIRM_SHORT}`;
   const text = [
     `Dear ${input.debtorName},`,
     "",
@@ -23,15 +28,14 @@ export function dischargeCongratulationsEmail(input: {
     "• Keep this email for your files",
     "",
     "---",
-    "We also help people who were hurt in accidents.",
+    PI_SUBTLE_LINE,
     "",
-    `If you or someone you know was injured in a car crash, slip and fall, or workplace accident — ${PI_FIRM_NAME} handles personal injury cases separately from bankruptcy. There is no cost to ask whether you have a claim.`,
-    PI_FIRM_PHONE ? `Call: ${PI_FIRM_PHONE}` : "",
+    PI_FIRM_PHONE ? `Phone: ${PI_FIRM_PHONE}` : "",
     PI_FIRM_URL ? `Learn more: ${PI_FIRM_URL}` : "",
     "",
     "Thank you for trusting us with your fresh start.",
     "",
-    "— Your bankruptcy team",
+    `— ${FIRM_NAME}`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -44,7 +48,7 @@ export function dischargeCongratulationsEmail(input: {
 export function piCrossSellOnlyEmail(input: {
   debtorName: string;
 }): { subject: string; text: string; html: string } {
-  const subject = "Were you injured before or during your financial hardship?";
+  const subject = "A note from our office — personal injury";
   const text = [
     `Hi ${input.debtorName},`,
     "",
@@ -56,7 +60,7 @@ export function piCrossSellOnlyEmail(input: {
     PI_FIRM_PHONE ? `\nPhone: ${PI_FIRM_PHONE}` : "",
     PI_FIRM_URL ? `\n${PI_FIRM_URL}` : "",
     "",
-    "— Your legal team",
+    `— ${FIRM_NAME}`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -68,12 +72,12 @@ export function portalInviteEmail(input: {
   clientName?: string;
   portalUrl: string;
 }): { subject: string; text: string; html: string } {
-  const subject = "Your secure Client Vault — upload documents";
-  const greeting = input.clientName ? `Hi ${input.clientName},` : "Hello,";
+  const subject = `${FIRM_SHORT} — your secure client portal`;
+  const greeting = input.clientName ? `Dear ${input.clientName},` : "Dear Client,";
   const text = [
     greeting,
     "",
-    "Your attorney set up a secure Client Vault for your bankruptcy case.",
+    `${FIRM_NAME} has opened a private portal for your bankruptcy matter.`,
     "",
     "Use this link from your phone or computer to:",
     "• Upload ID, pay stubs, bank statements, and tax returns",
@@ -84,8 +88,13 @@ export function portalInviteEmail(input: {
     "",
     "This link is encrypted and private to you.",
     "",
-    "— My Bankruptcy Client Vault",
-  ].join("\n");
+    PI_SUBTLE_LINE,
+    PI_FIRM_URL ? PI_FIRM_URL : "",
+    "",
+    `— ${FIRM_NAME}`,
+  ]
+    .filter(Boolean)
+    .join("\n");
 
   return { subject, text, html: text.replace(/\n/g, "<br>") };
 }

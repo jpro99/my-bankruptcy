@@ -1,13 +1,13 @@
 import Link from "next/link";
-import { BRAND } from "@/lib/brand";
+import { LomberaLogo } from "@/components/brand/lombera-logo";
 import { StaffBottomNav } from "./staff-bottom-nav";
 
 export function StaffHeader() {
   return (
     <>
       <header className="app-staff-header">
-        <Link href="/dashboard" className="app-staff-header__brand">
-          {BRAND.name}
+        <Link href="/matters" className="app-staff-header__brand">
+          <LomberaLogo variant="compact" />
         </Link>
         <nav className="app-staff-header__actions">
           <Link href="/dashboard" className="app-btn app-btn--tonal">

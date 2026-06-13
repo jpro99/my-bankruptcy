@@ -8,7 +8,6 @@ import {
   GraduationCap,
   Loader2,
   Lock,
-  Shield,
   Upload,
 } from "lucide-react";
 import {
@@ -20,6 +19,9 @@ import {
   type PortalData,
 } from "@/lib/api-client";
 import { BRAND } from "@/lib/brand";
+import { FIRM } from "@/lib/firm";
+import { LomberaLogo } from "@/components/brand/lombera-logo";
+import { FirmPortalFooter } from "@/components/brand/firm-portal-footer";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -169,16 +171,16 @@ export function ClientPortal({ token }: { token: string }) {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center mesh-hero">
-        <Loader2 className="size-8 animate-spin text-primary" />
+      <div className="lombera-hero flex min-h-screen items-center justify-center">
+        <Loader2 className="size-8 animate-spin text-[#1a2744]" />
       </div>
     );
   }
 
   if (error || !portal) {
     return (
-      <div className="flex min-h-screen items-center justify-center mesh-hero p-6">
-        <Card className="w-full max-w-md">
+      <div className="lombera-hero flex min-h-screen items-center justify-center p-6">
+        <Card className="lombera-card w-full max-w-md border-[#e8e4dc]">
           <CardContent className="p-6 text-center space-y-3">
             <p className="font-semibold">Portal unavailable</p>
             <p className="text-sm text-muted-foreground">{error}</p>
@@ -194,26 +196,30 @@ export function ClientPortal({ token }: { token: string }) {
   ).length;
 
   return (
-    <div className="mesh-hero min-h-screen">
+    <div className="lombera-hero min-h-screen">
       <div className="mx-auto max-w-md px-4 py-8 pb-16">
-        <header className="animate-fade-in space-y-4 text-center">
-          <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-primary shadow-glow">
-            <Shield className="size-8 text-white" />
-          </div>
-          <div>
-            <p className="text-sm font-medium text-muted-foreground">{BRAND.portal.name}</p>
-            <h1 className="font-display text-2xl font-bold">Hi, {portal.debtorName}</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
+        <header className="animate-fade-in space-y-5 text-center">
+          <LomberaLogo variant="full" />
+          <div className="pt-2">
+            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-[#8a8278]">
+              {FIRM.portal.title}
+            </p>
+            <h1 className="font-display mt-2 text-2xl font-semibold tracking-tight text-[#0f1c2e]">
+              Welcome, {portal.debtorName}
+            </h1>
+            <p className="mt-1 text-sm text-[#6b6560]">
               Chapter {portal.chapter} bankruptcy
               {portal.caseNumber && ` · Case ${portal.caseNumber}`}
             </p>
           </div>
-          <Card className="border-primary/20 bg-primary-muted/40 text-left">
-            <CardContent className="p-4 text-sm leading-relaxed">{portal.message}</CardContent>
+          <Card className="lombera-card border-[#e8e4dc] bg-white text-left">
+            <CardContent className="p-4 text-sm leading-relaxed text-[#4a5568]">
+              {portal.message}
+            </CardContent>
           </Card>
-          <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
+          <div className="flex items-center justify-center gap-2 text-xs text-[#8a8278]">
             <Lock className="size-3.5" />
-            Encrypted · {completedCount}/{portal.requests.length} documents submitted
+            Private & encrypted · {completedCount}/{portal.requests.length} documents submitted
           </div>
         </header>
 
@@ -365,10 +371,7 @@ export function ClientPortal({ token }: { token: string }) {
           </Card>
         </section>
 
-        <footer className="mt-12 flex items-center justify-center gap-2 text-center text-xs text-muted-foreground">
-          <FileUp className="size-3.5" />
-          Powered by My Bankruptcy
-        </footer>
+        <FirmPortalFooter />
       </div>
     </div>
   );

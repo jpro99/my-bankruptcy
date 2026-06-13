@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Plus_Jakarta_Sans } from "next/font/google";
+import { Cormorant_Garamond, Inter } from "next/font/google";
+import { FIRM } from "@/lib/firm";
 import "./globals.css";
 import { Providers } from "./providers";
 import { ApiStatusBanner } from "@/components/layout/api-status-banner";
@@ -10,22 +11,23 @@ const inter = Inter({
   display: "swap",
 });
 
-const display = Plus_Jakarta_Sans({
+const display = Cormorant_Garamond({
   subsets: ["latin"],
+  weight: ["500", "600", "700"],
   variable: "--font-display",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "My Bankruptcy — Practice Platform",
-  description: "AI-native bankruptcy practice platform for California attorneys",
+  title: `${FIRM.name} — Bankruptcy Practice`,
+  description: `${FIRM.tagline}. Secure client portal, document intake, and case management.`,
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true },
-  applicationName: "My Bankruptcy",
+  applicationName: FIRM.shortName,
 };
 
 export const viewport: Viewport = {
-  themeColor: "#4f46e5",
+  themeColor: "#1a2744",
   width: "device-width",
   initialScale: 1,
 };

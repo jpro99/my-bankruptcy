@@ -18,7 +18,7 @@ export const BANKRUPTCY_EVENT_TEMPLATES: Record<
     label: "Initial consult",
     defaultTitle: (d) => `BK consult — ${d}`,
     defaultDetails: (d, id) =>
-      `Bankruptcy initial consultation — ${d}\nMatter: ${id}\nMy Bankruptcy · Relief Pocket`,
+      `Bankruptcy initial consultation — ${d}\nMatter: ${id}\nEdgar Lombera · Field capture`,
     defaultDurationMin: 60,
   },
   follow_up: {
@@ -162,7 +162,7 @@ export function downloadIcsFile(input: {
   const ics = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
-    "PRODID:-//My Bankruptcy//Relief Pocket//EN",
+    "PRODID:-//Edgar Lombera//Bankruptcy Field Capture//EN",
     "BEGIN:VEVENT",
     `UID:${uid}`,
     `DTSTAMP:${fmt(new Date())}`,
