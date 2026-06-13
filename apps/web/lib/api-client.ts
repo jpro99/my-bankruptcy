@@ -769,7 +769,7 @@ export interface TradelineReviewEntry {
   advice: { recommendation: "keep" | "exclude"; reason: string };
   isManual?: boolean;
   isDuplicate?: boolean;
-  duplicateOfId?: string;
+  duplicateOfId?: string | null;
   duplicateOfName?: string;
 }
 

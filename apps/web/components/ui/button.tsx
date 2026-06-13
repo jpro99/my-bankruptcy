@@ -16,6 +16,8 @@ const buttonVariants = cva(
         danger: "bg-danger text-white shadow-sm hover:bg-red-700 active:scale-[0.98]",
         success: "bg-success text-white shadow-sm hover:bg-emerald-700 active:scale-[0.98]",
         link: "text-primary underline-offset-4 hover:underline p-0 h-auto",
+        outline:
+          "bg-white text-foreground border border-border shadow-sm hover:bg-muted active:scale-[0.98]",
       },
       size: {
         default: "h-10 px-4 py-2",
