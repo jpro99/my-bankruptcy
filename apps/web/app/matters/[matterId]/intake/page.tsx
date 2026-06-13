@@ -1,16 +1,10 @@
-import { IntakeUploader } from "@/components/intake/intake-uploader";
-import { MatterShell } from "@/components/layout/matter-shell";
+import { redirect } from "next/navigation";
 
-export default async function IntakePage({
+export default async function IntakeRedirect({
   params,
 }: {
   params: Promise<{ matterId: string }>;
 }) {
   const { matterId } = await params;
-
-  return (
-    <MatterShell matterId={matterId}>
-      <IntakeUploader matterId={matterId} />
-    </MatterShell>
-  );
+  redirect(`/matters/${matterId}/forge?section=dossier`);
 }

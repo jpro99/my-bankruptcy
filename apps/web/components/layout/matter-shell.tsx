@@ -3,18 +3,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
   Hammer,
-  Upload,
-  Calculator,
   Route,
   Wallet,
   Home,
   ChevronRight,
   Scale,
-  FileStack,
   ShieldCheck,
-  CreditCard,
   Compass,
 } from "lucide-react";
 import { BRAND } from "@/lib/brand";
@@ -24,10 +19,10 @@ import { BenchNotesSheet } from "@/components/notes/bench-notes-sheet";
 
 const MATTER_LINKS = [
   {
-    id: "command",
-    href: (id: string) => `/matters/${id}/command`,
-    label: BRAND.command.name,
-    icon: LayoutDashboard,
+    id: "matters",
+    href: (_id: string) => `/matters`,
+    label: "All Matters",
+    icon: Home,
   },
   {
     id: "scout",
@@ -40,30 +35,6 @@ const MATTER_LINKS = [
     href: (id: string) => `/matters/${id}/forge`,
     label: BRAND.forge.name,
     icon: Hammer,
-  },
-  {
-    id: "credit",
-    href: (id: string) => `/matters/${id}/credit`,
-    label: "Credit Review",
-    icon: CreditCard,
-  },
-  {
-    id: "schedules",
-    href: (id: string) => `/matters/${id}/schedules`,
-    label: "Schedules",
-    icon: FileStack,
-  },
-  {
-    id: "intake",
-    href: (id: string) => `/matters/${id}/intake`,
-    label: "Document Drop",
-    icon: Upload,
-  },
-  {
-    id: "plan",
-    href: (id: string) => `/matters/${id}/plan`,
-    label: "Ch 13 Plan",
-    icon: Calculator,
   },
   {
     id: "continuum",
@@ -100,7 +71,7 @@ export function MatterSidebar({ matterId }: { matterId: string }) {
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r border-sidebar-active bg-sidebar text-sidebar-foreground">
       <div className="border-b border-sidebar-active p-5">
-        <Link href="/" className="flex items-center gap-2.5">
+        <Link href="/matters" className="flex items-center gap-2.5">
           <div className="flex size-9 items-center justify-center rounded-lg bg-primary">
             <Scale className="size-4 text-white" />
           </div>
@@ -120,7 +91,10 @@ export function MatterSidebar({ matterId }: { matterId: string }) {
         <ul className="space-y-0.5">
           {MATTER_LINKS.map((link) => {
             const href = link.href(matterId);
-            const active = pathname === href || pathname === href.replace("/forge", "/cockpit");
+            const active =
+              pathname === href ||
+              pathname.startsWith(href + "/") ||
+              (link.id === "forge" && pathname.includes("/forge"));
             const Icon = link.icon;
             return (
               <li key={link.id}>
@@ -159,11 +133,11 @@ export function MatterSidebar({ matterId }: { matterId: string }) {
       <div className="space-y-3 border-t border-sidebar-active p-4">
         <ApiStatusDot />
         <Link
-          href="/"
+          href="/matters"
           className="flex items-center gap-2 text-xs text-sidebar-muted transition hover:text-white"
         >
           <Home className="size-3.5" />
-          Back to home
+          All Matters
         </Link>
       </div>
     </aside>

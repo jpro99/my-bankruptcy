@@ -1,15 +1,10 @@
-import { CreditReviewPanel } from "@/components/credit/credit-review-panel";
-import { MatterShell } from "@/components/layout/matter-shell";
+import { redirect } from "next/navigation";
 
-export default async function CreditReviewPage({
+export default async function CreditRedirect({
   params,
 }: {
   params: Promise<{ matterId: string }>;
 }) {
   const { matterId } = await params;
-  return (
-    <MatterShell matterId={matterId}>
-      <CreditReviewPanel matterId={matterId} />
-    </MatterShell>
-  );
+  redirect(`/matters/${matterId}/forge?section=credit`);
 }

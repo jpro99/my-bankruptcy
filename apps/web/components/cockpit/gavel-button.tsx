@@ -208,7 +208,7 @@ export function GavelButton({ matterId, chapter, disabled }: GavelButtonProps) {
                         Complete document QA, numbers review, and attorney sign-off before filing.
                       </p>
                       <Button asChild className="mt-3 w-full" variant="secondary">
-                        <Link href={`/matters/${matterId}?tab=finalCheck`} onClick={() => setOpen(false)}>
+                        <Link href={`/matters/${matterId}/forge?section=seal`} onClick={() => setOpen(false)}>
                           Open Final Check
                         </Link>
                       </Button>

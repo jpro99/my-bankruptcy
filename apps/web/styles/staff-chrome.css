@@ -496,3 +496,214 @@
   gap: 1rem;
   margin-bottom: 1rem;
 }
+
+/* Relief Command — phase rail (not a destination) */
+.relief-command-rail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 10px;
+  border: 1px solid var(--app-chrome-border);
+  background: linear-gradient(180deg, #f8fafc 0%, #fff 100%);
+}
+
+.relief-command-rail--loading {
+  justify-content: center;
+  min-height: 48px;
+}
+
+.relief-command-rail__label {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+
+.relief-command-rail__brand {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--app-chrome-text-muted);
+}
+
+.relief-command-rail__pct {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--app-chrome-primary);
+}
+
+.relief-command-rail__steps {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.relief-command-rail__step-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.relief-command-rail__chev {
+  width: 14px;
+  height: 14px;
+  color: #cbd5e1;
+}
+
+.relief-command-rail__step {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  color: var(--app-chrome-text);
+  border: 1px solid transparent;
+}
+
+.relief-command-rail__step--active {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: var(--app-chrome-primary);
+}
+
+.relief-command-rail__step--locked {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.relief-command-rail__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #cbd5e1;
+}
+
+.relief-command-rail__next {
+  margin-left: auto;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--app-chrome-primary);
+  text-decoration: none;
+}
+
+/* The Forge — unified workspace */
+.forge-workspace-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.forge-workspace-header__eyebrow {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--app-chrome-primary);
+  margin: 0;
+}
+
+.forge-workspace-header__title {
+  font-size: 1.35rem;
+  font-weight: 700;
+  margin: 0.15rem 0 0;
+}
+
+.forge-workspace-header__sub {
+  font-size: 0.85rem;
+  color: var(--app-chrome-text-muted);
+  margin: 0.25rem 0 0;
+}
+
+.forge-workspace-header__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.forge-workspace-layout {
+  display: grid;
+  grid-template-columns: minmax(200px, 240px) 1fr;
+  gap: 1rem;
+  align-items: start;
+}
+
+@media (max-width: 768px) {
+  .forge-workspace-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.forge-section-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.forge-section-nav__item {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  width: 100%;
+  text-align: left;
+  padding: 0.55rem 0.65rem;
+  border-radius: 8px;
+  border: 1px solid var(--app-chrome-border);
+  background: #fff;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.forge-section-nav__item--active {
+  border-color: var(--app-chrome-primary);
+  background: #eff6ff;
+}
+
+.forge-section-nav__item--link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.forge-section-nav__icon {
+  font-size: 1.1rem;
+  line-height: 1.2;
+}
+
+.forge-section-nav__label {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.forge-section-nav__blurb {
+  display: block;
+  font-size: 0.68rem;
+  color: var(--app-chrome-text-muted);
+  margin-top: 0.1rem;
+}
+
+.forge-section-panel {
+  min-width: 0;
+  border: 1px solid var(--app-chrome-border);
+  border-radius: 10px;
+  padding: 1rem;
+  background: #fff;
+}
+
+.forge-section-panel__meta {
+  font-size: 0.75rem;
+  color: var(--app-chrome-text-muted);
+  margin: 0 0 1rem;
+}

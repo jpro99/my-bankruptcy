@@ -30,7 +30,7 @@ export default function NewMatterPage() {
         clientLastName: lastName.trim() || undefined,
         clientPhone: phone.trim() || undefined,
       });
-      router.push(`/matters/${matter.matterId}?tab=messages`);
+      router.push(`/matters/${matter.matterId}/scout`);
     } finally {
       setBusy(false);
     }

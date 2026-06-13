@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { ArrowRight, Calculator, Loader2, Scale, Sparkles } from "lucide-react";
+import { ArrowRight, Calculator, Loader2, Scale } from "lucide-react";
 import {
   fetchMatterDossier,
   saveConsultApi,
@@ -287,16 +287,18 @@ export function ReliefScoutPanel({ matterId }: { matterId: string }) {
               · Evaluated {result.evaluatedAt.slice(0, 16).replace("T", " ")}
             </p>
             <div className="flex flex-wrap gap-2 pt-2">
+              {(result.takeCase === "yes" || result.takeCase === "maybe") && (
+                <Button asChild size="lg" className="shadow-glow">
+                  <Link href={`/matters/${matterId}/forge`}>
+                    Enter {BRAND.forge.name}
+                    <ArrowRight className="size-4" />
+                  </Link>
+                </Button>
+              )}
               <Button asChild variant="secondary">
-                <Link href={`/matters/${matterId}/command`}>
+                <Link href={`/matters/${matterId}/forge?section=messages`}>
                   Send Client Vault link
                   <ArrowRight className="size-4" />
-                </Link>
-              </Button>
-              <Button asChild>
-                <Link href={`/matters/${matterId}/intake`}>
-                  <Sparkles />
-                  Document Drop & Forge Sync
                 </Link>
               </Button>
             </div>

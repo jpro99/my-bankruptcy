@@ -1,5 +1,4 @@
-import { CommandCenter } from "@/components/command/command-center";
-import { MatterShell } from "@/components/layout/matter-shell";
+import { redirect } from "next/navigation";
 
 export default async function CommandPage({
   params,
@@ -7,10 +6,5 @@ export default async function CommandPage({
   params: Promise<{ matterId: string }>;
 }) {
   const { matterId } = await params;
-
-  return (
-    <MatterShell matterId={matterId}>
-      <CommandCenter matterId={matterId} />
-    </MatterShell>
-  );
+  redirect(`/matters/${matterId}/forge`);
 }

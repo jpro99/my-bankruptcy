@@ -1,20 +1,9 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { fetchCommandCenter } from "@/lib/api-client";
-import { MatterWorkspace } from "@/components/staff/matter-workspace";
+import { MatterPhaseRedirect } from "@/components/matter/matter-phase-redirect";
 import { StaffHeader } from "@/components/staff/staff-header";
 import "@/styles/staff-chrome.css";
-
-function MatterWorkspaceLoader({ matterId }: { matterId: string }) {
-  const [debtorName, setDebtorName] = useState("Loading…");
-
-  useEffect(() => {
-    void fetchCommandCenter(matterId).then((d) => setDebtorName(d.progress.debtorDisplayName));
-  }, [matterId]);
-
-  return <MatterWorkspace matterId={matterId} debtorName={debtorName} />;
-}
 
 export default function MatterPage({ params }: { params: Promise<{ matterId: string }> }) {
   const [matterId, setMatterId] = useState<string | null>(null);
@@ -28,8 +17,8 @@ export default function MatterPage({ params }: { params: Promise<{ matterId: str
   return (
     <div className="app-container">
       <StaffHeader />
-      <Suspense fallback={<p>Loading matter…</p>}>
-        <MatterWorkspaceLoader matterId={matterId} />
+      <Suspense fallback={<p>Loading…</p>}>
+        <MatterPhaseRedirect matterId={matterId} />
       </Suspense>
     </div>
   );

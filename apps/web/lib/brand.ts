@@ -5,20 +5,21 @@ export const BRAND = {
   tagline: "The fastest relief an attorney will ever file",
   shortTag: "Forged for California bankruptcy",
 
-  /** Relief Command — matter mission control */
+  /** Relief Command — progress rail across Scout → Forge → Gavel → Continuum */
   command: {
     id: "command",
     name: "Relief Command",
     short: "Command",
-    description: "One screen. Every step. Zero guesswork.",
+    description: "Where you are in the pipeline — not a separate workspace.",
   },
 
-  /** The Forge — approve-only petition workspace */
+  /** The Forge — all pre-filing attorney work in one place */
   forge: {
     id: "forge",
     name: "The Forge",
     short: "Forge",
-    description: "Where AI drafts become court-ready petitions.",
+    tagline: "Where the bankruptcy is built — documents, credit, schedules, petition, filing.",
+    description: "Everything after Relief Scout lives here until you Strike The Gavel.",
     legacyPath: "cockpit",
   },
 
@@ -82,11 +83,11 @@ export const BRAND = {
     description: "Encrypted magic link — documents & required courses",
   },
 
-  /** Relief Scout — first consult means-test snapshot */
+  /** Relief Scout — first consult gate before The Forge */
   reliefScout: {
     name: "Relief Scout",
     short: "Scout",
-    description: "60-second means test — take the case or pass, with notes on file",
+    description: "First consult walkthrough — means test, take the case, then enter The Forge.",
   },
 
   /** Bench Notes — attorney voice/text notes from phone */

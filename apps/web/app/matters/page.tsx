@@ -87,14 +87,30 @@ export default function MattersListPage() {
                   <td>Ch {m.chapter}</td>
                   <td>{m.status}</td>
                   <td className="matters-table__actions">
+                    {!m.consultComplete ? (
+                      <Link
+                        href={`/matters/${m.matterId}/scout`}
+                        className="matters-table__action-link matters-table__action-link--accent"
+                      >
+                        Scout
+                      </Link>
+                    ) : m.status === "filed" ? (
+                      <Link
+                        href={`/matters/${m.matterId}/continuum`}
+                        className="matters-table__action-link matters-table__action-link--accent"
+                      >
+                        Continuum
+                      </Link>
+                    ) : (
+                      <Link
+                        href={`/matters/${m.matterId}/forge`}
+                        className="matters-table__action-link matters-table__action-link--accent"
+                      >
+                        Forge
+                      </Link>
+                    )}
                     <Link href={`/matters/${m.matterId}`} className="matters-table__action-link">
-                      Matter
-                    </Link>
-                    <Link
-                      href={`/matters/${m.matterId}/forge`}
-                      className="matters-table__action-link matters-table__action-link--accent"
-                    >
-                      Forge
+                      Open
                     </Link>
                   </td>
                 </tr>

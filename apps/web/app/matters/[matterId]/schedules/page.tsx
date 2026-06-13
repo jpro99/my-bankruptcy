@@ -1,15 +1,10 @@
-import { SchedulesViewer } from "@/components/schedules/schedules-viewer";
-import { MatterShell } from "@/components/layout/matter-shell";
+import { redirect } from "next/navigation";
 
-export default async function SchedulesPage({
+export default async function SchedulesRedirect({
   params,
 }: {
   params: Promise<{ matterId: string }>;
 }) {
   const { matterId } = await params;
-  return (
-    <MatterShell matterId={matterId}>
-      <SchedulesViewer matterId={matterId} />
-    </MatterShell>
-  );
+  redirect(`/matters/${matterId}/forge?section=schedules`);
 }
