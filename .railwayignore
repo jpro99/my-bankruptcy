@@ -1,0 +1,10 @@
+# Faster Railway CLI uploads — API only needs source + built deps via turbo
+apps/web/
+apps/worker/
+apps/ai-pipeline/
+apps/efile-bridge/
+**/.next/
+**/node_modules/
+**/.turbo/
+**/dist/
+!apps/api/dist/

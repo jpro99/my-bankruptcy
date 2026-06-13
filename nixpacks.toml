@@ -1,0 +1,15 @@
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = [
+  "corepack enable",
+  "corepack prepare pnpm@9.15.0 --activate",
+  "pnpm install --frozen-lockfile"
+]
+
+[phases.build]
+cmds = ["pnpm turbo run build --filter=@chapterai/api^..."]
+
+[start]
+cmd = "node apps/api/dist/server.js"

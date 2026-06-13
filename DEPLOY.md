@@ -48,23 +48,38 @@ git push -u origin main
 
 The web app shows an **API not connected** banner until Railway is wired. Demo mode works once both are linked.
 
-### Railway (API) — step by step
+### Railway (API) — pick ONE method
 
-1. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
-2. Select **my-bankruptcy** (same repo as Vercel)
-3. **Settings → Source:** Root Directory = **`.`** (repo root — `railway.toml` handles the build)
+#### Method A — Dashboard (easiest, no CLI)
+
+1. Go to [railway.app/new](https://railway.app/new) → **Deploy from GitHub repo**
+2. Select **my-bankruptcy**
+3. **Settings → Source:** Root Directory = **`.`** (repo root)
 4. **Variables** tab — add:
-
    ```
    DEV_AUTH_BYPASS=1
    NODE_ENV=production
    WEB_URL=https://my-bankruptcy.vercel.app
    ```
+5. **Settings → Networking → Generate Domain** → copy URL (e.g. `https://my-bankruptcy-api-production.up.railway.app`)
+6. Wait until deploy is **Healthy** (`/health` returns OK)
 
-   Do **not** set `PORT` — Railway injects it automatically.
+#### Method B — CLI (one script)
 
-5. **Settings → Networking → Generate Domain** → copy the URL (e.g. `https://my-bankruptcy-api-production.up.railway.app`)
-6. Wait for deploy — check **Deployments** shows healthy (`GET /health`)
+1. Complete Railway sign-in when browser opens
+2. From repo root:
+   ```powershell
+   cd c:\Projects\ChapterAI
+   .\scripts\setup-railway.ps1
+   ```
+3. Paste Railway URL when prompted — script links Vercel and redeploys
+
+#### After you have the Railway URL
+
+```powershell
+cd c:\Projects\ChapterAI
+.\scripts\link-vercel-api.ps1 -ApiUrl "https://YOUR-RAILWAY-URL.up.railway.app"
+```
 
 ### Vercel (Web) — link the API
 
@@ -78,32 +93,13 @@ The web app shows an **API not connected** banner until Railway is wired. Demo m
 
 3. **Deployments → Redeploy** (required after env var changes)
 
+Or run: `.\scripts\link-vercel-api.ps1 -ApiUrl "https://YOUR-RAILWAY-URL.up.railway.app"`
+
 The app checks `/health` on load — the yellow banner disappears when the API is reachable.
 
-### Vercel (Web)
+### Link them (if using dashboard)
 
-1. [vercel.com](https://vercel.com) → Import **my-bankruptcy**
-2. Root directory: **`apps/web`**
-3. Framework: **Next.js**
-4. Environment variables:
-   ```
-   NEXT_PUBLIC_DEV_AUTH_BYPASS=1
-   NEXT_PUBLIC_API_URL=https://YOUR-RAILWAY-API-URL.up.railway.app
-   ```
-5. Deploy
-
-If the first build fails (monorepo / pnpm), open the project → **Settings → General → Build & Development** and set:
-
-- **Install Command:** `cd ../.. && corepack enable && pnpm install`
-- **Build Command:** `cd ../.. && pnpm turbo run build --filter=@chapterai/web...`
-
-Then **Deployments → Redeploy**.
-
-`apps/web/vercel.json` in the repo should apply these automatically on the next deploy after you push.
-
-### Link them
-
-Railway → set `WEB_URL=https://my-bankruptcy.vercel.app` → redeploy API.
+Railway → Variables → confirm `WEB_URL=https://my-bankruptcy.vercel.app` → redeploy API if you changed it.
 
 ### On your phone
 
