@@ -8,7 +8,7 @@ cmds = [
 ]
 
 [phases.build]
-cmds = ["cd ../.. && pnpm turbo run build --filter=@chapterai/api^..."]
+cmds = ["cd ../.. && pnpm turbo run build --filter=@chapterai/api"]
 
 [start]
 cmd = "node dist/server.js"

@@ -1,7 +1,7 @@
 # Used when Railway service Root Directory = apps/api (monorepo auto-detect).
 # Build runs from repo root; start runs from apps/api.
 [build]
-buildCommand = "cd ../.. && corepack enable && corepack prepare pnpm@9.15.0 --activate && pnpm install && pnpm turbo run build --filter=@chapterai/api^..."
+buildCommand = "cd ../.. && corepack enable && corepack prepare pnpm@9.15.0 --activate && pnpm install && pnpm turbo run build --filter=@chapterai/api"
 watchPatterns = ["**", "../../packages/**", "../../pnpm-lock.yaml"]
 
 [deploy]
