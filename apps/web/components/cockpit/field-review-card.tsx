@@ -19,6 +19,7 @@ interface FieldReviewCardProps {
   onSaveEdit?: () => void;
   onCancelEdit?: () => void;
   onQuestion: () => void;
+  onViewSource?: () => void;
 }
 
 export function FieldReviewCard({
@@ -31,6 +32,7 @@ export function FieldReviewCard({
   onSaveEdit,
   onCancelEdit,
   onQuestion,
+  onViewSource,
 }: FieldReviewCardProps) {
   const color = confidenceColor(field.confidence);
 
@@ -94,10 +96,14 @@ export function FieldReviewCard({
           )}
 
           {field.sourceDocument && (
-            <div className="inline-flex items-center gap-2 rounded-full border border-border bg-white px-3 py-1.5 text-xs font-medium text-muted-foreground">
-              <FileText className="size-3.5 text-primary" />
-              {field.sourceDocument.fileName}
-            </div>
+            <button
+              type="button"
+              onClick={onViewSource}
+              className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary-muted/40 px-3 py-1.5 text-xs font-medium text-primary transition hover:bg-primary-muted hover:underline"
+            >
+              <FileText className="size-3.5" />
+              View {field.sourceDocument.fileName}
+            </button>
           )}
 
           {field.rationale && (

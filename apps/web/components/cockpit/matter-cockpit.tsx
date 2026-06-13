@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { useReviewStore } from "@/lib/store/review-store";
 import { FieldReviewCard, ApprovalBadge } from "@/components/cockpit/field-review-card";
+import { DocumentPreviewModal } from "@/components/cockpit/document-preview-modal";
 import { DiagnosticsPanel } from "@/components/cockpit/diagnostics-panel";
 import { MatterSidebar } from "@/components/layout/matter-shell";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ export function MatterCockpit({ matterId }: { matterId: string }) {
 
   const [editValue, setEditValue] = useState("");
   const [editing, setEditing] = useState(false);
+  const [previewField, setPreviewField] = useState<(typeof fields)[0] | null>(null);
 
   useEffect(() => {
     void init(matterId);
@@ -135,6 +137,7 @@ export function MatterCockpit({ matterId }: { matterId: string }) {
                     onSaveEdit={saveEdit}
                     onCancelEdit={() => setEditing(false)}
                     onQuestion={() => void question(currentField.id)}
+                    onViewSource={() => setPreviewField(currentField)}
                   />
                 ) : !loading ? (
                   <div className="rounded-2xl border border-emerald-200 bg-success-muted p-8 text-center">
@@ -149,9 +152,16 @@ export function MatterCockpit({ matterId }: { matterId: string }) {
           </div>
 
           <div className="hidden w-72 shrink-0 border-l border-border bg-slate-50 p-4 xl:block">
-            <div className="flex h-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-white p-6 text-center">
+            <button
+              type="button"
+              disabled={!currentField?.sourceDocument}
+              onClick={() => currentField && setPreviewField(currentField)}
+              className="flex h-full w-full flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-white p-6 text-center transition hover:border-primary/40 hover:bg-primary-muted/20 disabled:cursor-default disabled:opacity-60"
+            >
               <FileText className="mb-3 size-10 text-muted-foreground/40" />
-              <p className="text-sm font-medium text-muted-foreground">Official PDF Preview</p>
+              <p className="text-sm font-medium text-muted-foreground">
+                {currentField?.sourceDocument ? "Click to view source PDF" : "Official PDF Preview"}
+              </p>
               <p className="mt-1 text-xs text-muted-foreground">
                 Form {currentField?.formId ?? "—"}
               </p>
@@ -160,10 +170,18 @@ export function MatterCockpit({ matterId }: { matterId: string }) {
                   {currentField.sourceDocument.fileName}
                 </Badge>
               )}
-            </div>
+            </button>
           </div>
         </div>
       </main>
+
+      {previewField && (
+        <DocumentPreviewModal
+          field={previewField}
+          onClose={() => setPreviewField(null)}
+          onApprove={() => void approve(previewField.id)}
+        />
+      )}
 
       <DiagnosticsPanel
         diagnostics={diagnostics}
