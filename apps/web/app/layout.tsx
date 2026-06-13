@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Cormorant_Garamond, Inter } from "next/font/google";
 import { FIRM } from "@/lib/firm";
 import "./globals.css";
+import "@/styles/firm-brand.css";
 import { Providers } from "./providers";
 import { ApiStatusBanner } from "@/components/layout/api-status-banner";
 
@@ -24,6 +25,10 @@ export const metadata: Metadata = {
   manifest: "/manifest.webmanifest",
   appleWebApp: { capable: true },
   applicationName: FIRM.shortName,
+  icons: {
+    icon: [{ url: "/icons/lombera-crest.png", type: "image/png" }],
+    apple: [{ url: "/icons/lombera-crest.png", type: "image/png" }],
+  },
 };
 
 export const viewport: Viewport = {

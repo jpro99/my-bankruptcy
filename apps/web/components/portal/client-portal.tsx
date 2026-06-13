@@ -171,8 +171,9 @@ export function ClientPortal({ token }: { token: string }) {
 
   if (loading) {
     return (
-      <div className="lombera-hero flex min-h-screen items-center justify-center">
-        <Loader2 className="size-8 animate-spin text-[#1a2744]" />
+      <div className="lombera-hero flex min-h-screen flex-col items-center justify-center gap-6 px-6">
+        <LomberaLogo variant="hero" showWordmark={false} />
+        <Loader2 className="size-7 animate-spin text-[#1a2744]" />
       </div>
     );
   }
@@ -198,8 +199,8 @@ export function ClientPortal({ token }: { token: string }) {
   return (
     <div className="lombera-hero min-h-screen">
       <div className="mx-auto max-w-md px-4 py-8 pb-16">
-        <header className="animate-fade-in space-y-5 text-center">
-          <LomberaLogo variant="full" />
+        <header className="animate-fade-in space-y-6 text-center">
+          <LomberaLogo variant="hero" />
           <div className="pt-2">
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-[#8a8278]">
               {FIRM.portal.title}

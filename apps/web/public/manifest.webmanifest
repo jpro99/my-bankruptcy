@@ -11,15 +11,15 @@
   "categories": ["business", "productivity", "finance"],
   "icons": [
     {
-      "src": "/icons/icon.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/icons/lombera-crest.png",
+      "sizes": "512x512",
+      "type": "image/png",
       "purpose": "any"
     },
     {
-      "src": "/icons/icon.svg",
+      "src": "/icons/lombera-crest.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "maskable"
     }
   ],

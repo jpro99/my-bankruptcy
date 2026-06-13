@@ -14,7 +14,7 @@ export default function PersonalInjuryPage() {
     <div className="lombera-hero min-h-screen">
       <div className="mx-auto max-w-lg px-6 py-14 pb-20">
         <header className="mb-10 text-center">
-          <LomberaLogo variant="full" />
+          <LomberaLogo variant="hero" />
         </header>
 
         <article className="lombera-card space-y-5 p-8">

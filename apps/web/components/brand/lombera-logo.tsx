@@ -1,66 +1,149 @@
+import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { FIRM } from "@/lib/firm";
 
 type LomberaLogoProps = {
-  variant?: "full" | "compact" | "mark";
+  variant?: "hero" | "full" | "compact" | "mark";
   className?: string;
-  /** Light text on dark backgrounds */
+  /** Light text on dark backgrounds (compact / hero wordmark) */
   invert?: boolean;
+  /** Show wordmark text under crest (hero defaults true) */
+  showWordmark?: boolean;
 };
 
-const navy = FIRM.colors.navy;
-const gold = FIRM.colors.gold;
+const CREST_SRC = "/icons/lombera-crest.png";
 
-function Monogram({ size = 48, className }: { size?: number; className?: string }) {
+function CrestSvg({ size = 64, className }: { size?: number; className?: string }) {
   return (
     <svg
       width={size}
       height={size}
-      viewBox="0 0 48 48"
+      viewBox="0 0 120 120"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
       className={className}
       aria-hidden
     >
-      <rect x="0.5" y="0.5" width="47" height="47" rx="6" fill={navy} stroke={gold} strokeWidth="1" />
+      <defs>
+        <linearGradient id="lombera-gold" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stopColor="#d4bc8a" />
+          <stop offset="45%" stopColor="#b8975a" />
+          <stop offset="100%" stopColor="#8a7044" />
+        </linearGradient>
+        <linearGradient id="lombera-navy" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stopColor="#1a2744" />
+          <stop offset="100%" stopColor="#0f1c2e" />
+        </linearGradient>
+      </defs>
+      <rect x="4" y="4" width="112" height="112" rx="14" stroke="url(#lombera-gold)" strokeWidth="1.5" fill="none" opacity="0.85" />
       <path
-        d="M14 34V14h6.2c4.8 0 7.8 2.4 7.8 6.4 0 2.6-1.2 4.6-3.4 5.6L30 34h-5.2l-4.2-6.8H19.2V34H14zm5.2-10.6h1c2.2 0 3.4-1 3.4-2.8 0-1.8-1.2-2.8-3.4-2.8h-1v5.6z"
+        d="M60 14 L92 28 V58 C92 78 78 94 60 102 C42 94 28 78 28 58 V28 Z"
+        fill="url(#lombera-navy)"
+        stroke="url(#lombera-gold)"
+        strokeWidth="1.25"
+      />
+      <path
+        d="M44 38 V78 H50.5 C58.5 78 63 73.5 63 66.5 C63 61 60 57 55.5 55 L66 38 H59 L51 52 H50.5 V38 H44 Z"
         fill="#faf9f7"
       />
       <path
-        d="M31.5 14H36l5.5 20h-5.3l-.9-3.6h-5.8l-.9 3.6h-5.1L31.5 14zm3.8 12.2l-1.8-7.4-1.8 7.4h3.6z"
-        fill={gold}
+        d="M68 38 H74 L84 78 H78.2 L76.8 72.5 H69.2 L67.8 78 H62 L68 38 Z M70.5 56.5 L72.8 48 L75.1 56.5 H70.5 Z"
+        fill="url(#lombera-gold)"
       />
-      <line x1="8" y1="40" x2="40" y2="40" stroke={gold} strokeWidth="0.75" opacity="0.6" />
+      <path d="M48 22 H72" stroke="url(#lombera-gold)" strokeWidth="1" strokeLinecap="round" opacity="0.7" />
+      <circle cx="48" cy="22" r="2.5" fill="url(#lombera-gold)" opacity="0.8" />
+      <circle cx="72" cy="22" r="2.5" fill="url(#lombera-gold)" opacity="0.8" />
+      <path d="M54 22 C60 18 60 18 66 22" stroke="url(#lombera-gold)" strokeWidth="0.75" fill="none" opacity="0.55" />
     </svg>
   );
 }
 
-export function LomberaLogo({ variant = "full", className, invert = false }: LomberaLogoProps) {
-  const textPrimary = invert ? "#faf9f7" : navy;
-  const textMuted = invert ? "rgba(250,249,247,0.72)" : "rgba(15,28,46,0.62)";
-  const rule = gold;
+function Wordmark({
+  invert,
+  className,
+}: {
+  invert?: boolean;
+  className?: string;
+}) {
+  return (
+    <div className={cn("lombera-crest-hero__wordmark", className)}>
+      <p className="lombera-crest-hero__eyebrow">The Law Offices of</p>
+      <p className="lombera-crest-hero__name">{FIRM.attorneyName}</p>
+      <div className="lombera-crest-hero__rule" />
+      <p className="lombera-crest-hero__tag">{FIRM.descriptor}</p>
+    </div>
+  );
+}
+
+export function LomberaLogo({
+  variant = "full",
+  className,
+  invert = false,
+  showWordmark,
+}: LomberaLogoProps) {
+  if (variant === "hero") {
+    const showText = showWordmark ?? true;
+    return (
+      <div
+        className={cn(
+          "lombera-crest-hero",
+          invert && "lombera-crest-hero--dark",
+          className
+        )}
+        role="img"
+        aria-label={FIRM.name}
+      >
+        <div className="lombera-crest-hero__glow" aria-hidden />
+        <div className="lombera-crest-hero__frame">
+          <Image
+            src={CREST_SRC}
+            alt={FIRM.name}
+            width={520}
+            height={520}
+            priority
+            className="lombera-crest-hero__image"
+          />
+        </div>
+        {showText ? <Wordmark invert={invert} /> : null}
+      </div>
+    );
+  }
 
   if (variant === "mark") {
     return (
       <div className={cn("inline-flex", className)}>
-        <Monogram size={40} />
+        <Image
+          src={CREST_SRC}
+          alt=""
+          width={48}
+          height={48}
+          className="lombera-crest-compact__img"
+        />
       </div>
     );
   }
 
   if (variant === "compact") {
     return (
-      <div className={cn("inline-flex items-center gap-3", className)}>
-        <Monogram size={36} />
+      <div className={cn("lombera-crest-compact", className)}>
+        <Image
+          src={CREST_SRC}
+          alt=""
+          width={40}
+          height={40}
+          className="lombera-crest-compact__img"
+        />
         <div className="text-left leading-tight">
           <p
             className="text-[0.55rem] font-semibold uppercase tracking-[0.22em]"
-            style={{ color: textMuted }}
+            style={{ color: invert ? "rgba(250,249,247,0.72)" : "#8a8278" }}
           >
             Law Offices of
           </p>
-          <p className="font-display text-lg font-semibold tracking-tight" style={{ color: textPrimary }}>
+          <p
+            className="font-display text-lg font-semibold tracking-tight"
+            style={{ color: invert ? "#faf9f7" : FIRM.colors.navy }}
+          >
             {FIRM.attorneyName}
           </p>
         </div>
@@ -70,28 +153,8 @@ export function LomberaLogo({ variant = "full", className, invert = false }: Lom
 
   return (
     <div className={cn("inline-flex flex-col items-center gap-3", className)}>
-      <Monogram size={52} />
-      <div className="text-center">
-        <p
-          className="text-[0.6rem] font-semibold uppercase tracking-[0.28em]"
-          style={{ color: textMuted }}
-        >
-          The Law Offices of
-        </p>
-        <p
-          className="font-display mt-0.5 text-2xl font-semibold tracking-tight sm:text-[1.65rem]"
-          style={{ color: textPrimary }}
-        >
-          {FIRM.attorneyName}
-        </p>
-        <div
-          className="mx-auto mt-2 h-px w-16"
-          style={{ background: `linear-gradient(90deg, transparent, ${rule}, transparent)` }}
-        />
-        <p className="mt-2 text-xs font-medium tracking-wide" style={{ color: textMuted }}>
-          {FIRM.descriptor}
-        </p>
-      </div>
+      <CrestSvg size={72} />
+      <Wordmark invert={invert} />
     </div>
   );
 }
