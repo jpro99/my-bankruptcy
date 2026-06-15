@@ -125,7 +125,7 @@ export interface IntakeDocument {
   documentType: string;
   uploadedAt: string;
   uploadedBy: "client" | "attorney";
-  source: "portal" | "portal_general" | "attorney_drop" | "consult";
+  source: "portal" | "portal_general" | "attorney_drop" | "consult" | "test_csv";
   requestId?: string;
   status: IntakeDocStatus;
   appliedFieldIds?: string[];
@@ -2129,7 +2129,8 @@ export function previewForgeSyncIdentity(matterId: string): UploadMatchPreview |
     (d) =>
       d.status !== "applied" &&
       d.source !== "portal" &&
-      d.source !== "portal_general"
+      d.source !== "portal_general" &&
+      d.source !== "test_csv"
   );
   for (const doc of pending) {
     const preview = previewIntakeUpload(matterId, doc.fileName, doc.documentType);

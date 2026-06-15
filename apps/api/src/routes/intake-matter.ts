@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { FIRM_ATTORNEY_NAME } from "../lib/firm-brand.js";
+import { importTestDataFromCsv } from "../lib/test-data-csv.js";
 import type { AppEnv } from "../index.js";
 import {
   addIntakeDocument,
@@ -282,5 +283,22 @@ intakeMatterRouter.post(
 
     const result = applyPendingIntake(matterId);
     return c.json(result);
+  }
+);
+
+intakeMatterRouter.post(
+  "/matter/:matterId/import-test-csv",
+  zValidator("json", z.object({ csv: z.string().min(1) })),
+  async (c) => {
+    const matterId = c.req.param("matterId");
+    if (!isDemoMatter(matterId)) return c.json({ error: "Matter not found" }, 404);
+    const { csv } = c.req.valid("json");
+    try {
+      const result = importTestDataFromCsv(matterId, csv);
+      return c.json({ result });
+    } catch (e) {
+      const message = e instanceof Error ? e.message : "Import failed";
+      return c.json({ error: message }, 400);
+    }
   }
 );

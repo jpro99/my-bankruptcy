@@ -547,6 +547,21 @@ export async function uploadIntakeDocument(
   };
 }
 
+export interface TestDataImportResult {
+  debtorName: string;
+  documentsAdded: number;
+  debtsAdded: number;
+  consultEvaluated: boolean;
+  lines: string[];
+}
+
+export function importTestDataCsv(matterId: string, csv: string) {
+  return apiFetch<{ result: TestDataImportResult }>(
+    `/api/intake/matter/${matterId}/import-test-csv`,
+    { method: "POST", body: JSON.stringify({ csv }) }
+  );
+}
+
 export type ForgeSyncResult =
   | { ok: true; appliedCount: number; fieldIds: string[]; message: string; redirectedTo?: string }
   | { ok: false; mismatch: UploadMatchPreview };

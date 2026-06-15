@@ -16,6 +16,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DocumentMatterMatchDialog } from "@/components/intake/document-matter-match-dialog";
 import { DocumentDropZone } from "@/components/intake/document-drop-zone";
+import { TestDataCsvDropZone } from "@/components/intake/test-data-csv-drop-zone";
 
 function printDossier(
   clientName: string,
@@ -184,6 +185,15 @@ export function MatterDossierPanel({
           {uploadMessage && (
             <p className="text-sm font-medium text-primary">{uploadMessage}</p>
           )}
+
+          <TestDataCsvDropZone
+            matterId={matterId}
+            onImported={() => {
+              setUploadMessage(null);
+              void load();
+              onSyncComplete?.();
+            }}
+          />
         </>
       )}
 
@@ -206,9 +216,11 @@ export function MatterDossierPanel({
                     <p className="text-xs text-muted-foreground">
                       {doc.source === "portal" || doc.source === "portal_general"
                         ? "Client Vault link"
-                        : doc.uploadedBy === "client"
-                          ? "Client Vault"
-                          : "Attorney upload"}{" "}
+                        : doc.source === "test_csv"
+                          ? "Test CSV import"
+                          : doc.uploadedBy === "client"
+                            ? "Client Vault"
+                            : "Attorney upload"}{" "}
                       · {doc.documentType.replace(/_/g, " ")} · {doc.uploadedAt.slice(0, 10)}
                     </p>
                   </div>

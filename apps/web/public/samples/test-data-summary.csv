@@ -1,0 +1,27 @@
+# My Bankruptcy — test data summary (CSV)
+# Drop on any matter Documents tab to populate Scout, debts, paystubs, and W-2s.
+field,value
+debtor_name,Jeffrey Russell
+household_size,2
+chapter,7
+annual_income,72000
+monthly_expenses,3200
+secured_debt,28500
+unsecured_debt,12400
+employer,Acme Manufacturing LLC
+prior_bankruptcy,none
+attorney_notes,Demo packet — replace with real client data before filing
+paystub,January_2024_paystub.pdf,6000
+paystub,February_2024_paystub.pdf,6000
+paystub,March_2024_paystub.pdf,6000
+w2,2023_W2_Acme.pdf,72000
+w2,2022_W2_Acme.pdf,68500
+document,jeffrey_russell_drivers_license.jpg,drivers_license
+document,chase_checking_jan2024.pdf,bank_statement
+document,chase_savings_jan2024.pdf,bank_statement
+document,2022_1040_joint.pdf,tax_return
+debt,Chase Freedom Visa,8500,unsecured,credit_card
+debt,Capital One,2100,unsecured,credit_card
+debt,Synchrony Amazon,1800,unsecured,store_card
+debt,Wells Fargo Auto,22000,secured,auto_loan
+debt,Medical Center,950,priority,medical
