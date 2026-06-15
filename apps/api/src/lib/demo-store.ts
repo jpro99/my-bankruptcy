@@ -1,7 +1,13 @@
-import type { MatterDiagnosticsPayload } from "@chapterai/means-test";
+import { FIRM_ATTORNEY_NAME } from "./firm-brand.js";
+import {
+  buildUploadMatchPreview,
+  extractIdentityFromDocument,
+  type UploadMatchPreview,
+} from "./document-identity-match.js";
 import {
   evaluateUnifiedMeansTest,
   buildDiagnosticsPayload,
+  type MatterDiagnosticsPayload,
 } from "@chapterai/means-test";
 import type { ClassifiedTradeline } from "@chapterai/forms";
 import {
@@ -159,6 +165,8 @@ export interface DemoMatterSummary {
   createdAt: string;
   clientEmail?: string;
   clientPhone?: string;
+  clientFirstName?: string;
+  clientLastName?: string;
 }
 
 export type ScheduleBucket = "D" | "E" | "F" | "G";
@@ -1409,7 +1417,7 @@ export function addMatterNote(
     text: input.text.trim(),
     source: input.source ?? "attorney",
     createdAt: new Date().toISOString(),
-    authorLabel: input.authorLabel ?? "Attorney",
+    authorLabel: input.authorLabel ?? FIRM_ATTORNEY_NAME,
   };
   state.notes.unshift(note);
   recordDemoProvenance(matterId, {
@@ -1431,6 +1439,14 @@ export function getIntakeDossier(matterId: string): {
   notes: MatterNote[];
   consult?: ConsultSnapshot;
   pendingApplyCount: number;
+  intakeProfile: {
+    debtorDisplayName: string;
+    chapter: "7" | "13";
+    clientEmail?: string;
+    clientPhone?: string;
+    clientFirstName?: string;
+    clientLastName?: string;
+  };
 } {
   const state = getOrCreate(matterId);
   const pendingApplyCount = state.intakeDocuments.filter((d) => d.status !== "applied").length;
@@ -1439,6 +1455,14 @@ export function getIntakeDossier(matterId: string): {
     notes: state.notes,
     consult: state.consult,
     pendingApplyCount,
+    intakeProfile: {
+      debtorDisplayName: state.debtorDisplayName,
+      chapter: state.chapter,
+      clientEmail: state.clientEmail,
+      clientPhone: state.clientPhone,
+      clientFirstName: state.clientFirstName,
+      clientLastName: state.clientLastName,
+    },
   };
 }
 
@@ -1576,8 +1600,16 @@ export function applyPendingIntake(matterId: string): {
     const applied: string[] = [];
 
     if (doc.documentType === "drivers_license") {
-      const name = state.consult?.debtorName ?? state.debtorDisplayName;
-      const { first, last } = splitDebtorName(name.includes(" ") ? name : `Maria ${name}`);
+      const extracted = extractIdentityFromDocument(doc.fileName, doc.documentType);
+      let first: string;
+      let last: string;
+      if (extracted.confidence >= 0.5 && extracted.firstName && extracted.lastName) {
+        first = extracted.firstName;
+        last = extracted.lastName;
+      } else {
+        const name = state.consult?.debtorName ?? state.debtorDisplayName;
+        ({ first, last } = splitDebtorName(name.includes(" ") ? name : name));
+      }
       applied.push(
         upsertReviewField(state, matterId, {
           id: "f1",
@@ -1685,6 +1717,108 @@ export function applyPendingIntake(matterId: string): {
   };
 }
 
+function buildIntakeAttorneyNotes(input: {
+  clientEmail?: string;
+  clientPhone?: string;
+  chapter?: "7" | "13";
+}): string {
+  const lines = ["New matter intake — auto-captured at open."];
+  if (input.clientEmail) lines.push(`Client email: ${input.clientEmail}`);
+  if (input.clientPhone) lines.push(`Client phone: ${input.clientPhone}`);
+  if (input.chapter) lines.push(`Chapter preference: Chapter ${input.chapter}`);
+  return lines.join("\n");
+}
+
+/** Pull everything from New Matter form into Scout + petition fields */
+function seedNewMatterFromIntake(
+  matterId: string,
+  input: {
+    debtorDisplayName: string;
+    chapter?: "7" | "13";
+    clientEmail?: string;
+    clientPhone?: string;
+    clientFirstName?: string;
+    clientLastName?: string;
+  }
+): void {
+  const state = getOrCreate(matterId);
+  const first =
+    input.clientFirstName?.trim() || splitDebtorName(input.debtorDisplayName).first;
+  const last =
+    input.clientLastName?.trim() || splitDebtorName(input.debtorDisplayName).last;
+  const debtorName = `${first} ${last}`.trim() || input.debtorDisplayName.trim();
+  const chapter = input.chapter ?? "7";
+  const src = { id: "intake-new-matter", fileName: "New Matter intake form" };
+
+  state.debtorDisplayName = debtorName;
+  state.chapter = chapter;
+
+  state.consult = {
+    debtorName,
+    householdSize: 1,
+    annualIncome: "",
+    monthlyExpenses: "",
+    securedDebt: "",
+    unsecuredDebt: "",
+    chapterPreference: chapter,
+    takeCase: null,
+    attorneyNotes: buildIntakeAttorneyNotes(input),
+  };
+
+  upsertReviewField(state, matterId, {
+    id: "f1",
+    fieldPath: "debtor1.firstName",
+    formId: "101",
+    value: first,
+    confidence: 1,
+    rationale: "Captured from New Matter — client first name",
+    sourceDocument: src,
+  });
+  upsertReviewField(state, matterId, {
+    id: "f2",
+    fieldPath: "debtor1.lastName",
+    formId: "101",
+    value: last,
+    confidence: 1,
+    rationale: "Captured from New Matter — client last name",
+    sourceDocument: src,
+  });
+
+  if (input.clientEmail?.trim()) {
+    upsertReviewField(state, matterId, {
+      id: "f-contact-email",
+      fieldPath: "debtor1.email",
+      formId: "101",
+      value: input.clientEmail.trim(),
+      confidence: 1,
+      rationale: "Captured from New Matter — client email (portal & notices)",
+      sourceDocument: src,
+    });
+  }
+
+  if (input.clientPhone?.trim()) {
+    upsertReviewField(state, matterId, {
+      id: "f-contact-phone",
+      fieldPath: "debtor1.homePhone",
+      formId: "101",
+      value: input.clientPhone.trim(),
+      confidence: 1,
+      rationale: "Captured from New Matter — client phone",
+      sourceDocument: src,
+    });
+  }
+
+  state.notes.unshift({
+    id: `note-intake-${crypto.randomUUID().slice(0, 8)}`,
+    text: `Intake opened for ${debtorName}${input.clientEmail ? ` · ${input.clientEmail}` : ""}${input.clientPhone ? ` · ${input.clientPhone}` : ""}`,
+    source: "system",
+    authorLabel: "New Matter",
+    createdAt: new Date().toISOString(),
+  });
+
+  state.portal = buildPortal(matterId, state);
+}
+
 export function createDemoMatter(input: {
   debtorDisplayName: string;
   chapter?: "7" | "13";
@@ -1700,14 +1834,15 @@ export function createDemoMatter(input: {
   if (input.clientPhone) state.clientPhone = input.clientPhone.trim();
   if (input.clientFirstName) state.clientFirstName = input.clientFirstName.trim();
   if (input.clientLastName) state.clientLastName = input.clientLastName.trim();
+  demoStore.set(matterId, state);
+  seedNewMatterFromIntake(matterId, input);
   state.calendarEvents = buildIntakeCalendarEvents({
     matterId,
-    debtorDisplayName: state.debtorDisplayName,
+    debtorDisplayName: getOrCreate(matterId).debtorDisplayName,
     createdAt: state.createdAt,
   });
-  demoStore.set(matterId, state);
   saveSnapshot();
-  return summarizeDemoMatter(state);
+  return summarizeDemoMatter(getOrCreate(matterId));
 }
 
 function summarizeDemoMatter(state: DemoMatterState): DemoMatterSummary {
@@ -1725,6 +1860,8 @@ function summarizeDemoMatter(state: DemoMatterState): DemoMatterSummary {
     createdAt: state.createdAt,
     clientEmail: state.clientEmail,
     clientPhone: state.clientPhone,
+    clientFirstName: state.clientFirstName,
+    clientLastName: state.clientLastName,
   };
 }
 
@@ -1943,19 +2080,66 @@ function seedIntakeTestMatter(): void {
 
 /** Pre-seed predictable test matters for staging / demo deploys */
 export function ensureTestDemoMatters(): void {
-  if (!demoStore.has("demo-filed")) seedFiledTestMatter();
-  if (!demoStore.has("demo-intake")) seedIntakeTestMatter();
-  saveSnapshot();
+  // Single demo matter only — extra test seeds removed
 }
 
-export function listDemoMatters(): DemoMatterSummary[] {
-  ensureTestDemoMatters();
-  for (const id of ["demo", "demo-filed", "demo-intake"]) {
-    getOrCreate(id);
-  }
+export function movePendingIntakeDocuments(fromMatterId: string, toMatterId: string): number {
+  const from = getOrCreate(fromMatterId);
+  getOrCreate(toMatterId);
+  const pending = from.intakeDocuments.filter((d) => d.status !== "applied");
+  if (pending.length === 0) return 0;
+
+  const to = getOrCreate(toMatterId);
+  from.intakeDocuments = from.intakeDocuments.filter((d) => d.status === "applied");
+  to.intakeDocuments.push(...pending.map((d) => ({ ...d })));
+
+  addMatterNote(toMatterId, {
+    text: `Moved ${pending.length} document(s) here — identity matched ${to.debtorDisplayName}`,
+    source: "system",
+    authorLabel: "Smart match",
+  });
+  addMatterNote(fromMatterId, {
+    text: `Pending uploads moved to ${to.debtorDisplayName}'s file (identity match)`,
+    source: "system",
+    authorLabel: "Smart match",
+  });
+  saveSnapshot();
+  return pending.length;
+}
+
+/** All matters in demo store (includes user-created) */
+export function listAllDemoMatterSummaries(): DemoMatterSummary[] {
+  getOrCreate("demo");
   return Array.from(demoStore.values())
     .map(summarizeDemoMatter)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export function previewIntakeUpload(
+  matterId: string,
+  fileName: string,
+  documentType?: string
+): UploadMatchPreview {
+  return buildUploadMatchPreview(listAllDemoMatterSummaries(), matterId, fileName, documentType);
+}
+
+export function previewForgeSyncIdentity(matterId: string): UploadMatchPreview | null {
+  const state = getOrCreate(matterId);
+  const pending = state.intakeDocuments.filter(
+    (d) =>
+      d.status !== "applied" &&
+      d.source !== "portal" &&
+      d.source !== "portal_general"
+  );
+  for (const doc of pending) {
+    const preview = previewIntakeUpload(matterId, doc.fileName, doc.documentType);
+    if (preview.action === "confirm") return preview;
+  }
+  return null;
+}
+
+export function listDemoMatters(): DemoMatterSummary[] {
+  return listAllDemoMatterSummaries();
 }
 
 export function submitPortalGeneralUpload(
@@ -2164,11 +2348,13 @@ export function updateFinalReviewStep(
   } else if (step === "attorneySignOff") {
     state.finalReview.attorneySignOff = input.complete;
     state.finalReview.attorneySignOffAt = input.complete ? now : undefined;
-    state.finalReview.attorneyName = input.complete ? (input.attorneyName ?? "Attorney") : undefined;
+    state.finalReview.attorneyName = input.complete
+      ? (input.attorneyName ?? FIRM_ATTORNEY_NAME)
+      : undefined;
   }
   if (input.complete && step === "attorneySignOff") {
     addMatterNote(matterId, {
-      text: `Attorney final sign-off — cleared to Strike The Gavel (${input.attorneyName ?? "Attorney"})`,
+      text: `Attorney final sign-off — cleared to Strike The Gavel (${input.attorneyName ?? FIRM_ATTORNEY_NAME})`,
       source: "system",
       authorLabel: "Final Check",
     });

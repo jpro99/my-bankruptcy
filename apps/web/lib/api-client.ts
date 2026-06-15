@@ -357,6 +357,14 @@ export interface MatterDossier {
   notes: MatterNote[];
   consult?: ConsultSnapshot;
   pendingApplyCount: number;
+  intakeProfile?: {
+    debtorDisplayName: string;
+    chapter: "7" | "13";
+    clientEmail?: string;
+    clientPhone?: string;
+    clientFirstName?: string;
+    clientLastName?: string;
+  };
 }
 
 export interface DemoMatterSummary {
@@ -371,6 +379,8 @@ export interface DemoMatterSummary {
   createdAt: string;
   clientEmail?: string;
   clientPhone?: string;
+  clientFirstName?: string;
+  clientLastName?: string;
 }
 
 export function fetchMatterDossier(matterId: string) {
@@ -450,22 +460,116 @@ export function saveConsultApi(
   });
 }
 
-export function uploadIntakeDocument(
-  matterId: string,
-  fileName: string,
-  documentType?: string
-) {
-  return apiFetch<{ document: IntakeDocument }>(`/api/intake/matter/${matterId}/upload`, {
-    method: "POST",
-    body: JSON.stringify({ fileName, documentType }),
-  });
+export interface UploadMatchPreview {
+  action: "proceed" | "confirm";
+  extracted: {
+    firstName?: string;
+    lastName?: string;
+    fullName?: string;
+    confidence: number;
+    source: string;
+  };
+  currentMatter: { matterId: string; debtorDisplayName: string };
+  bestMatch?: {
+    matterId: string;
+    debtorDisplayName: string;
+    score: number;
+    reasons: string[];
+  };
+  message?: string;
 }
 
-export function applyForgeSync(matterId: string) {
-  return apiFetch<{ appliedCount: number; fieldIds: string[]; message: string }>(
-    `/api/intake/matter/${matterId}/apply`,
-    { method: "POST", body: "{}" }
-  );
+export type IntakeUploadResult =
+  | { ok: true; document: IntakeDocument; savedToMatterId: string }
+  | { ok: false; mismatch: UploadMatchPreview };
+
+async function intakePost<T>(
+  path: string,
+  body: Record<string, unknown>
+): Promise<T | { mismatch: UploadMatchPreview }> {
+  const headers = new Headers({ "Content-Type": "application/json" });
+  if (process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "1") {
+    headers.set("x-firm-id", "00000000-0000-0000-0000-000000000010");
+    headers.set("x-user-id", "00000000-0000-0000-0000-000000000001");
+    headers.set("x-clerk-user-id", "dev_clerk_user");
+    headers.set("x-user-email", "attorney@chapterai.dev");
+    headers.set("x-user-role", "attorney");
+  }
+
+  const response = await fetch(`${getApiBase()}${path}`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(body),
+  });
+
+  const data = (await response.json().catch(() => ({}))) as {
+    error?: string;
+    preview?: UploadMatchPreview;
+    document?: IntakeDocument;
+    savedToMatterId?: string;
+  };
+
+  if (response.status === 409 && data.error === "matter_mismatch" && data.preview) {
+    return { mismatch: data.preview };
+  }
+
+  if (!response.ok) {
+    throw new Error(data.error ?? `API error ${response.status}`);
+  }
+
+  return data as T;
+}
+
+export async function uploadIntakeDocument(
+  matterId: string,
+  fileName: string,
+  documentType?: string,
+  options?: { confirmMismatch?: boolean; targetMatterId?: string }
+): Promise<IntakeUploadResult> {
+  const result = await intakePost<{
+    document: IntakeDocument;
+    savedToMatterId: string;
+  }>(`/api/intake/matter/${matterId}/upload`, {
+    fileName,
+    documentType,
+    confirmMismatch: options?.confirmMismatch,
+    targetMatterId: options?.targetMatterId,
+  });
+
+  if ("mismatch" in result) {
+    return { ok: false, mismatch: result.mismatch };
+  }
+
+  return {
+    ok: true,
+    document: result.document,
+    savedToMatterId: result.savedToMatterId ?? matterId,
+  };
+}
+
+export type ForgeSyncResult =
+  | { ok: true; appliedCount: number; fieldIds: string[]; message: string; redirectedTo?: string }
+  | { ok: false; mismatch: UploadMatchPreview };
+
+export async function applyForgeSync(
+  matterId: string,
+  options?: { confirmMismatch?: boolean; targetMatterId?: string }
+): Promise<ForgeSyncResult> {
+  const result = await intakePost<{
+    appliedCount: number;
+    fieldIds: string[];
+    message: string;
+    redirectedTo?: string;
+  }>(`/api/intake/matter/${matterId}/apply`, {
+    confirmMismatch: options?.confirmMismatch,
+    targetMatterId: options?.targetMatterId,
+  });
+
+  if ("mismatch" in result) {
+    return { ok: false, mismatch: result.mismatch };
+  }
+
+  return { ok: true, ...result };
 }
 
 export function listDemoMatters() {
@@ -1080,4 +1184,23 @@ export function fetchMatterProfile(matterId: string) {
       filed: boolean;
     };
   }>(`/api/workflow/matter/${matterId}/profile`);
+}
+
+export type CopilotPhase = "scout" | "forge" | "gavel" | "continuum";
+
+export interface CopilotAnswer {
+  answer: string;
+  suggestedAction?: { label: string; href: string };
+  demoMode: boolean;
+  piiRedacted: boolean;
+}
+
+export function askReliefCopilot(
+  matterId: string,
+  body: { question: string; phase: CopilotPhase }
+) {
+  return apiFetch<CopilotAnswer>(`/api/copilot/matter/${matterId}`, {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
 }

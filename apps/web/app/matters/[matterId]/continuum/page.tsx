@@ -6,6 +6,7 @@ import { AutopilotDashboard } from "@/components/autopilot/autopilot-dashboard";
 import { ReliefCommandRail } from "@/components/command/relief-command-rail";
 import { MatterCalendarPanel } from "@/components/workflow/matter-calendar-panel";
 import { StaffHeader } from "@/components/staff/staff-header";
+import { ReliefCopilotSheet } from "@/components/copilot/relief-copilot-sheet";
 import { BRAND } from "@/lib/brand";
 import "@/styles/staff-chrome.css";
 
@@ -33,6 +34,7 @@ export default function ContinuumPage({ params }: { params: Promise<{ matterId: 
       <section style={{ marginTop: "2rem" }}>
         <MatterCalendarPanel matterId={matterId} />
       </section>
+      <ReliefCopilotSheet matterId={matterId} phase="continuum" />
     </div>
   );
 }

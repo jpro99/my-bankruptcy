@@ -19,6 +19,7 @@ import { integrationsRouter } from "./routes/integrations.js";
 import { followUpRouter } from "./routes/follow-up.js";
 import { filingRouter } from "./routes/filing-package.js";
 import { matterWorkflowRouter } from "./routes/matter-workflow.js";
+import { copilotRouter } from "./routes/copilot.js";
 import {
   schedulesRouter,
   districtsRouter,
@@ -95,6 +96,7 @@ app.route("/api/efile", efileRouter);
 app.route("/api/autopilot", autopilotRouter);
 app.route("/api/billing", billingRouter);
 app.route("/api/command", commandRouter);
+app.route("/api/copilot", copilotRouter);
 app.route("/api/schedules", schedulesRouter);
 app.route("/api/districts", districtsRouter);
 app.route("/api/provenance", provenanceRouter);

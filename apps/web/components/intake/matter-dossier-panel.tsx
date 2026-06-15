@@ -7,14 +7,17 @@ import {
   fetchMatterDossier,
   type IntakeDocument,
   type MatterNote,
+  type UploadMatchPreview,
 } from "@/lib/api-client";
 import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { DocumentMatterMatchDialog } from "@/components/intake/document-matter-match-dialog";
 
 function printDossier(
+  clientName: string,
   matterId: string,
   documents: IntakeDocument[],
   notes: MatterNote[]
@@ -32,13 +35,13 @@ function printDossier(
     )
     .join("");
 
-  const html = `<!DOCTYPE html><html><head><title>Matter Dossier — ${matterId}</title>
+  const html = `<!DOCTYPE html><html><head><title>${clientName} — documents</title>
 <style>body{font-family:system-ui,sans-serif;padding:24px;max-width:800px;margin:0 auto}
 h1{font-size:20px}table{width:100%;border-collapse:collapse;margin:16px 0;font-size:12px}
 th,td{border:1px solid #ccc;padding:6px;text-align:left}th{background:#f4f4f4}
 .note td:last-child{white-space:pre-wrap}</style></head><body>
-<h1>${BRAND.dossier.name} — Matter ${matterId}</h1>
-<p>Printed ${new Date().toLocaleString()}</p>
+<h1>${clientName}'s file</h1>
+<p>Matter ${matterId} · Printed ${new Date().toLocaleString()}</p>
 <h2>Documents (${documents.length})</h2>
 <table><thead><tr><th>File</th><th>Type</th><th>From</th><th>Status</th><th>Date</th></tr></thead>
 <tbody>${docRows || "<tr><td colspan=5>No documents yet</td></tr>"}</tbody></table>
@@ -62,10 +65,12 @@ export function MatterDossierPanel({
 }) {
   const [documents, setDocuments] = useState<IntakeDocument[]>([]);
   const [notes, setNotes] = useState<MatterNote[]>([]);
+  const [clientName, setClientName] = useState<string | null>(null);
   const [pendingApplyCount, setPendingApplyCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [syncMatch, setSyncMatch] = useState<UploadMatchPreview | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -74,6 +79,11 @@ export function MatterDossierPanel({
       setDocuments(dossier.documents);
       setNotes(dossier.notes);
       setPendingApplyCount(dossier.pendingApplyCount);
+      setClientName(
+        dossier.intakeProfile?.debtorDisplayName ??
+          dossier.consult?.debtorName ??
+          null
+      );
     } finally {
       setLoading(false);
     }
@@ -83,18 +93,29 @@ export function MatterDossierPanel({
     void load();
   }, [load]);
 
-  const handleSync = async () => {
+  const runSync = async (options?: { confirmMismatch?: boolean; targetMatterId?: string }) => {
     setSyncing(true);
     setSyncMessage(null);
     try {
-      const result = await applyForgeSync(matterId);
-      setSyncMessage(result.message);
+      const result = await applyForgeSync(matterId, options);
+      if (!result.ok) {
+        setSyncMatch(result.mismatch);
+        return;
+      }
+      setSyncMessage(
+        result.redirectedTo
+          ? `${result.message} — synced on matched file`
+          : result.message
+      );
+      setSyncMatch(null);
       await load();
       onSyncComplete?.();
     } finally {
       setSyncing(false);
     }
   };
+
+  const handleSync = () => void runSync();
 
   if (loading) {
     return (
@@ -104,23 +125,26 @@ export function MatterDossierPanel({
     );
   }
 
+  const displayName = clientName ?? "This client";
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="font-display text-xl font-bold">{BRAND.dossier.name}</h2>
+          <h2 className="font-display text-xl font-bold">{displayName}&apos;s file</h2>
           <p className="text-sm text-muted-foreground">
-            {documents.length} document(s) · {notes.length} note(s) on file
+            Client Vault link uploads stay on this matter · {documents.length} document(s) ·{" "}
+            {notes.length} note(s)
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <Button
             variant="secondary"
             size="sm"
-            onClick={() => printDossier(matterId, documents, notes)}
+            onClick={() => printDossier(displayName, matterId, documents, notes)}
           >
             <Printer className="size-4" />
-            Print dossier
+            Print file
           </Button>
           <Button size="sm" disabled={syncing || pendingApplyCount === 0} onClick={() => void handleSync()}>
             {syncing ? (
@@ -143,8 +167,8 @@ export function MatterDossierPanel({
       {documents.length === 0 ? (
         <Card>
           <CardContent className="p-6 text-center text-sm text-muted-foreground">
-            Nothing yet — send the Client Vault link or upload from Document Drop. Each file lands
-            here automatically.
+            Nothing yet — send {displayName} their Client Vault link from the Messages tab, or
+            upload from Document Drop. Vault uploads always land on this file.
           </CardContent>
         </Card>
       ) : (
@@ -157,8 +181,12 @@ export function MatterDossierPanel({
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium">{doc.fileName}</p>
                     <p className="text-xs text-muted-foreground">
-                      {doc.uploadedBy === "client" ? "Client Vault" : "Attorney"} ·{" "}
-                      {doc.documentType.replace(/_/g, " ")} · {doc.uploadedAt.slice(0, 10)}
+                      {doc.source === "portal" || doc.source === "portal_general"
+                        ? "Client Vault link"
+                        : doc.uploadedBy === "client"
+                          ? "Client Vault"
+                          : "Attorney upload"}{" "}
+                      · {doc.documentType.replace(/_/g, " ")} · {doc.uploadedAt.slice(0, 10)}
                     </p>
                   </div>
                 </div>
@@ -191,6 +219,19 @@ export function MatterDossierPanel({
             </Card>
           ))}
         </div>
+      )}
+
+      {syncMatch && (
+        <DocumentMatterMatchDialog
+          preview={syncMatch}
+          fileName="pending upload(s)"
+          busy={syncing}
+          onUseMatch={() =>
+            void runSync({ targetMatterId: syncMatch.bestMatch!.matterId })
+          }
+          onKeepCurrent={() => void runSync({ confirmMismatch: true })}
+          onCancel={() => setSyncMatch(null)}
+        />
       )}
     </div>
   );

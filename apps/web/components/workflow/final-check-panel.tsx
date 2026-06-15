@@ -15,6 +15,7 @@ import {
   type FinalReviewSnapshot,
 } from "@/lib/api-client";
 import { BRAND } from "@/lib/brand";
+import { FIRM } from "@/lib/firm";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -23,13 +24,16 @@ export function FinalCheckPanel({ matterId }: { matterId: string }) {
   const [review, setReview] = useState<FinalReviewSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
-  const [attorneyName, setAttorneyName] = useState("Attorney");
+  const [attorneyName, setAttorneyName] = useState<string>(FIRM.attorneyName);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const data = await fetchFinalReview(matterId);
       setReview(data.finalReview);
+      if (data.finalReview.attorneyName) {
+        setAttorneyName(data.finalReview.attorneyName);
+      }
     } finally {
       setLoading(false);
     }

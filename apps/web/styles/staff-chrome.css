@@ -1,17 +1,19 @@
 /* Staff chrome — matches Demand Generator Pro patterns (app-btn, matters table, tabs) */
 
 :root {
-  --app-chrome-primary: #1a2744;
-  --app-chrome-primary-disabled-bg: #e8e4dc;
-  --app-chrome-primary-disabled-text: #64748b;
+  /* Demand Letter Pro — premium light chrome */
+  --app-chrome-primary: #1557d9;
+  --app-chrome-primary-hover: #104cad;
+  --app-chrome-primary-disabled-bg: #dbe8fd;
+  --app-chrome-primary-disabled-text: #1e3a8a;
   --app-chrome-font: 0.8125rem;
-  --app-chrome-pad-y: 0.42rem;
-  --app-chrome-pad-x: 0.75rem;
+  --app-chrome-pad-y: 0.45rem;
+  --app-chrome-pad-x: 0.9rem;
   --app-chrome-radius: 8px;
-  --app-chrome-border: #e2e8f0;
-  --app-chrome-text: #0f172a;
-  --app-chrome-text-muted: #64748b;
-  --app-chrome-surface: #f8fafc;
+  --app-chrome-border: #c5d3ea;
+  --app-chrome-text: #1e293b;
+  --app-chrome-text-muted: #5c6b82;
+  --app-chrome-surface: #f0f4fb;
 }
 
 .app-container {
@@ -72,11 +74,23 @@
   background: linear-gradient(180deg, #1a6eeb 0%, var(--app-chrome-primary) 55%, #104cad 100%);
   border-color: #0f4a9e;
   color: #fff;
-  box-shadow: 0 1px 0 rgba(255, 255, 255, 0.22) inset, 0 2px 6px rgba(21, 87, 217, 0.28);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.22) inset,
+    0 2px 6px rgba(21, 87, 217, 0.28);
 }
 
 .app-btn--primary:hover:not(:disabled) {
   background: linear-gradient(180deg, #2b7af0 0%, #1557d9 50%, #1248b8 100%);
+  border-color: #0c3d86;
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.25) inset,
+    0 4px 14px rgba(21, 87, 217, 0.35);
+}
+
+.app-btn--primary:disabled {
+  background: var(--app-chrome-primary-disabled-bg);
+  border-color: #93c5fd;
+  color: var(--app-chrome-primary-disabled-text);
 }
 
 .app-btn--secondary {
@@ -157,7 +171,7 @@
 }
 
 .matters-table tbody tr:hover td {
-  background: #f8fafc;
+  background: var(--app-chrome-surface);
 }
 
 .matters-table__portal-msg-dot {
@@ -330,7 +344,7 @@
   font-size: 1.1rem;
 }
 
-.app-staff-bottom-nav__link--primary {
+.app-staff-bottom-nav__link--active {
   color: var(--app-chrome-primary);
   background: #eff6ff;
 }

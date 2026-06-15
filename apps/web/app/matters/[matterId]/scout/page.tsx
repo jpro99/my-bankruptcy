@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { ReliefScoutPanel } from "@/components/scout/relief-scout-panel";
 import { ReliefCommandRail } from "@/components/command/relief-command-rail";
+import { ReliefCopilotSheet } from "@/components/copilot/relief-copilot-sheet";
 import { StaffHeader } from "@/components/staff/staff-header";
 import { BRAND } from "@/lib/brand";
 import "@/styles/staff-chrome.css";
@@ -38,6 +39,7 @@ export default function ScoutPage({ params }: { params: Promise<{ matterId: stri
       <Suspense fallback={<p>Loading scout…</p>}>
         <ScoutPageInner matterId={matterId} />
       </Suspense>
+      <ReliefCopilotSheet matterId={matterId} phase="scout" />
     </div>
   );
 }

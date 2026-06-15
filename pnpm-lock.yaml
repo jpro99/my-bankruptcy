@@ -39,6 +39,9 @@ importers:
 
   apps/api:
     dependencies:
+      '@chapterai/ai-pipeline':
+        specifier: workspace:*
+        version: link:../ai-pipeline
       '@chapterai/auth':
         specifier: workspace:*
         version: link:../../packages/auth

@@ -11,6 +11,7 @@ import {
   setDemoFiling,
   setDemoAutopilot,
 } from "../lib/demo-store.js";
+import { FIRM_ATTORNEY_NAME } from "../lib/firm-brand.js";
 import { generateTimeline } from "@chapterai/autopilot";
 
 export const efileRouter = new Hono<AppEnv>();
@@ -36,7 +37,7 @@ efileRouter.get("/matter/:matterId", async (c) => {
     try {
       const pkg = buildFilingPackage({
         ...meta,
-        attorneyName: "Dev Attorney",
+        attorneyName: FIRM_ATTORNEY_NAME,
         approvedFormIds,
         district: "CACB",
       });
@@ -89,7 +90,7 @@ efileRouter.post("/matter/:matterId/submit", async (c) => {
 
   const pkg = buildFilingPackage({
     ...meta,
-    attorneyName: "Dev Attorney",
+    attorneyName: FIRM_ATTORNEY_NAME,
     approvedFormIds,
     district: "CACB",
   });

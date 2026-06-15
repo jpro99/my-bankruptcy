@@ -10,13 +10,14 @@ import {
   Sparkles,
   Upload,
 } from "lucide-react";
-import { pullCredit, uploadIntakeDocument } from "@/lib/api-client";
+import { pullCredit, uploadIntakeDocument, type UploadMatchPreview } from "@/lib/api-client";
 import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MatterDossierPanel } from "@/components/intake/matter-dossier-panel";
+import { DocumentMatterMatchDialog } from "@/components/intake/document-matter-match-dialog";
 
 const DOCUMENT_TYPES = [
   { id: "drivers_license", label: "Driver's License", icon: IdCard },
@@ -40,21 +41,57 @@ export function IntakeUploader({ matterId }: { matterId: string }) {
   const [uploading, setUploading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [dossierKey, setDossierKey] = useState(0);
+  const [matchPrompt, setMatchPrompt] = useState<{
+    preview: UploadMatchPreview;
+    fileName: string;
+    documentType: string;
+  } | null>(null);
+
+  const finishUpload = useCallback(
+    async (
+      fileName: string,
+      documentType: string,
+      options?: { confirmMismatch?: boolean; targetMatterId?: string }
+    ) => {
+      const result = await uploadIntakeDocument(matterId, fileName, documentType, options);
+      if (!result.ok) {
+        setMatchPrompt({ preview: result.mismatch, fileName, documentType });
+        return false;
+      }
+      if (result.savedToMatterId !== matterId) {
+        setStatusMessage(`Filed under ${result.savedToMatterId} — identity match`);
+      }
+      return true;
+    },
+    [matterId]
+  );
 
   const handleFiles = useCallback(
     async (fileList: FileList) => {
       setUploading(true);
       try {
+        let uploaded = 0;
+        let stoppedForMatch = false;
         for (const file of Array.from(fileList)) {
-          await uploadIntakeDocument(matterId, file.name, inferType(file.name));
+          const docType = inferType(file.name);
+          const ok = await finishUpload(file.name, docType);
+          if (!ok) {
+            stoppedForMatch = true;
+            break;
+          }
+          uploaded += 1;
         }
-        setDossierKey((k) => k + 1);
-        setStatusMessage(`Uploaded ${fileList.length} file(s) to ${BRAND.dossier.name}`);
+        if (uploaded > 0) {
+          setDossierKey((k) => k + 1);
+          if (!stoppedForMatch) {
+            setStatusMessage(`Uploaded ${uploaded} file(s) to ${BRAND.dossier.name}`);
+          }
+        }
       } finally {
         setUploading(false);
       }
     },
-    [matterId]
+    [finishUpload]
   );
 
   const onDrop = useCallback(
@@ -184,6 +221,46 @@ export function IntakeUploader({ matterId }: { matterId: string }) {
           </>
         )}
       </Button>
+
+      {matchPrompt && (
+        <DocumentMatterMatchDialog
+          preview={matchPrompt.preview}
+          fileName={matchPrompt.fileName}
+          busy={uploading}
+          onUseMatch={async () => {
+            setUploading(true);
+            try {
+              const target = matchPrompt.preview.bestMatch!.matterId;
+              const ok = await finishUpload(matchPrompt.fileName, matchPrompt.documentType, {
+                targetMatterId: target,
+              });
+              if (ok) {
+                setMatchPrompt(null);
+                setDossierKey((k) => k + 1);
+                setStatusMessage(`Filed under ${matchPrompt.preview.bestMatch!.debtorDisplayName}`);
+              }
+            } finally {
+              setUploading(false);
+            }
+          }}
+          onKeepCurrent={async () => {
+            setUploading(true);
+            try {
+              const ok = await finishUpload(matchPrompt.fileName, matchPrompt.documentType, {
+                confirmMismatch: true,
+              });
+              if (ok) {
+                setMatchPrompt(null);
+                setDossierKey((k) => k + 1);
+                setStatusMessage(`Kept on ${matchPrompt.preview.currentMatter.debtorDisplayName}'s file`);
+              }
+            } finally {
+              setUploading(false);
+            }
+          }}
+          onCancel={() => setMatchPrompt(null)}
+        />
+      )}
     </div>
   );
 }

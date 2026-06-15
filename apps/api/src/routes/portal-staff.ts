@@ -8,6 +8,7 @@ import {
   isDemoMatter,
   markPortalMessagesRead,
 } from "../lib/demo-store.js";
+import { FIRM_ATTORNEY_NAME } from "../lib/firm-brand.js";
 import { portalInviteEmail } from "../lib/follow-up-templates.js";
 import { sendTransactionalEmail, getOutboundEmailConfig } from "../lib/outbound-email.js";
 import { buildGmailComposeUrl } from "../lib/gmail-url.js";
@@ -42,7 +43,7 @@ portalStaffRouter.post(
     const message = addPortalStaffMessage(matterId, {
       body: body.body,
       direction: "outbound",
-      staffAuthor: session.email ?? "Attorney",
+      staffAuthor: session.email ?? FIRM_ATTORNEY_NAME,
     });
     return c.json({ message }, 201);
   }

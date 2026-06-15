@@ -40,19 +40,42 @@ export function ReliefScoutPanel({ matterId }: { matterId: string }) {
     setLoading(true);
     try {
       const { dossier } = await fetchMatterDossier(matterId);
+      const profile = dossier.intakeProfile;
+      const debtorFromProfile = profile
+        ? [profile.clientFirstName, profile.clientLastName].filter(Boolean).join(" ").trim() ||
+          profile.debtorDisplayName
+        : "";
+
       if (dossier.consult) {
-        setForm({
-          debtorName: dossier.consult.debtorName,
-          householdSize: dossier.consult.householdSize,
-          annualIncome: dossier.consult.annualIncome.replace(/\.00$/, ""),
-          monthlyExpenses: dossier.consult.monthlyExpenses.replace(/\.00$/, ""),
-          securedDebt: dossier.consult.securedDebt.replace(/\.00$/, ""),
-          unsecuredDebt: dossier.consult.unsecuredDebt.replace(/\.00$/, ""),
-          chapterPreference: dossier.consult.chapterPreference,
-          takeCase: dossier.consult.takeCase,
-          attorneyNotes: dossier.consult.attorneyNotes,
-        });
-        setResult(dossier.consult);
+        const c = dossier.consult;
+        setForm((prev) => ({
+          ...prev,
+          debtorName: c.debtorName || debtorFromProfile || prev.debtorName,
+          householdSize: c.householdSize || prev.householdSize,
+          annualIncome: c.annualIncome
+            ? c.annualIncome.replace(/\.00$/, "")
+            : prev.annualIncome,
+          monthlyExpenses: c.monthlyExpenses
+            ? c.monthlyExpenses.replace(/\.00$/, "")
+            : prev.monthlyExpenses,
+          securedDebt: c.securedDebt ? c.securedDebt.replace(/\.00$/, "") : prev.securedDebt,
+          unsecuredDebt: c.unsecuredDebt
+            ? c.unsecuredDebt.replace(/\.00$/, "")
+            : prev.unsecuredDebt,
+          chapterPreference:
+            c.chapterPreference !== "undecided"
+              ? c.chapterPreference
+              : profile?.chapter ?? prev.chapterPreference,
+          takeCase: c.takeCase,
+          attorneyNotes: c.attorneyNotes || prev.attorneyNotes,
+        }));
+        if (c.evaluatedAt) setResult(c);
+      } else if (debtorFromProfile) {
+        setForm((prev) => ({
+          ...prev,
+          debtorName: debtorFromProfile,
+          chapterPreference: profile?.chapter ?? prev.chapterPreference,
+        }));
       }
     } finally {
       setLoading(false);

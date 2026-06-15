@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
+import { FIRM_ATTORNEY_NAME } from "../lib/firm-brand.js";
 import type { AppEnv } from "../index.js";
 import {
   addIntakeDocument,
@@ -11,6 +12,9 @@ import {
   getMatterNotes,
   isDemoMatter,
   listDemoMatters,
+  movePendingIntakeDocuments,
+  previewForgeSyncIdentity,
+  previewIntakeUpload,
   saveConsultSnapshot,
 } from "../lib/demo-store.js";
 
@@ -68,7 +72,7 @@ intakeMatterRouter.post(
     const note = addMatterNote(matterId, {
       text: body.text,
       source: body.source ?? "attorney",
-      authorLabel: body.source === "voice" ? "Bench Notes (voice)" : "Attorney",
+      authorLabel: body.source === "voice" ? "Bench Notes (voice)" : FIRM_ATTORNEY_NAME,
     });
     return c.json({ note }, 201);
   }
@@ -184,7 +188,20 @@ const UploadSchema = z.object({
   fileName: z.string().min(1),
   documentType: z.string().optional(),
   mimeType: z.string().optional(),
+  confirmMismatch: z.boolean().optional(),
+  targetMatterId: z.string().optional(),
 });
+
+intakeMatterRouter.post(
+  "/matter/:matterId/upload/preview",
+  zValidator("json", UploadSchema.pick({ fileName: true, documentType: true })),
+  async (c) => {
+    const matterId = c.req.param("matterId");
+    if (!isDemoMatter(matterId)) return c.json({ error: "Matter not found" }, 404);
+    const body = c.req.valid("json");
+    return c.json({ preview: previewIntakeUpload(matterId, body.fileName, body.documentType) });
+  }
+);
 
 intakeMatterRouter.post(
   "/matter/:matterId/upload",
@@ -193,20 +210,77 @@ intakeMatterRouter.post(
     const matterId = c.req.param("matterId");
     if (!isDemoMatter(matterId)) return c.json({ error: "Matter not found" }, 404);
     const body = c.req.valid("json");
-    const document = addIntakeDocument(matterId, {
+    const preview = previewIntakeUpload(matterId, body.fileName, body.documentType);
+
+    if (preview.action === "confirm" && !body.confirmMismatch && !body.targetMatterId) {
+      return c.json({ error: "matter_mismatch", preview }, 409);
+    }
+
+    let finalMatterId = matterId;
+    if (body.targetMatterId && isDemoMatter(body.targetMatterId)) {
+      finalMatterId = body.targetMatterId;
+    }
+
+    const document = addIntakeDocument(finalMatterId, {
       fileName: body.fileName,
       documentType: body.documentType,
       uploadedBy: "attorney",
       source: "attorney_drop",
       mimeType: body.mimeType,
     });
-    return c.json({ document }, 201);
+
+    if (finalMatterId !== matterId) {
+      addMatterNote(finalMatterId, {
+        text: `Document filed here (identity match): ${body.fileName}`,
+        source: "system",
+        authorLabel: "Smart match",
+      });
+      addMatterNote(matterId, {
+        text: `Upload redirected — ${body.fileName} matched ${preview.bestMatch?.debtorDisplayName ?? finalMatterId}'s file`,
+        source: "system",
+        authorLabel: "Smart match",
+      });
+    }
+
+    return c.json({ document, savedToMatterId: finalMatterId, preview }, 201);
   }
 );
 
-intakeMatterRouter.post("/matter/:matterId/apply", async (c) => {
+intakeMatterRouter.get("/matter/:matterId/apply/preview", async (c) => {
   const matterId = c.req.param("matterId");
   if (!isDemoMatter(matterId)) return c.json({ error: "Matter not found" }, 404);
-  const result = applyPendingIntake(matterId);
-  return c.json(result);
+  return c.json({ preview: previewForgeSyncIdentity(matterId) });
 });
+
+const ApplySchema = z.object({
+  confirmMismatch: z.boolean().optional(),
+  targetMatterId: z.string().optional(),
+}).default({});
+
+intakeMatterRouter.post(
+  "/matter/:matterId/apply",
+  zValidator("json", ApplySchema),
+  async (c) => {
+    const matterId = c.req.param("matterId");
+    if (!isDemoMatter(matterId)) return c.json({ error: "Matter not found" }, 404);
+    const body = c.req.valid("json");
+
+    const preview = previewForgeSyncIdentity(matterId);
+    if (preview?.action === "confirm" && !body.confirmMismatch && !body.targetMatterId) {
+      return c.json({ error: "matter_mismatch", preview }, 409);
+    }
+
+    if (
+      preview?.action === "confirm" &&
+      body.targetMatterId &&
+      isDemoMatter(body.targetMatterId)
+    ) {
+      movePendingIntakeDocuments(matterId, body.targetMatterId);
+      const result = applyPendingIntake(body.targetMatterId);
+      return c.json({ ...result, redirectedTo: body.targetMatterId, preview });
+    }
+
+    const result = applyPendingIntake(matterId);
+    return c.json(result);
+  }
+);

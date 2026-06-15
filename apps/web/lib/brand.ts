@@ -99,10 +99,10 @@ export const BRAND = {
     description: "Tap, speak, done — lands in the matter file instantly",
   },
 
-  /** Matter Dossier — every document from client & attorney */
+  /** Client file — documents from their vault link & attorney */
   dossier: {
-    name: "Matter Dossier",
-    description: "Everything they sent — tracked, printable, ready to forge",
+    name: "Client file",
+    description: "Documents from their Client Vault link — always this matter, never another file",
   },
 
   /** Forge Sync — push collected intake into the petition */
@@ -110,6 +110,13 @@ export const BRAND = {
     name: "Forge Sync",
     action: "Sync to petition",
     description: "One button — IDs, paystubs, uploads fill the bankruptcy",
+  },
+
+  /** Relief Co-pilot — AI assistant on every matter step */
+  copilot: {
+    name: "Relief Co-pilot",
+    short: "Co-pilot",
+    description: "Ask about next steps, fields, filing, or discharge — context follows you",
   },
 
   /** Relief Pocket — installable Android / phone attorney app */

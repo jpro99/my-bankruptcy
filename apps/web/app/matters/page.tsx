@@ -73,7 +73,7 @@ export default function MattersListPage() {
                     )}
                     <strong>{m.debtorDisplayName}</strong>
                     <br />
-                    <span style={{ fontSize: "0.72rem", color: "#64748b" }}>{m.matterId}</span>
+                    <span style={{ fontSize: "0.72rem", color: "var(--app-chrome-text-muted)" }}>{m.matterId}</span>
                   </td>
                   <td>
                     {m.clientEmail ?? "—"}

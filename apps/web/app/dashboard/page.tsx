@@ -65,35 +65,9 @@ export default function DashboardPage() {
           </Link>
         </div>
 
-        <section
-          style={{
-            marginBottom: "1.5rem",
-            padding: "1rem",
-            borderRadius: "0.75rem",
-            border: "1px dashed var(--border, #ccc)",
-          }}
-        >
-          <h2 className="matters-page__subtitle" style={{ marginBottom: "0.5rem" }}>
-            Test matters (fake data — swap in real API keys when ready)
-          </h2>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-            <Link href="/matters/demo" className="app-btn app-btn--secondary">
-              demo — full petition
-            </Link>
-            <Link href="/matters/demo-intake?tab=intake" className="app-btn app-btn--secondary">
-              demo-intake — Relief Scout
-            </Link>
-            <Link href="/matters/demo-filed/continuum" className="app-btn app-btn--secondary">
-              demo-filed — Continuum + PI email
-            </Link>
-          </div>
-          <p className="text-xs text-muted-foreground" style={{ marginTop: "0.5rem" }}>
-            Discharge test email: maria.test@example.com · PI cross-sell uses demo firm until
-            PI_FIRM_* env vars are set on Railway.
-          </p>
+        <section style={{ marginBottom: "1.5rem" }}>
+          <IntegrationsPanel />
         </section>
-
-        <IntegrationsPanel />
 
         <p className="text-sm text-muted-foreground">
           Footer:{" "}

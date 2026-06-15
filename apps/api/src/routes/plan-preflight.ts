@@ -6,6 +6,7 @@ import { runPreflight } from "@chapterai/preflight";
 import { buildFilingPackage } from "@chapterai/efile";
 import { submitViaBridge } from "@chapterai/efile-bridge";
 import { generateTimeline } from "@chapterai/autopilot";
+import { FIRM_ATTORNEY_NAME } from "../lib/firm-brand.js";
 import type { AppEnv } from "../index.js";
 import {
   getApprovedFormIds,
@@ -205,7 +206,7 @@ preflightRouter.post("/matter/:matterId/file", async (c) => {
   const approvedFormIds = getApprovedFormIds(matterId);
   const pkg = buildFilingPackage({
     ...meta,
-    attorneyName: "Dev Attorney",
+    attorneyName: FIRM_ATTORNEY_NAME,
     approvedFormIds,
     district: districtInfo.district,
   });

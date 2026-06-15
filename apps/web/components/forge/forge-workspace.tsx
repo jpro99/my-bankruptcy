@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { applyForgeSync, fetchCommandCenter } from "@/lib/api-client";
+import { applyForgeSync, fetchCommandCenter, type UploadMatchPreview } from "@/lib/api-client";
 import { BRAND } from "@/lib/brand";
 import { ReliefCommandRail } from "@/components/command/relief-command-rail";
 import { MatterDossierPanel } from "@/components/intake/matter-dossier-panel";
@@ -13,11 +13,13 @@ import { FilingPacketPanel } from "@/components/filing/filing-packet-panel";
 import { CreditReviewPanel } from "@/components/credit/credit-review-panel";
 import { SchedulesViewer } from "@/components/schedules/schedules-viewer";
 import { StaffHeader } from "@/components/staff/staff-header";
+import { ReliefCopilotSheet } from "@/components/copilot/relief-copilot-sheet";
+import { DocumentMatterMatchDialog } from "@/components/intake/document-matter-match-dialog";
 import { PortalStaffTab } from "@/components/forge/forge-portal-messages";
 import "@/styles/staff-chrome.css";
 
 const FORGE_SECTIONS = [
-  { id: "dossier", label: "Matter Dossier", icon: "📁", blurb: "Client uploads + Forge Sync" },
+  { id: "dossier", label: "Documents", icon: "📁", blurb: "Client Vault uploads & petition sync" },
   { id: "messages", label: "Client Vault", icon: "💬", blurb: "Two-way messages & invites" },
   { id: "credit", label: "Credit", icon: "💳", blurb: "Tri-merge → Schedules D–G" },
   { id: "schedules", label: "Schedules", icon: "📊", blurb: "A/B through J, exemptions" },
@@ -38,6 +40,7 @@ function ForgeWorkspaceInner({ matterId }: { matterId: string }) {
   const [debtorName, setDebtorName] = useState("");
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
+  const [syncMatch, setSyncMatch] = useState<UploadMatchPreview | null>(null);
 
   useEffect(() => {
     void fetchCommandCenter(matterId).then((d) => setDebtorName(d.progress.debtorDisplayName));
@@ -54,11 +57,16 @@ function ForgeWorkspaceInner({ matterId }: { matterId: string }) {
     router.replace(`/matters/${matterId}/forge?section=${id}`, { scroll: false });
   };
 
-  const forgeSync = async () => {
+  const forgeSync = async (options?: { confirmMismatch?: boolean; targetMatterId?: string }) => {
     setSyncing(true);
     try {
-      const r = await applyForgeSync(matterId);
-      setSyncMsg(r.message);
+      const r = await applyForgeSync(matterId, options);
+      if (!r.ok) {
+        setSyncMatch(r.mismatch);
+        return;
+      }
+      setSyncMatch(null);
+      setSyncMsg(r.redirectedTo ? `${r.message} — matched file` : r.message);
     } finally {
       setSyncing(false);
     }
@@ -124,7 +132,9 @@ function ForgeWorkspaceInner({ matterId }: { matterId: string }) {
 
         <div className="forge-section-panel">
           <p className="forge-section-panel__meta">
-            {activeMeta.icon} {activeMeta.label} — {activeMeta.blurb}
+            {section === "dossier" && debtorName
+              ? `${debtorName}'s file — ${activeMeta.blurb}`
+              : `${activeMeta.icon} ${activeMeta.label} — ${activeMeta.blurb}`}
           </p>
 
           {section === "dossier" && (
@@ -150,6 +160,17 @@ function ForgeWorkspaceInner({ matterId }: { matterId: string }) {
           {section === "file" && <FilingPacketPanel matterId={matterId} />}
         </div>
       </div>
+
+      {syncMatch && (
+        <DocumentMatterMatchDialog
+          preview={syncMatch}
+          fileName="pending upload(s)"
+          busy={syncing}
+          onUseMatch={() => void forgeSync({ targetMatterId: syncMatch.bestMatch!.matterId })}
+          onKeepCurrent={() => void forgeSync({ confirmMismatch: true })}
+          onCancel={() => setSyncMatch(null)}
+        />
+      )}
     </>
   );
 }
@@ -161,6 +182,7 @@ export function ForgeWorkspace({ matterId }: { matterId: string }) {
       <Suspense fallback={<p>Loading forge…</p>}>
         <ForgeWorkspaceInner matterId={matterId} />
       </Suspense>
+      <ReliefCopilotSheet matterId={matterId} phase="forge" />
     </div>
   );
 }

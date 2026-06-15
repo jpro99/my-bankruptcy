@@ -126,7 +126,7 @@ export function recordPayment(
 ): MatterInvoice {
   const input: RecordPaymentInput =
     typeof amountOrInput === "string"
-      ? { amount: amountOrInput, method: "other", receivedBy: "Attorney" }
+      ? { amount: amountOrInput, method: "other", receivedBy: "Edgar P. Lombera" }
       : amountOrInput;
   const amount = input.amount;
   const newPaid = addMoney(invoice.paidAmount, amount);
@@ -141,7 +141,7 @@ export function recordPayment(
     checkNumber: input.checkNumber,
     note: input.note,
     receivedAt: new Date().toISOString(),
-    receivedBy: input.receivedBy ?? "Attorney",
+    receivedBy: input.receivedBy ?? "Edgar P. Lombera",
   };
   return {
     ...invoice,

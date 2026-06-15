@@ -249,7 +249,11 @@ export function MatterWorkspace({ matterId, debtorName }: { matterId: string; de
     setSyncing(true);
     try {
       const r = await applyForgeSync(matterId);
-      setSyncMsg(r.message);
+      if (r.ok) setSyncMsg(r.message);
+      else
+        setSyncMsg(
+          `Document may belong to ${r.mismatch.bestMatch?.debtorDisplayName ?? "another client"} — check dossier`
+        );
     } finally {
       setSyncing(false);
     }

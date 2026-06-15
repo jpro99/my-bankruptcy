@@ -12,6 +12,7 @@
     "lint": "echo lint ok"
   },
   "dependencies": {
+    "@chapterai/ai-pipeline": "workspace:*",
     "@chapterai/auth": "workspace:*",
     "@chapterai/autopilot": "workspace:*",
     "@chapterai/billing": "workspace:*",

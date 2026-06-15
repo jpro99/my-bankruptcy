@@ -15,6 +15,7 @@ import { LomberaLogo } from "@/components/brand/lombera-logo";
 import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { ApiStatusDot } from "@/components/layout/api-status-banner";
+import { ReliefCopilotSheet } from "@/components/copilot/relief-copilot-sheet";
 import { BenchNotesSheet } from "@/components/notes/bench-notes-sheet";
 
 const MATTER_LINKS = [
@@ -149,6 +150,7 @@ export function MatterShell({
     <div className={cn("flex min-h-screen bg-background", className)}>
       <MatterSidebar matterId={matterId} />
       <main className="flex-1 overflow-y-auto p-6 md:p-8">{children}</main>
+      <ReliefCopilotSheet matterId={matterId} phase="forge" />
       <BenchNotesSheet matterId={matterId} />
     </div>
   );

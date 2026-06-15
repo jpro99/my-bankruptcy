@@ -1,9 +1,9 @@
-/** The Law Offices of Edgar P Lambera — client-facing firm identity */
+/** The Law Offices of Edgar P. Lombera — client-facing firm identity */
 
 export const FIRM = {
-  name: "The Law Offices of Edgar P Lambera",
-  shortName: "Edgar P Lambera",
-  attorneyName: "Edgar P Lambera",
+  name: "The Law Offices of Edgar P. Lombera",
+  shortName: "Edgar P. Lombera",
+  attorneyName: "Edgar P. Lombera",
   descriptor: "Bankruptcy & debt relief",
   tagline: "Clear counsel through your fresh start",
 
