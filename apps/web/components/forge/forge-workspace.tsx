@@ -10,12 +10,17 @@ import { MatterDossierPanel } from "@/components/intake/matter-dossier-panel";
 import { DocumentReviewPanel } from "@/components/workflow/document-review-panel";
 import { FinalCheckPanel } from "@/components/workflow/final-check-panel";
 import { FilingPacketPanel } from "@/components/filing/filing-packet-panel";
+import { CourtPacketPreview } from "@/components/filing/court-packet-preview";
 import { CreditReviewPanel } from "@/components/credit/credit-review-panel";
 import { SchedulesViewer } from "@/components/schedules/schedules-viewer";
 import { StaffHeader } from "@/components/staff/staff-header";
 import { ReliefCopilotSheet } from "@/components/copilot/relief-copilot-sheet";
 import { DocumentMatterMatchDialog } from "@/components/intake/document-matter-match-dialog";
 import { PortalStaffTab } from "@/components/forge/forge-portal-messages";
+import {
+  CourtPacketPreviewDrawer,
+} from "@/components/filing/court-packet-preview";
+import { Eye } from "lucide-react";
 import "@/styles/staff-chrome.css";
 
 const FORGE_SECTIONS = [
@@ -24,6 +29,7 @@ const FORGE_SECTIONS = [
   { id: "credit", label: "Credit", icon: "💳", blurb: "Tri-merge → Schedules D–G" },
   { id: "schedules", label: "Schedules", icon: "📊", blurb: "A/B through J, exemptions" },
   { id: "petition", label: "Petition review", icon: "⚒️", blurb: "Approve every field" },
+  { id: "court", label: "Court preview", icon: "⚖️", blurb: "Live pages — print & send to court" },
   { id: "seal", label: "Seal Check", icon: "👍", blurb: "Final QA + attorney sign-off" },
   { id: "file", label: "Filing packet", icon: "📦", blurb: "Bundle → Strike The Gavel" },
 ] as const;
@@ -41,6 +47,7 @@ function ForgeWorkspaceInner({ matterId }: { matterId: string }) {
   const [syncing, setSyncing] = useState(false);
   const [syncMsg, setSyncMsg] = useState<string | null>(null);
   const [syncMatch, setSyncMatch] = useState<UploadMatchPreview | null>(null);
+  const [courtPreviewOpen, setCourtPreviewOpen] = useState(false);
 
   useEffect(() => {
     void fetchCommandCenter(matterId).then((d) => setDebtorName(d.progress.debtorDisplayName));
@@ -87,6 +94,14 @@ function ForgeWorkspaceInner({ matterId }: { matterId: string }) {
           <p className="forge-workspace-header__sub">{BRAND.forge.tagline}</p>
         </div>
         <div className="forge-workspace-header__actions">
+          <button
+            type="button"
+            className="app-btn app-btn--tonal"
+            onClick={() => setCourtPreviewOpen(true)}
+          >
+            <Eye className="size-4 inline" aria-hidden />
+            Court preview
+          </button>
           <button
             type="button"
             className="app-btn app-btn--primary"
@@ -156,6 +171,7 @@ function ForgeWorkspaceInner({ matterId }: { matterId: string }) {
               </Link>
             </div>
           )}
+          {section === "court" && <CourtPacketPreview matterId={matterId} layout="inline" />}
           {section === "seal" && <FinalCheckPanel matterId={matterId} />}
           {section === "file" && <FilingPacketPanel matterId={matterId} />}
         </div>
@@ -171,6 +187,12 @@ function ForgeWorkspaceInner({ matterId }: { matterId: string }) {
           onCancel={() => setSyncMatch(null)}
         />
       )}
+
+      <CourtPacketPreviewDrawer
+        matterId={matterId}
+        open={courtPreviewOpen}
+        onClose={() => setCourtPreviewOpen(false)}
+      />
     </>
   );
 }

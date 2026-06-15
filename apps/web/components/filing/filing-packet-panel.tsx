@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FileStack, Loader2 } from "lucide-react";
 import { fetchFilingPackage } from "@/lib/api-client";
+import { CourtPacketPreview } from "@/components/filing/court-packet-preview";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -31,7 +32,7 @@ export function FilingPacketPanel({ matterId }: { matterId: string }) {
   if (!pkg) return null;
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
+    <div className="space-y-8">
       <header>
         <Badge className="mb-2">Petition Bundle</Badge>
         <h1 className="font-display text-3xl font-bold">Filing packet</h1>
@@ -40,6 +41,8 @@ export function FilingPacketPanel({ matterId }: { matterId: string }) {
           {pkg.petitionCompletion}% petition complete · e-file mode: {pkg.efileMode}
         </p>
       </header>
+
+      <CourtPacketPreview matterId={matterId} layout="inline" />
 
       <Card>
         <CardContent className="p-0">
@@ -68,19 +71,21 @@ export function FilingPacketPanel({ matterId }: { matterId: string }) {
 
       {pkg.documents.length === 0 && (
         <p className="text-sm text-muted-foreground">
-          Approve fields in The Forge to populate the full petition bundle.
+          Approve fields in petition review to populate the full court bundle.
         </p>
       )}
 
       <div className="flex flex-wrap gap-2">
         <Button asChild>
-          <Link href={`/matters/${matterId}/forge`}>
+          <Link href={`/matters/${matterId}/forge/review`}>
             <FileStack className="size-4" />
-            The Forge → Strike The Gavel
+            Petition review → Strike The Gavel
           </Link>
         </Button>
         <Button asChild variant="secondary">
-          <Link href={`/matters/${matterId}/schedules`}>View schedules</Link>
+          <Link href={`/matters/${matterId}/court-preview`} target="_blank" rel="noopener noreferrer">
+            Open court preview in new window
+          </Link>
         </Button>
       </div>
     </div>

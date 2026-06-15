@@ -568,3 +568,36 @@
   color: var(--app-chrome-text-muted);
   margin: 0 0 1rem;
 }
+
+.court-packet-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(15, 23, 42, 0.35);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.court-packet-drawer {
+  width: min(720px, 100vw);
+  height: 100%;
+  background: #fff;
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+}
+
+.court-packet-preview--drawer {
+  height: 100%;
+}
+
+.court-packet-preview__body {
+  flex: 1;
+  min-height: 0;
+}
+
+.court-packet-preview__list ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}

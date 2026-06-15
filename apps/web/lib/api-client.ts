@@ -1073,6 +1073,44 @@ export function fetchFilingPackage(matterId: string) {
   return apiFetch<{ package: FilingPackage }>(`/api/filing/matter/${matterId}/package`);
 }
 
+export interface CourtPacketPage {
+  formId: string;
+  label: string;
+  eventCode: string;
+  completionPercent: number;
+  status: "ready" | "needs_review" | "building";
+  fields: Array<{ label: string; value: string; status: string }>;
+  editHref: string;
+  editLabel: string;
+}
+
+export interface AttorneyToolLink {
+  id: string;
+  label: string;
+  description: string;
+  href: string;
+  icon: string;
+}
+
+export interface CourtPacketPreview {
+  matterId: string;
+  debtorName: string;
+  chapter: "7" | "13";
+  district: string;
+  divisionName: string;
+  petitionCompletion: number;
+  readyForGavel: boolean;
+  pages: CourtPacketPage[];
+  attorneyTools: AttorneyToolLink[];
+  assembledAt: string;
+}
+
+export function fetchCourtPacketPreview(matterId: string) {
+  return apiFetch<{ preview: CourtPacketPreview }>(
+    `/api/filing/matter/${matterId}/court-preview`
+  );
+}
+
 export function fetchDischargeFollowUpPreview(matterId: string) {
   return apiFetch<{ template: { subject: string; text?: string; preview?: string } }>(
     `/api/follow-up/matter/${matterId}/discharge/preview`

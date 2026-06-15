@@ -2396,6 +2396,187 @@ export function getFilingPackagePreview(matterId: string) {
   };
 }
 
+export interface CourtPacketPagePreview {
+  formId: string;
+  label: string;
+  eventCode: string;
+  completionPercent: number;
+  status: "ready" | "needs_review" | "building";
+  fields: Array<{ label: string; value: string; status: string }>;
+  editHref: string;
+  editLabel: string;
+}
+
+export interface AttorneyToolLink {
+  id: string;
+  label: string;
+  description: string;
+  href: string;
+  icon: string;
+}
+
+export function getCourtPacketPreview(matterId: string) {
+  const state = getOrCreate(matterId);
+  const pkg = getFilingPackagePreview(matterId);
+  const petition = assembleDemoPetition(matterId);
+  const finalReview = getFinalReview(matterId);
+
+  const scheduleByFormId = new Map(petition.schedules.map((s) => [s.formId, s]));
+  const pages: CourtPacketPagePreview[] = [];
+
+  for (const doc of pkg.documents) {
+    const schedule = scheduleByFormId.get(doc.formId);
+    const reviewFields = state.reviewFields.filter((f) => f.formId === doc.formId);
+    const fields = schedule
+      ? schedule.items.map((item) => ({
+          label: item.label,
+          value: item.value,
+          status: item.status,
+        }))
+      : reviewFields.map((f) => ({
+          label: f.fieldPath,
+          value: String(f.proposedValue ?? ""),
+          status: f.approvalState,
+        }));
+
+    const completionPercent = schedule?.completionPercent ?? (
+      reviewFields.length === 0
+        ? 0
+        : Math.round(
+            (reviewFields.filter((f) => f.approvalState === "approved" || f.approvalState === "edited")
+              .length /
+              reviewFields.length) *
+              100
+          )
+    );
+
+    const status: CourtPacketPagePreview["status"] =
+      completionPercent >= 100
+        ? "ready"
+        : fields.length === 0
+          ? "building"
+          : "needs_review";
+
+    const edit = editSurfaceForForm(matterId, doc.formId, state.chapter);
+    pages.push({
+      formId: doc.formId,
+      label: doc.label,
+      eventCode: doc.eventCode,
+      completionPercent,
+      status,
+      fields,
+      editHref: edit.href,
+      editLabel: edit.label,
+    });
+  }
+
+  const attorneyTools: AttorneyToolLink[] = [
+    {
+      id: "scout",
+      label: "Relief Scout",
+      description: "Income, expenses, means test, take-case decision",
+      href: `/matters/${matterId}/scout`,
+      icon: "🎯",
+    },
+    {
+      id: "documents",
+      label: "Documents",
+      description: "Uploads, paystubs, W-2s, Client Vault",
+      href: `/matters/${matterId}/forge?section=dossier`,
+      icon: "📁",
+    },
+    {
+      id: "credit",
+      label: "Credit review",
+      description: "Tri-merge, schedule buckets, manual creditors",
+      href: `/matters/${matterId}/forge?section=credit`,
+      icon: "💳",
+    },
+    {
+      id: "schedules",
+      label: "Schedules A–J",
+      description: "Property, exemptions, debts, income, expenses",
+      href: `/matters/${matterId}/forge?section=schedules`,
+      icon: "📊",
+    },
+    {
+      id: "petition",
+      label: "Petition review",
+      description: "Approve or edit every petition field",
+      href: `/matters/${matterId}/forge/review`,
+      icon: "⚒️",
+    },
+    ...(state.chapter === "13"
+      ? [
+          {
+            id: "plan",
+            label: "Ch 13 plan",
+            description: "Plan length, feasibility, disposable income",
+            href: `/matters/${matterId}/plan`,
+            icon: "📋",
+          } satisfies AttorneyToolLink,
+        ]
+      : []),
+    {
+      id: "seal",
+      label: "Seal Check",
+      description: "Documents QA, numbers QA, attorney sign-off",
+      href: `/matters/${matterId}/forge?section=seal`,
+      icon: "👍",
+    },
+    {
+      id: "billing",
+      label: "Trust & fees",
+      description: "Retainer, payments, receipts",
+      href: `/matters/${matterId}/billing`,
+      icon: "💰",
+    },
+    {
+      id: "audit",
+      label: "Audit trail",
+      description: "Every change with provenance export",
+      href: `/matters/${matterId}/audit`,
+      icon: "🔍",
+    },
+  ];
+
+  return {
+    matterId,
+    debtorName: state.debtorDisplayName,
+    chapter: state.chapter,
+    district: pkg.district,
+    divisionName: pkg.divisionName,
+    petitionCompletion: petition.overallCompletion,
+    readyForGavel: finalReview.readyForGavel,
+    pages,
+    attorneyTools,
+    assembledAt: petition.assembledAt,
+  };
+}
+
+function editSurfaceForForm(
+  matterId: string,
+  formId: string,
+  chapter: "7" | "13"
+): { href: string; label: string } {
+  if (formId === "101") {
+    return { href: `/matters/${matterId}/forge/review`, label: "Edit in petition review" };
+  }
+  if (formId.startsWith("106")) {
+    return { href: `/matters/${matterId}/forge?section=schedules`, label: "Edit on schedules" };
+  }
+  if (formId.startsWith("122")) {
+    return { href: `/matters/${matterId}/scout`, label: "Edit in Relief Scout" };
+  }
+  if (formId === "cert-counsel") {
+    return { href: `/matters/${matterId}/forge?section=dossier`, label: "Edit documents" };
+  }
+  if (formId === "3015-1.01" && chapter === "13") {
+    return { href: `/matters/${matterId}/plan`, label: "Edit Ch 13 plan" };
+  }
+  return { href: `/matters/${matterId}/forge/review`, label: "Edit in petition review" };
+}
+
 function formLabel(formId: string): string {
   const labels: Record<string, string> = {
     "101": "Voluntary Petition",
