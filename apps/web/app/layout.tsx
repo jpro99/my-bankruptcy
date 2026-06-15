@@ -26,13 +26,12 @@ export const metadata: Metadata = {
   appleWebApp: { capable: true },
   applicationName: FIRM.shortName,
   icons: {
-    icon: [{ url: "/icons/lombera-crest.png", type: "image/png" }],
-    apple: [{ url: "/icons/lombera-crest.png", type: "image/png" }],
+    icon: [{ url: "/icons/icon.svg", type: "image/svg+xml" }],
   },
 };
 
 export const viewport: Viewport = {
-  themeColor: "#1a2744",
+  themeColor: "#f5f5f7",
   width: "device-width",
   initialScale: 1,
 };

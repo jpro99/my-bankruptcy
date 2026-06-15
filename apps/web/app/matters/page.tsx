@@ -4,7 +4,6 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { listDemoMatters, type DemoMatterSummary } from "@/lib/api-client";
 import { StaffHeader } from "@/components/staff/staff-header";
-import { FirmHeroBanner } from "@/components/brand/firm-hero-banner";
 import "@/styles/staff-chrome.css";
 
 export default function MattersListPage() {
@@ -27,7 +26,6 @@ export default function MattersListPage() {
 
   return (
     <div className="app-container">
-      <FirmHeroBanner />
       <StaffHeader />
     <main className="matters-page">
       <div className="matters-page__header-row">

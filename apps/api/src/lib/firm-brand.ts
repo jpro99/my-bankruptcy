@@ -1,7 +1,7 @@
 /** Firm identity for outbound email (mirrors apps/web/lib/firm.ts) */
 
-export const FIRM_NAME = process.env.FIRM_NAME?.trim() || "The Law Offices of Edgar Lombera";
-export const FIRM_SHORT = process.env.FIRM_SHORT?.trim() || "Edgar Lombera";
+export const FIRM_NAME = process.env.FIRM_NAME?.trim() || "The Law Offices of Edgar P Lambera";
+export const FIRM_SHORT = process.env.FIRM_SHORT?.trim() || "Edgar P Lambera";
 
 export const PI_FIRM_NAME = process.env.PI_FIRM_NAME?.trim() || FIRM_NAME;
 export const PI_FIRM_PHONE = process.env.PI_FIRM_PHONE?.trim() || "(555) 555-0199";

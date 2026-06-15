@@ -1,157 +1,72 @@
-/* Edgar Lombera — premium firm crest presentation */
+/* Firm wordmark — Apple-style, text only */
 
-.lombera-crest-hero {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 0.5rem 0 0.25rem;
-}
-
-.lombera-crest-hero__glow {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: min(320px, 88vw);
-  height: min(320px, 88vw);
-  transform: translate(-50%, -58%);
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    rgb(184 151 90 / 0.28) 0%,
-    rgb(184 151 90 / 0.08) 42%,
-    transparent 68%
-  );
-  pointer-events: none;
-  animation: lombera-crest-pulse 4s ease-in-out infinite;
-}
-
-.lombera-crest-hero__frame {
-  position: relative;
-  z-index: 1;
-  padding: 0.65rem;
-  border-radius: 1.25rem;
-  background: linear-gradient(
-    145deg,
-    rgb(255 255 255 / 0.92) 0%,
-    rgb(243 241 236 / 0.98) 100%
-  );
-  border: 1px solid rgb(184 151 90 / 0.45);
-  box-shadow:
-    0 0 0 1px rgb(255 255 255 / 0.8) inset,
-    0 1px 2px rgb(15 28 46 / 0.06),
-    0 24px 64px -20px rgb(15 28 46 / 0.22),
-    0 0 48px -12px rgb(184 151 90 / 0.35);
-}
-
-.lombera-crest-hero__image {
-  display: block;
-  width: min(260px, 72vw);
-  height: auto;
-  border-radius: 0.75rem;
-}
-
-.lombera-crest-hero__wordmark {
-  position: relative;
-  z-index: 1;
-  margin-top: 1.25rem;
+.firm-wordmark {
   text-align: center;
+  color: #1d1d1f;
 }
 
-.lombera-crest-hero__eyebrow {
+.firm-wordmark__line {
   margin: 0;
-  font-size: 0.58rem;
-  font-weight: 600;
-  letter-spacing: 0.32em;
-  text-transform: uppercase;
-  color: #8a8278;
-}
-
-.lombera-crest-hero__name {
-  margin: 0.35rem 0 0;
-  font-family: var(--font-display), Georgia, serif;
-  font-size: clamp(1.65rem, 5vw, 2rem);
-  font-weight: 600;
-  letter-spacing: 0.02em;
-  line-height: 1.1;
-  color: #0f1c2e;
-}
-
-.lombera-crest-hero__rule {
-  width: 4.5rem;
-  height: 2px;
-  margin: 0.65rem auto 0;
-  border-radius: 999px;
-  background: linear-gradient(90deg, transparent, #b8975a, #d4bc8a, #b8975a, transparent);
-}
-
-.lombera-crest-hero__tag {
-  margin: 0.5rem 0 0;
-  font-size: 0.72rem;
+  font-size: 0.6875rem;
   font-weight: 500;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #6b6560;
+  letter-spacing: 0.04em;
+  color: #86868b;
 }
 
-.lombera-crest-hero--dark .lombera-crest-hero__frame {
-  background: linear-gradient(145deg, rgb(26 39 68 / 0.95) 0%, rgb(15 28 46 / 0.98) 100%);
-  border-color: rgb(184 151 90 / 0.55);
-  box-shadow:
-    0 0 0 1px rgb(184 151 90 / 0.12) inset,
-    0 24px 64px -16px rgb(0 0 0 / 0.45),
-    0 0 56px -8px rgb(184 151 90 / 0.25);
+.firm-wordmark__name {
+  margin: 0.2rem 0 0;
+  font-family: var(--font-sans), system-ui, -apple-system, sans-serif;
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.022em;
+  line-height: 1.15;
+  color: #1d1d1f;
 }
 
-.lombera-crest-hero--dark .lombera-crest-hero__eyebrow {
-  color: rgb(212 188 138 / 0.75);
+.firm-wordmark__sub {
+  margin: 0.35rem 0 0;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: #86868b;
 }
 
-.lombera-crest-hero--dark .lombera-crest-hero__name {
-  color: #faf9f7;
+.firm-wordmark--hero {
+  padding: 0.5rem 0 0.75rem;
 }
 
-.lombera-crest-hero--dark .lombera-crest-hero__tag {
-  color: rgb(203 213 225 / 0.72);
+.firm-wordmark--hero .firm-wordmark__line {
+  font-size: 0.75rem;
 }
 
-.lombera-crest-compact {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.65rem;
+.firm-wordmark--hero .firm-wordmark__name {
+  font-size: clamp(1.5rem, 4.5vw, 1.75rem);
 }
 
-.lombera-crest-compact__img {
-  width: 40px;
-  height: 40px;
-  border-radius: 8px;
-  object-fit: cover;
-  border: 1px solid rgb(184 151 90 / 0.4);
-  box-shadow: 0 4px 12px rgb(15 28 46 / 0.12);
+.firm-wordmark--compact {
+  text-align: left;
 }
 
-.lombera-firm-banner {
-  display: flex;
-  justify-content: center;
-  padding: 1.25rem 1rem 0.5rem;
-  margin: -1rem -1.25rem 1rem;
-  background: linear-gradient(
-    180deg,
-    rgb(243 241 236) 0%,
-    rgb(248 250 252) 55%,
-    transparent 100%
-  );
-  border-bottom: 1px solid rgb(232 228 220 / 0.8);
+.firm-wordmark--compact .firm-wordmark__line {
+  font-size: 0.625rem;
 }
 
-@keyframes lombera-crest-pulse {
-  0%,
-  100% {
-    opacity: 0.85;
-    transform: translate(-50%, -58%) scale(1);
-  }
-  50% {
-    opacity: 1;
-    transform: translate(-50%, -58%) scale(1.04);
-  }
+.firm-wordmark--compact .firm-wordmark__name {
+  font-size: 1rem;
+}
+
+.firm-wordmark--invert .firm-wordmark__line,
+.firm-wordmark--invert .firm-wordmark__sub {
+  color: rgb(235 235 245 / 0.72);
+}
+
+.firm-wordmark--invert .firm-wordmark__name {
+  color: #f5f5f7;
+}
+
+.firm-wordmark--mark .firm-wordmark__name {
+  font-size: 0.875rem;
+}
+
+.firm-wordmark--mark .firm-wordmark__line {
+  display: none;
 }

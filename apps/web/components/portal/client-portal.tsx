@@ -173,7 +173,7 @@ export function ClientPortal({ token }: { token: string }) {
     return (
       <div className="lombera-hero flex min-h-screen flex-col items-center justify-center gap-6 px-6">
         <LomberaLogo variant="hero" showWordmark={false} />
-        <Loader2 className="size-7 animate-spin text-[#1a2744]" />
+        <Loader2 className="size-7 animate-spin text-[#86868b]" />
       </div>
     );
   }
@@ -201,20 +201,18 @@ export function ClientPortal({ token }: { token: string }) {
       <div className="mx-auto max-w-md px-4 py-8 pb-16">
         <header className="animate-fade-in space-y-6 text-center">
           <LomberaLogo variant="hero" />
-          <div className="pt-2">
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-[#8a8278]">
-              {FIRM.portal.title}
-            </p>
-            <h1 className="font-display mt-2 text-2xl font-semibold tracking-tight text-[#0f1c2e]">
+          <div className="pt-1">
+            <p className="text-xs font-medium text-[#86868b]">{FIRM.portal.title}</p>
+            <h1 className="mt-2 text-xl font-semibold tracking-tight text-[#1d1d1f]">
               Welcome, {portal.debtorName}
             </h1>
-            <p className="mt-1 text-sm text-[#6b6560]">
+            <p className="mt-1 text-sm text-[#86868b]">
               Chapter {portal.chapter} bankruptcy
               {portal.caseNumber && ` · Case ${portal.caseNumber}`}
             </p>
           </div>
-          <Card className="lombera-card border-[#e8e4dc] bg-white text-left">
-            <CardContent className="p-4 text-sm leading-relaxed text-[#4a5568]">
+          <Card className="lombera-card text-left">
+            <CardContent className="p-4 text-sm leading-relaxed text-[#424245]">
               {portal.message}
             </CardContent>
           </Card>

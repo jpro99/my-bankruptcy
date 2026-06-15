@@ -17,11 +17,9 @@ export default function PersonalInjuryPage() {
           <LomberaLogo variant="hero" />
         </header>
 
-        <article className="lombera-card space-y-5 p-8">
-          <p className="text-[0.65rem] font-semibold uppercase tracking-[0.22em] text-[#8a8278]">
-            Personal injury
-          </p>
-          <h1 className="font-display text-2xl font-semibold tracking-tight text-[#0f1c2e]">
+        <article className="lombera-card space-y-4 p-8">
+          <p className="text-xs font-medium text-[#86868b]">Personal injury</p>
+          <h1 className="text-2xl font-semibold tracking-tight text-[#1d1d1f]">
             When an accident adds to the burden
           </h1>
           <p className="text-sm leading-relaxed text-[#4a5568]">

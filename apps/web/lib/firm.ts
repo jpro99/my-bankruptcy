@@ -1,18 +1,17 @@
-/** The Law Offices of Edgar Lombera — client-facing firm identity */
+/** The Law Offices of Edgar P Lambera — client-facing firm identity */
 
 export const FIRM = {
-  name: "The Law Offices of Edgar Lombera",
-  shortName: "Edgar Lombera",
-  attorneyName: "Edgar Lombera",
+  name: "The Law Offices of Edgar P Lambera",
+  shortName: "Edgar P Lambera",
+  attorneyName: "Edgar P Lambera",
   descriptor: "Bankruptcy & debt relief",
-  tagline: "Counsel you can trust through your fresh start",
+  tagline: "Clear counsel through your fresh start",
 
   portal: {
     title: "Secure Client Portal",
     subtitle: "Upload documents, complete counseling, and message your attorney — privately.",
   },
 
-  /** Subtle PI cross-sell — same firm, not a billboard */
   personalInjury: {
     enabled: true,
     path: "/personal-injury",
@@ -22,12 +21,12 @@ export const FIRM = {
   },
 
   colors: {
-    navy: "#0f1c2e",
-    navyMid: "#1a2744",
-    gold: "#b8975a",
-    goldLight: "#d4bc8a",
-    cream: "#faf9f7",
-    parchment: "#f3f1ec",
+    navy: "#1d1d1f",
+    navyMid: "#424245",
+    gold: "#86868b",
+    goldLight: "#d2d2d7",
+    cream: "#f5f5f7",
+    parchment: "#ffffff",
   },
 } as const;
 

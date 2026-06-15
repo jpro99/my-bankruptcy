@@ -10,7 +10,6 @@ export const metadata: Metadata = {
     description: FIRM.portal.subtitle,
     siteName: FIRM.name,
     type: "website",
-    images: [{ url: "/icons/lombera-crest.png", width: 1024, height: 1024, alt: FIRM.name }],
   },
   twitter: {
     card: "summary",

@@ -76,17 +76,14 @@
   }
 
   .lombera-hero {
-    background-color: var(--color-firm-cream);
-    background-image:
-      radial-gradient(ellipse 120% 80% at 50% -20%, rgb(184 151 90 / 0.14) 0%, transparent 55%),
-      linear-gradient(180deg, rgb(250 249 247) 0%, rgb(243 241 236) 45%, rgb(248 246 242) 100%);
+    background-color: #f5f5f7;
   }
 
   .lombera-card {
     background: #fff;
-    border: 1px solid #e8e4dc;
-    border-radius: var(--radius-lg);
-    box-shadow: 0 1px 2px rgb(15 28 46 / 0.04), 0 12px 40px -16px rgb(15 28 46 / 0.1);
+    border: none;
+    border-radius: 1.125rem;
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.04);
   }
 
   .text-gradient {
