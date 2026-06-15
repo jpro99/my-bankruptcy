@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@9.15.0",
   "scripts": {
-    "build": "turbo run build",
+    "build": "npx pnpm@9.15.0 exec turbo run build",
     "dev": "turbo run build --filter=@chapterai/web^... --filter=@chapterai/api^... --filter=@chapterai/worker^... && turbo run dev --filter=@chapterai/web --filter=@chapterai/api --filter=@chapterai/worker",
     "dev:clean": "node scripts/clean-dev.mjs && pnpm dev",
     "dev:all": "turbo run dev",
