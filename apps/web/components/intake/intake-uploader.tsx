@@ -1,23 +1,14 @@
 "use client";
 
-import { useCallback, useState } from "react";
-import {
-  CreditCard,
-  FileText,
-  IdCard,
-  Landmark,
-  Loader2,
-  Sparkles,
-  Upload,
-} from "lucide-react";
-import { pullCredit, uploadIntakeDocument, type UploadMatchPreview } from "@/lib/api-client";
+import { useState } from "react";
+import { CreditCard, FileText, IdCard, Landmark, Loader2, Sparkles } from "lucide-react";
+import { pullCredit } from "@/lib/api-client";
 import { BRAND } from "@/lib/brand";
-import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { MatterDossierPanel } from "@/components/intake/matter-dossier-panel";
-import { DocumentMatterMatchDialog } from "@/components/intake/document-matter-match-dialog";
+import { DocumentDropZone } from "@/components/intake/document-drop-zone";
 
 const DOCUMENT_TYPES = [
   { id: "drivers_license", label: "Driver's License", icon: IdCard },
@@ -26,82 +17,10 @@ const DOCUMENT_TYPES = [
   { id: "tax_return", label: "Tax Returns", icon: FileText },
 ] as const;
 
-function inferType(fileName: string): string {
-  const lower = fileName.toLowerCase();
-  if (lower.includes("license") || lower.includes("id")) return "drivers_license";
-  if (lower.includes("pay")) return "paystub";
-  if (lower.includes("bank")) return "bank_statement";
-  if (lower.includes("tax") || lower.includes("1040")) return "tax_return";
-  return "other";
-}
-
 export function IntakeUploader({ matterId }: { matterId: string }) {
-  const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [dossierKey, setDossierKey] = useState(0);
-  const [matchPrompt, setMatchPrompt] = useState<{
-    preview: UploadMatchPreview;
-    fileName: string;
-    documentType: string;
-  } | null>(null);
-
-  const finishUpload = useCallback(
-    async (
-      fileName: string,
-      documentType: string,
-      options?: { confirmMismatch?: boolean; targetMatterId?: string }
-    ) => {
-      const result = await uploadIntakeDocument(matterId, fileName, documentType, options);
-      if (!result.ok) {
-        setMatchPrompt({ preview: result.mismatch, fileName, documentType });
-        return false;
-      }
-      if (result.savedToMatterId !== matterId) {
-        setStatusMessage(`Filed under ${result.savedToMatterId} — identity match`);
-      }
-      return true;
-    },
-    [matterId]
-  );
-
-  const handleFiles = useCallback(
-    async (fileList: FileList) => {
-      setUploading(true);
-      try {
-        let uploaded = 0;
-        let stoppedForMatch = false;
-        for (const file of Array.from(fileList)) {
-          const docType = inferType(file.name);
-          const ok = await finishUpload(file.name, docType);
-          if (!ok) {
-            stoppedForMatch = true;
-            break;
-          }
-          uploaded += 1;
-        }
-        if (uploaded > 0) {
-          setDossierKey((k) => k + 1);
-          if (!stoppedForMatch) {
-            setStatusMessage(`Uploaded ${uploaded} file(s) to ${BRAND.dossier.name}`);
-          }
-        }
-      } finally {
-        setUploading(false);
-      }
-    },
-    [finishUpload]
-  );
-
-  const onDrop = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      setIsDragging(false);
-      if (e.dataTransfer.files.length > 0) void handleFiles(e.dataTransfer.files);
-    },
-    [handleFiles]
-  );
 
   const startFullIntake = async () => {
     setIsProcessing(true);
@@ -126,55 +45,19 @@ export function IntakeUploader({ matterId }: { matterId: string }) {
         <Badge className="mb-2">Document Drop</Badge>
         <h1 className="font-display text-3xl font-bold">Collect & sync</h1>
         <p className="mt-2 text-muted-foreground">
-          Client uploads from their phone land in the {BRAND.dossier.name}. Tap{" "}
+          Upload from your computer or collect from the client&apos;s phone. Tap{" "}
           <strong>{BRAND.forgeSync.action}</strong> anytime — IDs today, paystubs tomorrow, petition
           fills as you go.
         </p>
       </header>
 
-      <div
-        onDragOver={(e) => {
-          e.preventDefault();
-          setIsDragging(true);
+      <DocumentDropZone
+        matterId={matterId}
+        onUploaded={(message) => {
+          setStatusMessage(message);
+          setDossierKey((k) => k + 1);
         }}
-        onDragLeave={() => setIsDragging(false)}
-        onDrop={onDrop}
-        className={cn(
-          "rounded-2xl border-2 border-dashed p-12 text-center transition-all",
-          isDragging
-            ? "border-primary bg-primary-muted/50 shadow-glow"
-            : "border-border bg-card hover:border-primary/50 hover:bg-muted/30"
-        )}
-      >
-        <div className="mx-auto mb-4 flex size-14 items-center justify-center rounded-2xl bg-primary-muted">
-          <Upload className="size-7 text-primary" />
-        </div>
-        <p className="font-semibold">Drop files here or browse</p>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Phone or computer — same matter file
-        </p>
-        <input
-          type="file"
-          multiple
-          accept="image/*,.pdf,.PDF"
-          capture="environment"
-          className="hidden"
-          id="file-upload"
-          onChange={(e) => e.target.files && void handleFiles(e.target.files)}
-        />
-        <Button asChild className="mt-6" disabled={uploading}>
-          <label htmlFor="file-upload" className="cursor-pointer">
-            {uploading ? (
-              <>
-                <Loader2 className="animate-spin" />
-                Uploading…
-              </>
-            ) : (
-              "Browse files"
-            )}
-          </label>
-        </Button>
-      </div>
+      />
 
       <div className="grid grid-cols-2 gap-3">
         {DOCUMENT_TYPES.map((doc) => {
@@ -199,6 +82,7 @@ export function IntakeUploader({ matterId }: { matterId: string }) {
       <MatterDossierPanel
         key={dossierKey}
         matterId={matterId}
+        showUpload={false}
         onSyncComplete={() => setDossierKey((k) => k + 1)}
       />
 
@@ -221,46 +105,6 @@ export function IntakeUploader({ matterId }: { matterId: string }) {
           </>
         )}
       </Button>
-
-      {matchPrompt && (
-        <DocumentMatterMatchDialog
-          preview={matchPrompt.preview}
-          fileName={matchPrompt.fileName}
-          busy={uploading}
-          onUseMatch={async () => {
-            setUploading(true);
-            try {
-              const target = matchPrompt.preview.bestMatch!.matterId;
-              const ok = await finishUpload(matchPrompt.fileName, matchPrompt.documentType, {
-                targetMatterId: target,
-              });
-              if (ok) {
-                setMatchPrompt(null);
-                setDossierKey((k) => k + 1);
-                setStatusMessage(`Filed under ${matchPrompt.preview.bestMatch!.debtorDisplayName}`);
-              }
-            } finally {
-              setUploading(false);
-            }
-          }}
-          onKeepCurrent={async () => {
-            setUploading(true);
-            try {
-              const ok = await finishUpload(matchPrompt.fileName, matchPrompt.documentType, {
-                confirmMismatch: true,
-              });
-              if (ok) {
-                setMatchPrompt(null);
-                setDossierKey((k) => k + 1);
-                setStatusMessage(`Kept on ${matchPrompt.preview.currentMatter.debtorDisplayName}'s file`);
-              }
-            } finally {
-              setUploading(false);
-            }
-          }}
-          onCancel={() => setMatchPrompt(null)}
-        />
-      )}
     </div>
   );
 }

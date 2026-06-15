@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { DocumentMatterMatchDialog } from "@/components/intake/document-matter-match-dialog";
+import { DocumentDropZone } from "@/components/intake/document-drop-zone";
 
 function printDossier(
   clientName: string,
@@ -59,9 +60,11 @@ th,td{border:1px solid #ccc;padding:6px;text-align:left}th{background:#f4f4f4}
 export function MatterDossierPanel({
   matterId,
   onSyncComplete,
+  showUpload = true,
 }: {
   matterId: string;
   onSyncComplete?: () => void;
+  showUpload?: boolean;
 }) {
   const [documents, setDocuments] = useState<IntakeDocument[]>([]);
   const [notes, setNotes] = useState<MatterNote[]>([]);
@@ -70,6 +73,7 @@ export function MatterDossierPanel({
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [syncMatch, setSyncMatch] = useState<UploadMatchPreview | null>(null);
 
   const load = useCallback(async () => {
@@ -164,11 +168,30 @@ export function MatterDossierPanel({
         <p className="text-sm font-medium text-primary">{syncMessage}</p>
       )}
 
+      {showUpload && (
+        <>
+          <DocumentDropZone
+            matterId={matterId}
+            clientName={clientName ?? undefined}
+            onUploaded={(message) => {
+              setUploadMessage(message);
+              setSyncMessage(null);
+              void load();
+              onSyncComplete?.();
+            }}
+          />
+
+          {uploadMessage && (
+            <p className="text-sm font-medium text-primary">{uploadMessage}</p>
+          )}
+        </>
+      )}
+
       {documents.length === 0 ? (
         <Card>
           <CardContent className="p-6 text-center text-sm text-muted-foreground">
-            Nothing yet — send {displayName} their Client Vault link from the Messages tab, or
-            upload from Document Drop. Vault uploads always land on this file.
+            No documents on file yet — use the upload box above, or send {displayName} their Client
+            Vault link from the Messages tab.
           </CardContent>
         </Card>
       ) : (
