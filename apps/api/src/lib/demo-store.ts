@@ -181,6 +181,8 @@ export interface DemoMatterSummary {
   currentStep: string;
   balanceDue: string;
   paidInFull: boolean;
+  /** Potential = not retained · Active = in progress · Completed = discharged */
+  lifecycleStage: "potential" | "active" | "completed";
   lastContactAt?: string;
   lastContactKind?: "portal" | "note";
   county?: string;
@@ -455,6 +457,15 @@ function seedProvenanceForFields(
   }));
 }
 
+function ensureDemoContactDefaults(state: DemoMatterState): void {
+  if (state.matterId === "demo") {
+    if (!state.clientPhone) state.clientPhone = "(909) 555-0142";
+    if (!state.clientEmail) state.clientEmail = "maria.martinez@example.com";
+    if (!state.clientFirstName) state.clientFirstName = "Maria";
+    if (!state.clientLastName) state.clientLastName = "Martinez";
+  }
+}
+
 function buildInitialState(matterId: string): DemoMatterState {
   const county = "Riverside";
   const district = getDistrictForCounty(county);
@@ -636,6 +647,7 @@ function getOrCreate(matterId: string): DemoMatterState {
   if (!state.createdAt) state.createdAt = new Date().toISOString();
   if (!state.calendarEvents) state.calendarEvents = [];
   if (!state.finalReview) state.finalReview = {};
+  ensureDemoContactDefaults(state);
   for (const asset of state.assets) {
     if (!asset.valuation) {
       const seed = DEFAULT_ASSETS.find((a) => a.id === asset.id);
@@ -2411,6 +2423,15 @@ function summarizeDemoMatter(state: DemoMatterState): DemoMatterSummary {
   contactCandidates.sort((a, b) => b.at.localeCompare(a.at));
   const last = contactCandidates[0];
 
+  const discharged =
+    !!state.dischargeFollowUp?.sentAt ||
+    state.autopilot?.tasks.some((t) => t.id === "discharge-track" && t.status === "completed");
+
+  const retained = state.consult?.takeCase === "yes" || !!state.filing;
+  let lifecycleStage: DemoMatterSummary["lifecycleStage"] = "potential";
+  if (discharged) lifecycleStage = "completed";
+  else if (retained) lifecycleStage = "active";
+
   return {
     matterId: state.matterId,
     debtorDisplayName: state.debtorDisplayName,
@@ -2430,6 +2451,7 @@ function summarizeDemoMatter(state: DemoMatterState): DemoMatterSummary {
     currentStep: progress.nextAction?.title ?? progress.tagline,
     balanceDue,
     paidInFull,
+    lifecycleStage,
     lastContactAt: last?.at,
     lastContactKind: last?.kind,
     county: state.county,
@@ -2553,6 +2575,19 @@ function seedFiledTestMatter(): void {
   ];
 
   state.clientEmail = DEMO_TEST_CLIENT_EMAIL;
+  state.clientPhone = "(909) 555-0199";
+
+  const dischargeTask = state.autopilot?.tasks.find((t) => t.id === "discharge-track");
+  if (dischargeTask) {
+    dischargeTask.status = "completed";
+    dischargeTask.completedAt = new Date().toISOString();
+  }
+  state.dischargeFollowUp = {
+    clientEmail: DEMO_TEST_CLIENT_EMAIL,
+    includePiCrossSell: true,
+    sentAt: new Date().toISOString(),
+    emailOk: true,
+  };
 
   state.billing = generateInvoice({
     matterId,
@@ -2647,12 +2682,39 @@ function seedIntakeTestMatter(): void {
   ];
 
   state.portal = buildPortal(matterId, state);
+  state.clientEmail = "robert.johnson@example.com";
+  state.clientPhone = "(714) 555-0200";
   demoStore.set(matterId, state);
 }
 
 /** Pre-seed predictable test matters for staging / demo deploys */
 export function ensureTestDemoMatters(): void {
-  // Single demo matter only — extra test seeds removed
+  if (!demoStore.has("demo-filed")) seedFiledTestMatter();
+  if (!demoStore.has("demo-intake")) seedIntakeTestMatter();
+
+  const filed = demoStore.get("demo-filed");
+  if (filed) {
+    if (!filed.clientPhone) filed.clientPhone = "(909) 555-0199";
+    if (!filed.clientEmail) filed.clientEmail = DEMO_TEST_CLIENT_EMAIL;
+    const dischargeTask = filed.autopilot?.tasks.find((t) => t.id === "discharge-track");
+    if (dischargeTask && dischargeTask.status !== "completed") {
+      dischargeTask.status = "completed";
+      dischargeTask.completedAt = new Date().toISOString();
+    }
+    if (!filed.dischargeFollowUp?.sentAt) {
+      filed.dischargeFollowUp = {
+        clientEmail: filed.clientEmail ?? DEMO_TEST_CLIENT_EMAIL,
+        includePiCrossSell: true,
+        sentAt: new Date().toISOString(),
+        emailOk: true,
+      };
+    }
+  }
+
+  for (const state of demoStore.values()) {
+    ensureDemoContactDefaults(state);
+  }
+  saveSnapshot();
 }
 
 export function movePendingIntakeDocuments(fromMatterId: string, toMatterId: string): number {

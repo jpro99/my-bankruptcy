@@ -6,6 +6,24 @@ Repo: `C:\Projects\ChapterAI` · packages `@chapterai/*`
 
 
 
+## Phase 1 — Matters search + lifecycle tabs
+
+**Goal:** `/matters` — instant search by name, phone, email; tabs for Potential / Active Cases / Completed; one-click Receipt.
+
+### Acceptance (Spec Bot)
+
+1. **Instant search** — filter matters by debtor name, phone (digits), or email as you type; no server log of query text beyond existing API.
+2. **Lifecycle tabs** — Potential (not retained), Active Cases (retained/in progress), Completed (discharged); counts on each tab.
+3. **`npm run build` passes** — matter-scoped list API unchanged auth; no production deploy during dev.
+
+### Test
+
+1. `/matters` → type `909` or `maria` or email → card filters instantly
+2. Click **Active Cases** / **Potential** / **Completed** tabs
+3. **Receipt** on any card → billing → print
+
+---
+
 ## Phase 1 — Discharge thank-you letter + firm receipts
 
 **Goal:** After discharge, attorney prints professional thank-you letter (PI referral + Google/Yelp review). Billing prints firm letterhead receipts with charged/received amounts.

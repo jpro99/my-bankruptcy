@@ -773,6 +773,89 @@
 
 /* Matter ops board — Best Case stats on one screen */
 
+.matter-ops-board__toolbar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  margin-bottom: 1.25rem;
+}
+
+.matter-ops-board__search {
+  position: relative;
+  display: block;
+}
+
+.matter-ops-board__search-icon {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  color: var(--app-chrome-text-muted);
+  pointer-events: none;
+}
+
+.matter-ops-board__search-input {
+  width: 100%;
+  max-width: 36rem;
+  padding: 0.65rem 0.85rem 0.65rem 2.35rem;
+  font-size: 0.95rem;
+  border: 1px solid var(--app-chrome-border);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--app-chrome-text);
+}
+
+.matter-ops-board__search-input:focus {
+  outline: 2px solid var(--app-chrome-primary);
+  outline-offset: 1px;
+  border-color: var(--app-chrome-primary);
+}
+
+.matter-ops-board__tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.matter-ops-board__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid var(--app-chrome-border);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--app-chrome-text-muted);
+  cursor: pointer;
+}
+
+.matter-ops-board__tab:hover {
+  border-color: var(--app-chrome-primary);
+  color: var(--app-chrome-text);
+}
+
+.matter-ops-board__tab--active {
+  background: var(--app-chrome-primary);
+  border-color: var(--app-chrome-primary);
+  color: #fff;
+}
+
+.matter-ops-board__tab-count {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  background: rgb(0 0 0 / 8%);
+}
+
+.matter-ops-board__tab--active .matter-ops-board__tab-count {
+  background: rgb(255 255 255 / 22%);
+}
+
 .matter-ops-list {
   list-style: none;
   margin: 0;
@@ -812,6 +895,44 @@
   font-size: 0.72rem;
   color: var(--app-chrome-text-muted);
   margin: 0.2rem 0 0;
+}
+
+.matter-ops-card__contact {
+  font-size: 0.72rem;
+  color: var(--app-chrome-text);
+  margin: 0.25rem 0 0;
+}
+
+.matter-ops-card__badges {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.35rem;
+}
+
+.matter-ops-card__lifecycle {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.matter-ops-card__lifecycle--potential {
+  background: #f3f4f6;
+  color: #4b5563;
+}
+
+.matter-ops-card__lifecycle--active {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.matter-ops-card__lifecycle--completed {
+  background: #d1fae5;
+  color: #047857;
 }
 
 .matter-ops-card__phase {

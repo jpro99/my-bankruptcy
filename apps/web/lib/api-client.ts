@@ -391,6 +391,7 @@ export interface DemoMatterSummary {
   currentStep?: string;
   balanceDue?: string;
   paidInFull?: boolean;
+  lifecycleStage?: "potential" | "active" | "completed";
   lastContactAt?: string;
   lastContactKind?: "portal" | "note";
   county?: string;
