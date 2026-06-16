@@ -11,7 +11,7 @@ The cloud environment is defined in `.cursor/environment.json` (committed, takes
 |---------|------|-------|
 | `@chapterai/web` (Next.js 15) | 3000 | Attorney UI; `/` redirects to `/matters` |
 | `@chapterai/api` (Hono) | 3002 | In-memory demo store; health at `/health` |
-| `@chapterai/worker` (Inngest) | 3001 | Background jobs |
+| `@chapterai/worker` (Inngest) | 3001 | Background jobs; serves `/health` and `/api/inngest` (Inngest dev endpoint) |
 | `@chapterai/efile-bridge` | 3003 | Optional; not started by `pnpm dev` |
 
 ### Local dev runs in demo mode — no external services needed

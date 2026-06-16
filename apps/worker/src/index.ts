@@ -1,3 +1,4 @@
+import { serve as honoServe } from "@hono/node-server";
 import { serve } from "inngest/hono";
 import { Hono } from "hono";
 import { inngest, functions } from "./inngest/index.js";
@@ -13,8 +14,11 @@ app.on(
 );
 
 const port = parseInt(process.env.PORT ?? "3001", 10);
+const hostname = process.env.HOST ?? "0.0.0.0";
 
-console.log(`ChapterAI worker listening on port ${port}`);
+honoServe({ fetch: app.fetch, port, hostname }, () => {
+  console.log(`ChapterAI worker listening on port ${port}`);
+});
 
 export default {
   port,

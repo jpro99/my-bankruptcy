@@ -12,6 +12,7 @@
     "lint": "echo lint ok"
   },
   "dependencies": {
+    "@hono/node-server": "^1.13.7",
     "@chapterai/ai-pipeline": "workspace:*",
     "@chapterai/autopilot": "workspace:*",
     "@chapterai/credit": "workspace:*",
