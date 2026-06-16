@@ -673,7 +673,14 @@ export function importTestDataCsv(matterId: string, csv: string) {
 }
 
 export type ForgeSyncResult =
-  | { ok: true; appliedCount: number; fieldIds: string[]; message: string; redirectedTo?: string }
+  | {
+      ok: true;
+      appliedCount: number;
+      creditAppliedCount: number;
+      fieldIds: string[];
+      message: string;
+      redirectedTo?: string;
+    }
   | { ok: false; mismatch: UploadMatchPreview };
 
 export async function applyForgeSync(
@@ -682,6 +689,7 @@ export async function applyForgeSync(
 ): Promise<ForgeSyncResult> {
   const result = await intakePost<{
     appliedCount: number;
+    creditAppliedCount: number;
     fieldIds: string[];
     message: string;
     redirectedTo?: string;

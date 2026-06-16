@@ -560,6 +560,61 @@ function getIncludedTradelines(state: DemoMatterState): DemoTradeline[] {
   );
 }
 
+function countPendingCreditApply(state: DemoMatterState): number {
+  if (!state.creditPulled) return 0;
+  return getIncludedTradelines(state).filter((tl) => {
+    const field = state.reviewFields.find((f) => f.id === `credit-${tl.id}`);
+    return field?.approvalState === "pending";
+  }).length;
+}
+
+function countPendingForgeApply(state: DemoMatterState): number {
+  const pendingDocs = state.intakeDocuments.filter((d) => d.status !== "applied").length;
+  return pendingDocs + countPendingCreditApply(state);
+}
+
+function applyPendingCreditToPetition(
+  matterId: string,
+  state: DemoMatterState
+): { approvedCount: number; fieldIds: string[] } {
+  const fieldIds: string[] = [];
+
+  for (const tl of getIncludedTradelines(state)) {
+    const fieldId = `credit-${tl.id}`;
+    const field = state.reviewFields.find((f) => f.id === fieldId);
+    if (!field || field.approvalState !== "pending") continue;
+
+    const previousValue = field.proposedValue;
+    field.approvalState = "approved";
+    fieldIds.push(fieldId);
+
+    recordDemoProvenance(matterId, {
+      formFieldId: fieldId,
+      eventType: "attorney_approved",
+      previousValue,
+      newValue: field.proposedValue,
+      confidence: field.confidence,
+      metadata: {
+        fieldPath: field.fieldPath,
+        formId: field.formId,
+        schedule: tl.schedule,
+        via: "forge_sync_credit",
+      },
+    });
+  }
+
+  if (fieldIds.length > 0) {
+    recomputeTradelineDiagnostics(state);
+    addMatterNote(matterId, {
+      text: `Apply to petition — ${fieldIds.length} credit tradeline(s) on schedules D–G`,
+      source: "system",
+      authorLabel: "Apply to Petition",
+    });
+  }
+
+  return { approvedCount: fieldIds.length, fieldIds };
+}
+
 function getOrCreate(matterId: string): DemoMatterState {
   let state = demoStore.get(matterId);
   if (!state) {
@@ -1497,7 +1552,7 @@ export function getIntakeDossier(matterId: string): {
   };
 } {
   const state = getOrCreate(matterId);
-  const pendingApplyCount = state.intakeDocuments.filter((d) => d.status !== "applied").length;
+  const pendingApplyCount = countPendingForgeApply(state);
   return {
     documents: state.intakeDocuments,
     notes: state.notes,
@@ -1636,6 +1691,7 @@ function upsertReviewField(
 
 export function applyPendingIntake(matterId: string): {
   appliedCount: number;
+  creditAppliedCount: number;
   fieldIds: string[];
   message: string;
 } {
@@ -1735,6 +1791,9 @@ export function applyPendingIntake(matterId: string): {
     fieldIds.push(...applied);
   }
 
+  const creditResult = applyPendingCreditToPetition(matterId, state);
+  fieldIds.push(...creditResult.fieldIds);
+
   if (state.consult) {
     recomputeDemoDiagnostics(matterId, {
       householdSize: state.consult.householdSize,
@@ -1747,7 +1806,7 @@ export function applyPendingIntake(matterId: string): {
 
   if (pending.length > 0) {
     addMatterNote(matterId, {
-      text: `Apply to petition — ${pending.length} document(s) — ${fieldIds.length} petition field(s) updated`,
+      text: `Apply to petition — ${pending.length} document(s) — ${fieldIds.length - creditResult.fieldIds.length} petition field(s) updated`,
       source: "system",
       authorLabel: "Apply to Petition",
     });
@@ -1755,13 +1814,24 @@ export function applyPendingIntake(matterId: string): {
 
   saveSnapshot();
 
+  const messageParts: string[] = [];
+  if (pending.length > 0) {
+    messageParts.push(`Synced ${pending.length} document(s) into the petition`);
+  }
+  if (creditResult.approvedCount > 0) {
+    messageParts.push(
+      `Added ${creditResult.approvedCount} credit tradeline(s) to schedules D–G`
+    );
+  }
+
   return {
     appliedCount: pending.length,
+    creditAppliedCount: creditResult.approvedCount,
     fieldIds,
     message:
-      pending.length === 0
-        ? "No new documents to apply — upload from client portal or file upload first"
-        : `Synced ${pending.length} document(s) into the petition`,
+      messageParts.length === 0
+        ? "Nothing to apply — upload documents or pull tri-merge credit first"
+        : messageParts.join(" · "),
   };
 }
 

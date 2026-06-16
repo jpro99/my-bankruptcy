@@ -2,15 +2,19 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, Loader2, Plus, Scale, Trash2, XCircle } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { CheckCircle2, Loader2, Plus, Scale, Sparkles, Trash2, XCircle } from "lucide-react";
 import {
   addManualCreditor,
+  applyForgeSync,
   fetchCreditReview,
   patchTradeline,
   pullCredit,
   type ManualCreditorInput,
   type TradelineReviewEntry,
 } from "@/lib/api-client";
+import { BRAND } from "@/lib/brand";
+import { useTestMode } from "@/lib/test-mode";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -19,9 +23,13 @@ import { AddCreditorModal } from "./add-creditor-modal";
 import { TradelineControls } from "./tradeline-controls";
 
 export function CreditReviewPanel({ matterId }: { matterId: string }) {
+  const router = useRouter();
+  const { appHref } = useTestMode();
   const [entries, setEntries] = useState<TradelineReviewEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [pulling, setPulling] = useState(false);
+  const [applying, setApplying] = useState(false);
+  const [applyMessage, setApplyMessage] = useState<string | null>(null);
   const [savingId, setSavingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saveLimited, setSaveLimited] = useState(false);
@@ -49,6 +57,7 @@ export function CreditReviewPanel({ matterId }: { matterId: string }) {
   const handlePull = async () => {
     setPulling(true);
     setError(null);
+    setApplyMessage(null);
     try {
       await pullCredit(matterId);
       await load();
@@ -56,6 +65,27 @@ export function CreditReviewPanel({ matterId }: { matterId: string }) {
       setError(e instanceof Error ? e.message : "Credit pull failed");
     } finally {
       setPulling(false);
+    }
+  };
+
+  const handleApplyToPetition = async () => {
+    setApplying(true);
+    setError(null);
+    setApplyMessage(null);
+    try {
+      const result = await applyForgeSync(matterId);
+      if (!result.ok) {
+        setError("Document match review required — open Documents and apply from there");
+        return;
+      }
+      setApplyMessage(result.message);
+      if (result.creditAppliedCount > 0) {
+        router.push(appHref(`/matters/${matterId}/forge?section=schedules`));
+      }
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Apply failed — check API connection");
+    } finally {
+      setApplying(false);
     }
   };
 
@@ -126,6 +156,18 @@ export function CreditReviewPanel({ matterId }: { matterId: string }) {
           <Button onClick={() => void handlePull()} disabled={pulling}>
             {pulling ? <Loader2 className="animate-spin" /> : "Pull tri-merge credit"}
           </Button>
+          {entries.length > 0 && (
+            <Button onClick={() => void handleApplyToPetition()} disabled={applying}>
+              {applying ? (
+                <Loader2 className="animate-spin" />
+              ) : (
+                <>
+                  <Sparkles className="size-4" />
+                  {BRAND.forgeSync.action}
+                </>
+              )}
+            </Button>
+          )}
           <Button variant="secondary" onClick={() => setShowAddCreditor(true)}>
             <Plus className="size-4" />
             Add creditor
@@ -140,6 +182,12 @@ export function CreditReviewPanel({ matterId }: { matterId: string }) {
         <p className="rounded-lg border border-amber-200 bg-warning-muted px-4 py-3 text-sm text-amber-900">
           API update deploying — you can review lines now. Full controls save once Railway finishes
           redeploying.
+        </p>
+      )}
+
+      {applyMessage && (
+        <p className="rounded-lg border border-primary/30 bg-primary/5 px-4 py-3 text-sm text-primary">
+          {applyMessage}
         </p>
       )}
 

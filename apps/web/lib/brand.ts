@@ -248,7 +248,7 @@ export const BRAND = {
 
     action: "Apply to petition",
 
-    description: "Push IDs, paystubs, and uploads into the bankruptcy forms",
+    description: "Push uploads and credit tradelines into bankruptcy schedules",
 
   },
 

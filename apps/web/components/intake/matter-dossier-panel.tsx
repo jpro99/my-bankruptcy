@@ -65,7 +65,7 @@ export function MatterDossierPanel({
   showUpload = true,
 }: {
   matterId: string;
-  onSyncComplete?: () => void;
+  onSyncComplete?: (result?: { creditAppliedCount: number }) => void;
   showUpload?: boolean;
 }) {
   const [documents, setDocuments] = useState<IntakeDocument[]>([]);
@@ -115,7 +115,9 @@ export function MatterDossierPanel({
       );
       setSyncMatch(null);
       await load();
-      onSyncComplete?.();
+      onSyncComplete?.(result);
+    } catch (e) {
+      setSyncMessage(e instanceof Error ? e.message : "Apply failed — check API connection");
     } finally {
       setSyncing(false);
     }

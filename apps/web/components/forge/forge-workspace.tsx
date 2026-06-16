@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { applyForgeSync, fetchCommandCenter, type UploadMatchPreview } from "@/lib/api-client";
 import { BRAND } from "@/lib/brand";
+import { useTestMode } from "@/lib/test-mode";
 import { ReliefCommandRail } from "@/components/command/relief-command-rail";
 import { MatterDossierPanel } from "@/components/intake/matter-dossier-panel";
 import { DocumentReviewPanel } from "@/components/workflow/document-review-panel";
@@ -39,6 +40,7 @@ export type ForgeSectionId = (typeof FORGE_SECTIONS)[number]["id"];
 function ForgeWorkspaceInner({ matterId }: { matterId: string }) {
   const searchParams = useSearchParams();
   const router = useRouter();
+  const { appHref } = useTestMode();
   const sectionParam = searchParams.get("section") as ForgeSectionId | null;
   const [section, setSection] = useState<ForgeSectionId>(
     sectionParam && FORGE_SECTIONS.some((s) => s.id === sectionParam) ? sectionParam : "dossier"
@@ -61,11 +63,12 @@ function ForgeWorkspaceInner({ matterId }: { matterId: string }) {
 
   const goSection = (id: ForgeSectionId) => {
     setSection(id);
-    router.replace(`/matters/${matterId}/forge?section=${id}`, { scroll: false });
+    router.replace(appHref(`/matters/${matterId}/forge?section=${id}`), { scroll: false });
   };
 
   const forgeSync = async (options?: { confirmMismatch?: boolean; targetMatterId?: string }) => {
     setSyncing(true);
+    setSyncMsg(null);
     try {
       const r = await applyForgeSync(matterId, options);
       if (!r.ok) {
@@ -74,6 +77,11 @@ function ForgeWorkspaceInner({ matterId }: { matterId: string }) {
       }
       setSyncMatch(null);
       setSyncMsg(r.redirectedTo ? `${r.message} — matched file` : r.message);
+      if (r.creditAppliedCount > 0) {
+        goSection("schedules");
+      }
+    } catch (e) {
+      setSyncMsg(e instanceof Error ? e.message : "Apply failed — check API connection");
     } finally {
       setSyncing(false);
     }
@@ -157,7 +165,12 @@ function ForgeWorkspaceInner({ matterId }: { matterId: string }) {
 
           {section === "dossier" && (
             <div className="space-y-8">
-              <MatterDossierPanel matterId={matterId} />
+              <MatterDossierPanel
+                matterId={matterId}
+                onSyncComplete={(result) => {
+                  if (result && result.creditAppliedCount > 0) goSection("schedules");
+                }}
+              />
               <DocumentReviewPanel matterId={matterId} />
             </div>
           )}
