@@ -11,7 +11,7 @@ The cloud environment is defined in `.cursor/environment.json` (committed, takes
 |---------|------|-------|
 | `@chapterai/web` (Next.js 15) | 3000 | Attorney UI; `/` redirects to `/matters` |
 | `@chapterai/api` (Hono) | 3002 | In-memory demo store; health at `/health` |
-| `@chapterai/worker` (Inngest) | 3001 | Background jobs |
+| `@chapterai/worker` (Inngest) | 3001 | Background jobs. See worker caveat below. |
 | `@chapterai/efile-bridge` | 3003 | Optional; not started by `pnpm dev` |
 
 ### Local dev runs in demo mode — no external services needed
@@ -23,6 +23,9 @@ The app runs fully on an in-memory demo store; **no Postgres/Neon, Clerk, Redis,
 `.env` / `.env.local` are gitignored, so export these in the shell before `pnpm dev` (or place them in `apps/api/.env` and `apps/web/.env.local`). Also set `EFILE_MODE=sandbox` to keep e-file flows in sandbox.
 
 Demo data (matters `demo`, `demo-intake`, `demo-filed`) is seeded in memory on API startup and **resets on every restart** — created matters do not persist across server restarts.
+
+### Worker `:3001` caveat (do not chase a phantom endpoint)
+The worker logs `ChapterAI worker listening on port 3001`, but under Node/`tsx` it does **not** actually bind an HTTP port. `apps/worker/src/index.ts` uses a Bun/Cloudflare-style `export default { port, fetch }`, which Node does not auto-serve (the API works because it calls `@hono/node-server`'s `serve()` explicitly). This is harmless for local dev: the web → API flow is the core product and works fully, and the worker's Inngest endpoint only matters once `INNGEST_*` keys are set (not in demo mode). Don't treat a refused connection on `:3001` as an environment problem.
 
 ### Commands (from repo root)
 Standard scripts in root `package.json` / `turbo.json`:
