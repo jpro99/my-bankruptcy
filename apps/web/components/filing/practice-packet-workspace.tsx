@@ -6,6 +6,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ExternalLink,
+  FileText,
   Loader2,
   Printer,
   RefreshCw,
@@ -21,6 +22,7 @@ import { Badge } from "@/components/ui/badge";
 import { CourtFormSheet } from "@/components/filing/court-form-sheet";
 import { PracticeModeBanner } from "@/components/filing/practice-mode-banner";
 import { printCourtPacketPages } from "@/components/filing/court-packet-print";
+import { openCourtFormPdf, openCourtPacketPdf } from "@/lib/court-pdf-download";
 
 const STATUS_VARIANT: Record<
   CourtPacketPreview["pages"][number]["status"],
@@ -35,6 +37,8 @@ export function PracticePacketWorkspace({ matterId }: { matterId: string }) {
   const [preview, setPreview] = useState<CourtPacketPreview | null>(null);
   const [loading, setLoading] = useState(true);
   const [activePage, setActivePage] = useState(0);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -90,6 +94,22 @@ export function PracticePacketWorkspace({ matterId }: { matterId: string }) {
             type="button"
             variant="outline"
             size="sm"
+            disabled={pdfLoading}
+            onClick={() => {
+              setPdfError(null);
+              setPdfLoading(true);
+              void openCourtPacketPdf(matterId, { practice: true })
+                .catch((e) => setPdfError(e instanceof Error ? e.message : "PDF failed"))
+                .finally(() => setPdfLoading(false));
+            }}
+          >
+            {pdfLoading ? <Loader2 className="size-4 animate-spin" /> : <FileText className="size-4" />}
+            Official PDF (all)
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
             onClick={() => printCourtPacketPages(preview)}
           >
             <Printer className="size-4" />
@@ -105,6 +125,10 @@ export function PracticePacketWorkspace({ matterId }: { matterId: string }) {
           </Button>
         </div>
       </header>
+
+      {pdfError && (
+        <p className="practice-workspace__pdf-error text-sm text-destructive">{pdfError}</p>
+      )}
 
       <div className="practice-workspace__layout">
         <aside className="practice-workspace__sidebar" aria-label="Court papers">
@@ -186,6 +210,21 @@ export function PracticePacketWorkspace({ matterId }: { matterId: string }) {
               <div className="practice-workspace__paper-actions">
                 <Button asChild variant="secondary">
                   <Link href={current.editHref}>{current.editLabel}</Link>
+                </Button>
+                <Button
+                  type="button"
+                  variant="default"
+                  disabled={pdfLoading}
+                  onClick={() => {
+                    setPdfError(null);
+                    setPdfLoading(true);
+                    void openCourtFormPdf(matterId, current.formId, { practice: true })
+                      .catch((e) => setPdfError(e instanceof Error ? e.message : "PDF failed"))
+                      .finally(() => setPdfLoading(false));
+                  }}
+                >
+                  <FileText className="size-4" />
+                  Official PDF
                 </Button>
                 <Button
                   type="button"

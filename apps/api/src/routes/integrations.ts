@@ -98,8 +98,12 @@ integrationsRouter.get("/status", async (c) => {
         "341",
         "3015-1.01 (Ch 13)",
       ],
-      pdfGeneration: "metadata_only",
-      note: "Petition view + e-file package builder; court PDF fill is next phase",
+      pdfGeneration: "official_layout_pdf",
+      pdfEndpoints: {
+        singleForm: "/api/filing/matter/{matterId}/court-pdf/{formId}?practice=1",
+        fullPacket: "/api/filing/matter/{matterId}/court-pdf?practice=1",
+      },
+      note: "Server generates Official Form B-series PDFs from live petition data; optional COURT_FORM_TEMPLATES_DIR for AcroForm fill later",
     },
   });
 });

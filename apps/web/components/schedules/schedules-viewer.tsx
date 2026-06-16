@@ -6,6 +6,7 @@ import {
   addScheduleAsset,
   addScheduleCodebtor,
   addScheduleLine,
+  approveScheduleForm,
   fetchCreditReview,
   fetchSchedules,
   patchTradeline,
@@ -99,6 +100,7 @@ export function SchedulesViewer({
   const [addLineFormId, setAddLineFormId] = useState<"106I" | "106J" | "107" | null>(null);
   const [showAddCodebtor, setShowAddCodebtor] = useState(false);
   const [tradelineSavingId, setTradelineSavingId] = useState<string | null>(null);
+  const [approvingSofa, setApprovingSofa] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -198,6 +200,16 @@ export function SchedulesViewer({
     applyPetition(res);
     setAddLineFormId(null);
     setActiveSchedule(input.formId === "106J" ? "schedule-j" : input.formId === "107" ? "sofa" : "schedule-i");
+  };
+
+  const handleApproveAllSofa = async () => {
+    setApprovingSofa(true);
+    try {
+      const res = await approveScheduleForm(matterId, "107");
+      applyPetition(res);
+    } finally {
+      setApprovingSofa(false);
+    }
   };
 
   const handleAddCodebtor = async (input: AddCodebtorInput) => {
@@ -319,6 +331,8 @@ export function SchedulesViewer({
           onAddIncomeLine={() => setAddLineFormId("106I")}
           onAddSofaLine={() => setAddLineFormId("107")}
           onAddCodebtor={() => setShowAddCodebtor(true)}
+          onApproveAllSofa={() => void handleApproveAllSofa()}
+          approvingSofa={approvingSofa}
         />
       )}
 
@@ -377,6 +391,8 @@ function SchedulePanel({
   onAddIncomeLine,
   onAddSofaLine,
   onAddCodebtor,
+  onApproveAllSofa,
+  approvingSofa,
 }: {
   schedule: PetitionSchedule;
   tradelineEntries: TradelineReviewEntry[];
@@ -398,6 +414,8 @@ function SchedulePanel({
   onAddIncomeLine: () => void;
   onAddSofaLine: () => void;
   onAddCodebtor: () => void;
+  onApproveAllSofa?: () => void;
+  approvingSofa?: boolean;
 }) {
   const isDebtSchedule = DEBT_SCHEDULE_IDS.has(schedule.id);
   const isPropertySchedule = schedule.id === "schedule-ab";
@@ -487,10 +505,26 @@ function SchedulePanel({
     }
     if (isSofaSchedule) {
       return (
-        <Button type="button" size="sm" variant="secondary" onClick={onAddSofaLine}>
-          <Plus className="size-3.5" />
-          Add SOFA question
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            type="button"
+            size="sm"
+            variant="success"
+            disabled={approvingSofa || schedule.items.length === 0}
+            onClick={onApproveAllSofa}
+          >
+            {approvingSofa ? (
+              <Loader2 className="size-3.5 animate-spin" />
+            ) : (
+              <Check className="size-3.5" />
+            )}
+            All below is correct
+          </Button>
+          <Button type="button" size="sm" variant="secondary" onClick={onAddSofaLine}>
+            <Plus className="size-3.5" />
+            Add SOFA question
+          </Button>
+        </div>
       );
     }
     return null;

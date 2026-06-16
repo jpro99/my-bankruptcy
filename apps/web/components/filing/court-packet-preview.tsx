@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import {
   ExternalLink,
+  FileText,
   Loader2,
   PanelRight,
   Printer,
@@ -23,6 +24,7 @@ import { Badge } from "@/components/ui/badge";
 import { CourtFormSheet } from "@/components/filing/court-form-sheet";
 import { PracticeModeBanner } from "@/components/filing/practice-mode-banner";
 import { printCourtPacketPages } from "@/components/filing/court-packet-print";
+import { openCourtFormPdf, openCourtPacketPdf } from "@/lib/court-pdf-download";
 import "@/styles/court-form.css";
 
 export type CourtPreviewLayout = "inline" | "drawer" | "fullscreen";
@@ -63,6 +65,8 @@ export function CourtPacketPreview({
   const [loading, setLoading] = useState(true);
   const [activePage, setActivePage] = useState(0);
   const [layout, setLayout] = useState<CourtPreviewLayout>(layoutProp ?? "inline");
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState<string | null>(null);
 
   useEffect(() => {
     if (layoutProp) setLayout(layoutProp);
@@ -164,6 +168,21 @@ export function CourtPacketPreview({
             {loading ? <Loader2 className="animate-spin" /> : <RefreshCw className="size-4" />}
             Refresh
           </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={pdfLoading || !preview.pages.length}
+            onClick={() => {
+              setPdfError(null);
+              setPdfLoading(true);
+              void openCourtPacketPdf(matterId)
+                .catch((e) => setPdfError(e instanceof Error ? e.message : "PDF failed"))
+                .finally(() => setPdfLoading(false));
+            }}
+          >
+            {pdfLoading ? <Loader2 className="animate-spin" /> : <FileText className="size-4" />}
+            Official PDF
+          </Button>
           <Button asChild variant="outline" size="sm">
             <Link href={`/matters/${matterId}/practice`}>{BRAND.practiceMode.short} filing</Link>
           </Button>
@@ -174,6 +193,12 @@ export function CourtPacketPreview({
           )}
         </div>
       </header>
+
+      {pdfError && (
+        <p className="border-b border-destructive/30 bg-destructive/5 px-4 py-2 text-sm text-destructive">
+          {pdfError}
+        </p>
+      )}
 
       <div className="court-packet-preview__tools border-b border-border bg-muted/30 px-4 py-3">
         <p className="mb-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
@@ -244,6 +269,21 @@ export function CourtPacketPreview({
               <div className="mt-3 flex flex-wrap gap-2">
                 <Button asChild size="sm" variant="secondary">
                   <Link href={current.editHref}>{current.editLabel} →</Link>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="default"
+                  disabled={pdfLoading}
+                  onClick={() => {
+                    setPdfError(null);
+                    setPdfLoading(true);
+                    void openCourtFormPdf(matterId, current.formId)
+                      .catch((e) => setPdfError(e instanceof Error ? e.message : "PDF failed"))
+                      .finally(() => setPdfLoading(false));
+                  }}
+                >
+                  <FileText className="size-4" />
+                  Official PDF
                 </Button>
                 <Button
                   size="sm"

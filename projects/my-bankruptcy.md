@@ -6,6 +6,28 @@ Repo: `C:\Projects\ChapterAI` · packages `@chapterai/*`
 
 
 
+## Phase 2 — Official court PDF generation
+
+**Goal:** Practice mode + court preview export server-generated Official Form PDFs (B101, B106, CACB local) from live petition data.
+
+### Acceptance
+
+1. **API** — `GET /api/filing/matter/:id/court-pdf/:formId` and `.../court-pdf` return `application/pdf` with practice watermark in sandbox.
+2. **UI** — Practice + court preview: **Official PDF** opens filled PDF in new tab; **Official PDF (all)** merges full packet.
+3. **`npm run build` passes** — `@chapterai/court-pdf` package; integrations status `official_layout_pdf`.
+
+### Test
+
+1. `/matters/demo/practice` → pick Form 107 → **Official PDF**
+2. Header → **Official PDF (all)** — multi-page packet
+3. `GET /api/integrations/status` → `pdfGeneration: "official_layout_pdf"`
+
+### Later
+
+- Drop USCourts AcroForm PDFs in `COURT_FORM_TEMPLATES_DIR` for pixel-perfect fill (optional env).
+
+---
+
 ## Phase 1 — Matters search + lifecycle tabs
 
 **Goal:** `/matters` — instant search by name, phone, email; tabs for Potential / Active Cases / Completed; one-click Receipt.

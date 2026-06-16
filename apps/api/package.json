@@ -18,6 +18,7 @@
     "@chapterai/autopilot": "workspace:*",
     "@chapterai/billing": "workspace:*",
     "@chapterai/ch13-plan": "workspace:*",
+    "@chapterai/court-pdf": "workspace:*",
     "@chapterai/credit": "workspace:*",
     "@chapterai/db": "workspace:*",
     "@chapterai/districts": "workspace:*",

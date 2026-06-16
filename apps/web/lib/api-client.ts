@@ -1260,6 +1260,16 @@ export function addScheduleLine(matterId: string, input: AddScheduleLineInput) {
   );
 }
 
+export function approveScheduleForm(
+  matterId: string,
+  formId: "106I" | "106J" | "106H" | "107"
+) {
+  return apiFetch<{ petition: PetitionView; district: DistrictInfo; formId: string }>(
+    `/api/schedules/matter/${matterId}/approve-form`,
+    { method: "POST", body: JSON.stringify({ formId }) }
+  );
+}
+
 export interface AddCodebtorInput {
   name: string;
   relationship?: string;

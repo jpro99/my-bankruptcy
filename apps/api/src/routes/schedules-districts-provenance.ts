@@ -16,6 +16,7 @@ import {
   addDemoScheduleLine,
   addDemoCodebtor,
   removeDemoScheduleItem,
+  approveDemoScheduleForm,
 } from "../lib/demo-store.js";
 
 export const schedulesRouter = new Hono<AppEnv>();
@@ -143,6 +144,10 @@ const AddCodebtorSchema = z.object({
   creditorOrDebt: z.string().optional(),
 });
 
+const ApproveFormSchema = z.object({
+  formId: z.enum(["106I", "106J", "106H", "107"]),
+});
+
 schedulesRouter.post(
   "/matter/:matterId/codebtors",
   zValidator("json", AddCodebtorSchema),
@@ -170,6 +175,21 @@ schedulesRouter.post(
     const petition = addDemoScheduleLine(matterId, body);
     const district = getDemoDistrictInfo(matterId);
     return c.json({ petition, district }, 201);
+  }
+);
+
+schedulesRouter.post(
+  "/matter/:matterId/approve-form",
+  zValidator("json", ApproveFormSchema),
+  async (c) => {
+    const matterId = c.req.param("matterId");
+    if (!isDemoMatter(matterId)) {
+      return c.json({ error: "Matter not found" }, 404);
+    }
+    const body = c.req.valid("json");
+    const petition = approveDemoScheduleForm(matterId, body.formId);
+    const district = getDemoDistrictInfo(matterId);
+    return c.json({ petition, district, formId: body.formId });
   }
 );
 

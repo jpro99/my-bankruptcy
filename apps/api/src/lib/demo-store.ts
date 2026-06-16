@@ -1345,6 +1345,36 @@ export function updateDemoScheduleItem(
   return assembleDemoPetition(matterId);
 }
 
+/** Mark all fields on a schedule form as attorney-approved (values unchanged). */
+export function approveDemoScheduleForm(
+  matterId: string,
+  formId: "106I" | "106J" | "106H" | "107"
+): PetitionView {
+  const state = getOrCreate(matterId);
+  ensureScheduleDefaults(state);
+  for (const field of state.reviewFields) {
+    if (field.formId !== formId) continue;
+    if (field.approvalState === "approved" || field.approvalState === "edited") continue;
+    const previousValue = field.proposedValue;
+    field.approvalState = "approved";
+    recordDemoProvenance(matterId, {
+      formFieldId: field.id,
+      eventType: "attorney_approved",
+      previousValue,
+      newValue: field.proposedValue,
+      confidence: field.confidence,
+      metadata: {
+        fieldPath: field.fieldPath,
+        formId: field.formId,
+        source: "schedule_approve_all",
+      },
+    });
+  }
+  recomputeDemoDiagnostics(matterId, {});
+  saveSnapshot();
+  return assembleDemoPetition(matterId);
+}
+
 export interface AddAssetInput {
   description: string;
   category: string;
