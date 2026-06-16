@@ -143,9 +143,46 @@
 }
 
 .app-container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1rem 1.25rem 5rem;
+  width: 100%;
+  max-width: min(100%, 1600px);
+  margin: 0;
+  padding: 1rem 1.5rem 5rem;
+}
+
+/** Left-aligned workspace panels — billing-style, not centered toy columns */
+.staff-panel {
+  width: 100%;
+  max-width: 48rem;
+  margin-inline: 0 auto 0;
+  text-align: left;
+}
+
+.staff-panel--sm {
+  max-width: 32rem;
+}
+
+.staff-panel--md {
+  max-width: 48rem;
+}
+
+.staff-panel--lg {
+  max-width: 64rem;
+}
+
+.staff-panel--xl {
+  max-width: 80rem;
+}
+
+.staff-panel--full {
+  max-width: none;
+}
+
+.matter-shell__main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 1.25rem 1.5rem 2rem;
+  text-align: left;
 }
 
 .app-staff-header {

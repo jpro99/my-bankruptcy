@@ -79,7 +79,12 @@ export interface ReviewFieldInput {
   proposedValue: unknown;
   approvalState: "pending" | "approved" | "edited" | "questioned";
   confidence: number;
+  lineLabel?: string;
   sourceDocument?: { fileName: string };
+}
+
+function scheduleFieldLabel(f: ReviewFieldInput): string {
+  return f.lineLabel ?? f.fieldPath.replace(/^expenses\.|^income\./, "").replace(/\./g, " · ");
 }
 
 export interface TradelineInput {
@@ -297,7 +302,7 @@ export function assemblePetition(input: AssemblePetitionInput): PetitionView {
     incomeFields.length > 0
       ? incomeFields.map((f) => ({
           id: f.id,
-          label: f.fieldPath,
+          label: scheduleFieldLabel(f),
           value: formatValue(f.proposedValue),
           status: fieldStatus(f.approvalState),
           confidence: f.confidence,
@@ -315,16 +320,12 @@ export function assemblePetition(input: AssemblePetitionInput): PetitionView {
         ]
   );
 
-  const scheduleJ = buildSchedule(
-    "schedule-j",
-    "106J",
-    "Schedule J — Expenses",
-    "Current expenditures",
+  const expenseLineItems =
     expenseFields.length > 0
       ? expenseFields.map((f) => ({
           id: f.id,
-          label: f.fieldPath,
-          value: formatValue(f.proposedValue),
+          label: scheduleFieldLabel(f),
+          value: `$${formatValue(f.proposedValue)}`,
           status: fieldStatus(f.approvalState),
           confidence: f.confidence,
           sourceDocument: f.sourceDocument?.fileName,
@@ -337,6 +338,84 @@ export function assemblePetition(input: AssemblePetitionInput): PetitionView {
             value: "Pending intake",
             status: "pending" as const,
             formReference: "106J",
+          },
+        ];
+
+  const expenseTotal = expenseFields.reduce(
+    (acc, f) => acc + parseFloat(String(f.proposedValue ?? "0").replace(/,/g, "")) || 0,
+    0
+  );
+
+  const codebtorFields = input.reviewFields.filter((f) => f.formId === "106H");
+
+  const scheduleH = buildSchedule(
+    "schedule-h",
+    "106H",
+    "Schedule H — Codebtors",
+    "Non-filing spouses, guarantors, and other codebtors",
+    codebtorFields.length > 0
+      ? codebtorFields.map((f) => ({
+          id: f.id,
+          label: scheduleFieldLabel(f),
+          value: formatValue(f.proposedValue),
+          status: fieldStatus(f.approvalState),
+          confidence: f.confidence,
+          formReference: "106H",
+        }))
+      : [
+          {
+            id: "placeholder-h",
+            label: "Codebtors",
+            value: "None listed — add from Schedules",
+            status: "pending" as const,
+            formReference: "106H",
+          },
+        ]
+  );
+
+  const scheduleJ = buildSchedule(
+    "schedule-j",
+    "106J",
+    "Schedule J — Expenses",
+    "Current expenditures",
+    expenseFields.length > 0
+      ? [
+          ...expenseLineItems,
+          {
+            id: "j-total",
+            label: "Total monthly expenses",
+            value: `$${expenseTotal.toFixed(2)}`,
+            status: "computed" as const,
+            formReference: "106J",
+          },
+        ]
+      : expenseLineItems
+  );
+
+  const sofaFields = input.reviewFields.filter((f) => f.formId === "107");
+
+  const sofa = buildSchedule(
+    "sofa",
+    "107",
+    "Statement of Financial Affairs (SOFA)",
+    "Required disclosures for the bankruptcy court",
+    sofaFields.length > 0
+      ? sofaFields.map((f) => ({
+          id: f.id,
+          label: scheduleFieldLabel(f),
+          value: formatValue(f.proposedValue),
+          status: fieldStatus(f.approvalState),
+          confidence: f.confidence,
+          sourceDocument: f.sourceDocument?.fileName,
+          formReference: "107",
+        }))
+      : [
+          {
+            id: "placeholder-sofa",
+            label: "SOFA questions",
+            value: "Pending attorney review",
+            status: "pending" as const,
+            formReference: "107",
           },
         ]
   );
@@ -365,25 +444,10 @@ export function assemblePetition(input: AssemblePetitionInput): PetitionView {
     scheduleD,
     scheduleEF,
     scheduleG,
-    buildSchedule(
-      "schedule-h",
-      "106H",
-      "Schedule H — Codebtors",
-      "Non-filing spouses, guarantors, and other codebtors",
-      [
-        {
-          id: "placeholder-h",
-          label: "Codebtors",
-          value: input.reviewFields.some((f) => f.fieldPath.includes("codebtor"))
-            ? "See intake"
-            : "None identified",
-          status: "pending" as const,
-          formReference: "106H",
-        },
-      ]
-    ),
+    scheduleH,
     scheduleI,
     scheduleJ,
+    sofa,
     meansTest,
   ];
 

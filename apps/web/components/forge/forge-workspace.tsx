@@ -14,13 +14,9 @@ import { FilingPacketPanel } from "@/components/filing/filing-packet-panel";
 import { CourtPacketPreview } from "@/components/filing/court-packet-preview";
 import { CreditReviewPanel } from "@/components/credit/credit-review-panel";
 import { SchedulesViewer } from "@/components/schedules/schedules-viewer";
-import { StaffHeader } from "@/components/staff/staff-header";
-import { ReliefCopilotSheet } from "@/components/copilot/relief-copilot-sheet";
 import { DocumentMatterMatchDialog } from "@/components/intake/document-matter-match-dialog";
 import { PortalStaffTab } from "@/components/forge/forge-portal-messages";
-import {
-  CourtPacketPreviewDrawer,
-} from "@/components/filing/court-packet-preview";
+import { CourtPacketPreviewDrawer } from "@/components/filing/court-packet-preview";
 import { Eye } from "lucide-react";
 import "@/styles/staff-chrome.css";
 
@@ -28,7 +24,7 @@ const FORGE_SECTIONS = [
   { id: "dossier", label: "Documents", icon: "📁", blurb: `${BRAND.clientPortal.short} uploads & apply to petition` },
   { id: "messages", label: BRAND.clientPortal.name, icon: "💬", blurb: "Portal messages & invite link" },
   { id: "credit", label: "Credit", icon: "💳", blurb: "Tri-merge → Schedules D–G" },
-  { id: "schedules", label: "Schedules", icon: "📊", blurb: "A/B through J, exemptions" },
+  { id: "schedules", label: "Schedules", icon: "📊", blurb: "A/B–J, SOFA (107), exemptions" },
   { id: "petition", label: "Petition review", icon: "⚒️", blurb: "Approve every field" },
   { id: "court", label: "Court preview", icon: "⚖️", blurb: "Live pages — print & send to court" },
   { id: "seal", label: BRAND.sealCheck.name, icon: "👍", blurb: "Document QA + attorney sign-off" },
@@ -176,7 +172,12 @@ function ForgeWorkspaceInner({ matterId }: { matterId: string }) {
           )}
           {section === "messages" && <PortalStaffTab matterId={matterId} />}
           {section === "credit" && <CreditReviewPanel matterId={matterId} />}
-          {section === "schedules" && <SchedulesViewer matterId={matterId} />}
+          {section === "schedules" && (
+            <SchedulesViewer
+              matterId={matterId}
+              initialScheduleId={searchParams.get("schedule")}
+            />
+          )}
           {section === "petition" && (
             <div className="space-y-4">
               <p className="text-sm text-muted-foreground">
@@ -215,12 +216,8 @@ function ForgeWorkspaceInner({ matterId }: { matterId: string }) {
 
 export function ForgeWorkspace({ matterId }: { matterId: string }) {
   return (
-    <div className="app-container">
-      <StaffHeader />
-      <Suspense fallback={<p>Loading forge…</p>}>
-        <ForgeWorkspaceInner matterId={matterId} />
-      </Suspense>
-      <ReliefCopilotSheet matterId={matterId} phase="forge" />
-    </div>
+    <Suspense fallback={<p>Loading forge…</p>}>
+      <ForgeWorkspaceInner matterId={matterId} />
+    </Suspense>
   );
 }

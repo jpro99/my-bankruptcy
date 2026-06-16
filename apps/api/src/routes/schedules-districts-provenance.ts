@@ -12,6 +12,10 @@ import {
   isDemoMatter,
   setDemoDistrict,
   updateDemoScheduleItem,
+  addDemoAsset,
+  addDemoScheduleLine,
+  addDemoCodebtor,
+  removeDemoScheduleItem,
 } from "../lib/demo-store.js";
 
 export const schedulesRouter = new Hono<AppEnv>();
@@ -76,7 +80,11 @@ districtsRouter.patch(
 );
 
 const ScheduleItemSchema = z.object({
-  value: z.string().min(1),
+  value: z.string().optional(),
+  label: z.string().optional(),
+  description: z.string().optional(),
+}).refine((body) => body.value !== undefined || body.label || body.description, {
+  message: "Provide value, label, or description",
 });
 
 schedulesRouter.patch(
@@ -88,12 +96,97 @@ schedulesRouter.patch(
     if (!isDemoMatter(matterId)) {
       return c.json({ error: "Matter not found" }, 404);
     }
-    const { value } = c.req.valid("json");
-    const petition = updateDemoScheduleItem(matterId, itemId, value);
-    const district = getDemoDistrictInfo(matterId);
-    return c.json({ petition, district, itemId, value });
+    const body = c.req.valid("json");
+    try {
+      const petition = updateDemoScheduleItem(matterId, itemId, body);
+      const district = getDemoDistrictInfo(matterId);
+      return c.json({ petition, district, itemId, ...body });
+    } catch (e) {
+      return c.json({ error: e instanceof Error ? e.message : "Update failed" }, 400);
+    }
   }
 );
+
+const AddAssetSchema = z.object({
+  description: z.string().min(1),
+  category: z.string().min(1),
+  currentValue: z.string().min(1),
+  securedAmount: z.string().optional(),
+  exemptionSystem: z.string().optional(),
+  exemptionAmount: z.string().optional(),
+});
+
+schedulesRouter.post(
+  "/matter/:matterId/assets",
+  zValidator("json", AddAssetSchema),
+  async (c) => {
+    const matterId = c.req.param("matterId");
+    if (!isDemoMatter(matterId)) {
+      return c.json({ error: "Matter not found" }, 404);
+    }
+    const body = c.req.valid("json");
+    const petition = addDemoAsset(matterId, body);
+    const district = getDemoDistrictInfo(matterId);
+    return c.json({ petition, district }, 201);
+  }
+);
+
+const AddScheduleLineSchema = z.object({
+  formId: z.enum(["106I", "106J", "107"]),
+  lineLabel: z.string().min(1),
+  amount: z.string().min(1),
+});
+
+const AddCodebtorSchema = z.object({
+  name: z.string().min(1),
+  relationship: z.string().optional(),
+  creditorOrDebt: z.string().optional(),
+});
+
+schedulesRouter.post(
+  "/matter/:matterId/codebtors",
+  zValidator("json", AddCodebtorSchema),
+  async (c) => {
+    const matterId = c.req.param("matterId");
+    if (!isDemoMatter(matterId)) {
+      return c.json({ error: "Matter not found" }, 404);
+    }
+    const body = c.req.valid("json");
+    const petition = addDemoCodebtor(matterId, body);
+    const district = getDemoDistrictInfo(matterId);
+    return c.json({ petition, district }, 201);
+  }
+);
+
+schedulesRouter.post(
+  "/matter/:matterId/lines",
+  zValidator("json", AddScheduleLineSchema),
+  async (c) => {
+    const matterId = c.req.param("matterId");
+    if (!isDemoMatter(matterId)) {
+      return c.json({ error: "Matter not found" }, 404);
+    }
+    const body = c.req.valid("json");
+    const petition = addDemoScheduleLine(matterId, body);
+    const district = getDemoDistrictInfo(matterId);
+    return c.json({ petition, district }, 201);
+  }
+);
+
+schedulesRouter.delete("/matter/:matterId/items/:itemId", async (c) => {
+  const matterId = c.req.param("matterId");
+  const itemId = c.req.param("itemId");
+  if (!isDemoMatter(matterId)) {
+    return c.json({ error: "Matter not found" }, 404);
+  }
+  try {
+    const petition = removeDemoScheduleItem(matterId, itemId);
+    const district = getDemoDistrictInfo(matterId);
+    return c.json({ petition, district, itemId });
+  } catch (e) {
+    return c.json({ error: e instanceof Error ? e.message : "Remove failed" }, 400);
+  }
+});
 
 export const provenanceRouter = new Hono<AppEnv>();
 

@@ -1212,12 +1212,84 @@ export function addManualCreditor(matterId: string, input: ManualCreditorInput) 
   });
 }
 
-export function updateScheduleItem(matterId: string, itemId: string, value: string) {
-  return apiFetch<{ petition: PetitionView; district: DistrictInfo; itemId: string; value: string }>(
-    `/api/schedules/matter/${matterId}/items/${itemId}`,
-    { method: "PATCH", body: JSON.stringify({ value }) }
+export function updateScheduleItem(
+  matterId: string,
+  itemId: string,
+  patch: { value?: string; label?: string; description?: string }
+) {
+  return apiFetch<{
+    petition: PetitionView;
+    district: DistrictInfo;
+    itemId: string;
+    value?: string;
+    label?: string;
+    description?: string;
+  }>(`/api/schedules/matter/${matterId}/items/${itemId}`, {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+
+export interface AddAssetInput {
+  description: string;
+  category: string;
+  currentValue: string;
+  securedAmount?: string;
+  exemptionSystem?: string;
+  exemptionAmount?: string;
+}
+
+export function addScheduleAsset(matterId: string, input: AddAssetInput) {
+  return apiFetch<{ petition: PetitionView; district: DistrictInfo }>(
+    `/api/schedules/matter/${matterId}/assets`,
+    { method: "POST", body: JSON.stringify(input) }
   );
 }
+
+export interface AddScheduleLineInput {
+  formId: "106I" | "106J" | "107";
+  lineLabel: string;
+  amount: string;
+}
+
+export function addScheduleLine(matterId: string, input: AddScheduleLineInput) {
+  return apiFetch<{ petition: PetitionView; district: DistrictInfo }>(
+    `/api/schedules/matter/${matterId}/lines`,
+    { method: "POST", body: JSON.stringify(input) }
+  );
+}
+
+export interface AddCodebtorInput {
+  name: string;
+  relationship?: string;
+  creditorOrDebt?: string;
+}
+
+export function addScheduleCodebtor(matterId: string, input: AddCodebtorInput) {
+  return apiFetch<{ petition: PetitionView; district: DistrictInfo }>(
+    `/api/schedules/matter/${matterId}/codebtors`,
+    { method: "POST", body: JSON.stringify(input) }
+  );
+}
+
+export function removeScheduleItem(matterId: string, itemId: string) {
+  return apiFetch<{ petition: PetitionView; district: DistrictInfo; itemId: string }>(
+    `/api/schedules/matter/${matterId}/items/${itemId}`,
+    { method: "DELETE" }
+  );
+}
+
+export const ASSET_CATEGORY_OPTIONS = [
+  { value: "homestead", label: "Real property (home, land)" },
+  { value: "motor_vehicle", label: "Motor vehicle" },
+  { value: "household_goods", label: "Household goods & furnishings" },
+  { value: "clothing", label: "Clothing" },
+  { value: "jewelry", label: "Jewelry" },
+  { value: "cash", label: "Cash / bank accounts" },
+  { value: "retirement", label: "Retirement accounts" },
+  { value: "tools", label: "Tools of trade" },
+  { value: "other", label: "Other personal property" },
+] as const;
 
 export function fetchProvenance(matterId: string) {
   return apiFetch<{ matterId: string; eventCount: number; events: ProvenanceEvent[] }>(

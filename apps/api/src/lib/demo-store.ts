@@ -53,6 +53,8 @@ export interface DemoReviewField {
   proposedValue: unknown;
   confidence: number;
   approvalState: "pending" | "approved" | "edited" | "questioned";
+  /** Human-readable schedule line (Form 106I/J, etc.) */
+  lineLabel?: string;
   rationale?: string;
   sourceDocument?: { id: string; fileName: string };
 }
@@ -732,8 +734,194 @@ export function setDemoDistrict(
   return getDemoDistrictInfo(matterId);
 }
 
+/** Official Form 106J expense categories — attorney-editable monthly amounts */
+export const SCHEDULE_J_LINES = [
+  { id: "j-01", fieldPath: "expenses.housing", lineLabel: "Housing, mortgage, or rent" },
+  { id: "j-02", fieldPath: "expenses.utilities", lineLabel: "Utilities" },
+  { id: "j-03", fieldPath: "expenses.food", lineLabel: "Food and housekeeping supplies" },
+  {
+    id: "j-04",
+    fieldPath: "expenses.clothing",
+    lineLabel: "Clothing, laundry, and dry cleaning",
+  },
+  {
+    id: "j-05",
+    fieldPath: "expenses.personalCare",
+    lineLabel: "Personal care products and services",
+  },
+  { id: "j-06", fieldPath: "expenses.medical", lineLabel: "Medical and dental expenses" },
+  {
+    id: "j-07",
+    fieldPath: "expenses.transportation",
+    lineLabel: "Transportation (not including car payments)",
+  },
+  {
+    id: "j-08",
+    fieldPath: "expenses.recreation",
+    lineLabel: "Recreation, entertainment, newspapers, magazines, and books",
+  },
+  { id: "j-09", fieldPath: "expenses.charitable", lineLabel: "Charitable contributions" },
+  {
+    id: "j-10",
+    fieldPath: "expenses.insurance",
+    lineLabel: "Insurance (life, health, vehicle) not deducted elsewhere",
+  },
+  { id: "j-11", fieldPath: "expenses.taxes", lineLabel: "Taxes (not deducted elsewhere)" },
+  {
+    id: "j-12",
+    fieldPath: "expenses.installment",
+    lineLabel: "Installment payments (other than vehicle and home)",
+  },
+  {
+    id: "j-13",
+    fieldPath: "expenses.domesticSupport",
+    lineLabel: "Alimony, maintenance, and support paid to others",
+  },
+  { id: "j-14", fieldPath: "expenses.other", lineLabel: "Other expenses not listed above" },
+] as const;
+
+/** Form 107 — Statement of Financial Affairs (key attorney questions) */
+export const SOFA_LINES = [
+  {
+    id: "107-01",
+    fieldPath: "sofa.payments600",
+    lineLabel: "Payments to any creditor $600+ aggregate (last 2 years)",
+  },
+  {
+    id: "107-02",
+    fieldPath: "sofa.lawsuits",
+    lineLabel: "Lawsuits, garnishments, attachments, repossessions (last year)",
+  },
+  {
+    id: "107-03",
+    fieldPath: "sofa.propertyTransferred",
+    lineLabel: "Property transferred for benefit of creditor (last 2 years)",
+  },
+  {
+    id: "107-04",
+    fieldPath: "sofa.gifts",
+    lineLabel: "Gifts or charitable contributions $600+ (last 2 years)",
+  },
+  {
+    id: "107-05",
+    fieldPath: "sofa.gambling",
+    lineLabel: "Gambling losses (last 2 years)",
+  },
+  {
+    id: "107-06",
+    fieldPath: "sofa.business",
+    lineLabel: "Business ownership or involvement (last 4 years)",
+  },
+  {
+    id: "107-07",
+    fieldPath: "sofa.closedAccounts",
+    lineLabel: "Financial accounts closed or moved (last year)",
+  },
+  {
+    id: "107-08",
+    fieldPath: "sofa.priorBankruptcy",
+    lineLabel: "Prior bankruptcy filed (last 8 years)",
+  },
+  {
+    id: "107-09",
+    fieldPath: "sofa.debtCounseling",
+    lineLabel: "Consulted debt relief agency / credit counselor (last year)",
+  },
+  {
+    id: "107-10",
+    fieldPath: "sofa.environmental",
+    lineLabel: "Environmental law claims or hazardous property",
+  },
+] as const;
+
+export const SCHEDULE_I_LINES = [
+  { id: "i-01", fieldPath: "income.debtor1", lineLabel: "Debtor 1 — gross monthly income" },
+  { id: "i-02", fieldPath: "income.debtor2", lineLabel: "Debtor 2 — gross monthly income" },
+  { id: "i-03", fieldPath: "income.other", lineLabel: "Other income" },
+] as const;
+
+export const ASSET_CATEGORY_OPTIONS = [
+  { value: "homestead", label: "Real property (home, land)" },
+  { value: "motor_vehicle", label: "Motor vehicle" },
+  { value: "household_goods", label: "Household goods & furnishings" },
+  { value: "clothing", label: "Clothing" },
+  { value: "jewelry", label: "Jewelry" },
+  { value: "cash", label: "Cash / bank accounts" },
+  { value: "retirement", label: "Retirement accounts" },
+  { value: "tools", label: "Tools of trade" },
+  { value: "other", label: "Other personal property" },
+] as const;
+
+function ensureScheduleDefaults(state: DemoMatterState): boolean {
+  let added = false;
+  const src = { id: "schedule-defaults", fileName: "Schedule defaults" };
+  for (const line of SCHEDULE_J_LINES) {
+    if (!state.reviewFields.some((f) => f.id === line.id)) {
+      state.reviewFields.push({
+        id: line.id,
+        fieldPath: line.fieldPath,
+        formId: "106J",
+        lineLabel: line.lineLabel,
+        proposedValue: "0.00",
+        confidence: 1,
+        approvalState: "pending",
+        rationale: "Attorney-entered monthly expense",
+        sourceDocument: src,
+      });
+      added = true;
+    }
+  }
+  for (const line of SCHEDULE_I_LINES) {
+    if (state.reviewFields.some((f) => f.id === line.id)) continue;
+    if (line.id === "i-01") {
+      const legacy = state.reviewFields.find((f) => f.id === "f3" && f.formId === "106I");
+      if (legacy) {
+        if (!legacy.lineLabel) legacy.lineLabel = line.lineLabel;
+        continue;
+      }
+    }
+    state.reviewFields.push({
+      id: line.id,
+      fieldPath: line.fieldPath,
+      formId: "106I",
+      lineLabel: line.lineLabel,
+      proposedValue: "0.00",
+      confidence: 1,
+      approvalState: "pending",
+      rationale: "Attorney-entered monthly income",
+      sourceDocument: src,
+    });
+    added = true;
+  }
+  for (const line of SOFA_LINES) {
+    if (!state.reviewFields.some((f) => f.id === line.id)) {
+      state.reviewFields.push({
+        id: line.id,
+        fieldPath: line.fieldPath,
+        formId: "107",
+        lineLabel: line.lineLabel,
+        proposedValue: "No",
+        confidence: 1,
+        approvalState: "pending",
+        rationale: "Attorney SOFA answer — Yes / No / N/A",
+        sourceDocument: src,
+      });
+      added = true;
+    }
+  }
+  return added;
+}
+
+function sumScheduleJExpenses(state: DemoMatterState): string {
+  const total = state.reviewFields
+    .filter((f) => f.formId === "106J")
+    .reduce((acc, f) => acc + parseFloat(parseMoney(String(f.proposedValue ?? "0")) ?? "0"), 0);
+  return total.toFixed(2);
+}
+
 export function assembleDemoPetition(matterId: string): PetitionView {
   const state = getOrCreate(matterId);
+  if (ensureScheduleDefaults(state)) saveSnapshot();
   const includedTradelines = getIncludedTradelines(state);
   return assemblePetition({
     matterId,
@@ -1071,45 +1259,254 @@ function parseMoney(value: string): string | null {
 export function updateDemoScheduleItem(
   matterId: string,
   itemId: string,
-  value: string
+  patch: { value?: string; label?: string; description?: string }
 ): PetitionView {
   const state = getOrCreate(matterId);
   const field = state.reviewFields.find((f) => f.id === itemId);
   if (field) {
-    const previous = field.proposedValue;
-    field.proposedValue = parseMoney(value) ?? value;
-    field.approvalState = "edited";
-    recordDemoProvenance(matterId, {
-      formFieldId: itemId,
-      eventType: "attorney_edited",
-      previousValue: previous,
-      newValue: field.proposedValue,
-      metadata: { source: "schedules_editor" },
-    });
+    if (patch.label?.trim()) {
+      field.lineLabel = patch.label.trim();
+    }
+    if (patch.value !== undefined) {
+      const previous = field.proposedValue;
+      field.proposedValue = parseMoney(patch.value) ?? patch.value;
+      field.approvalState = "edited";
+      recordDemoProvenance(matterId, {
+        formFieldId: itemId,
+        eventType: "attorney_edited",
+        previousValue: previous,
+        newValue: field.proposedValue,
+        metadata: { source: "schedules_editor", formId: field.formId },
+      });
+    } else if (patch.label?.trim()) {
+      field.approvalState = "edited";
+      recordDemoProvenance(matterId, {
+        formFieldId: itemId,
+        eventType: "attorney_edited",
+        newValue: field.proposedValue,
+        metadata: { source: "schedules_editor", lineLabel: field.lineLabel },
+      });
+    }
   } else if (itemId.startsWith("ex-")) {
     const assetId = itemId.slice(3);
     const asset = state.assets.find((a) => a.id === assetId);
     if (asset) {
-      const amount = parseMoney(value);
-      if (amount) asset.exemptionAmount = amount;
+      if (patch.label?.trim()) asset.description = patch.label.trim();
+      if (patch.value !== undefined) {
+        const amount = parseMoney(patch.value);
+        if (amount) asset.exemptionAmount = amount;
+      }
     }
   } else {
     const asset = state.assets.find((a) => a.id === itemId);
     if (asset) {
-      const amount = parseMoney(value);
-      if (amount) asset.currentValue = amount;
-      const secured = value.match(/secured:\s*\$?([\d,]+\.?\d*)/i);
-      if (secured?.[1]) asset.securedAmount = secured[1].replace(/,/g, "");
+      if (patch.description?.trim() || patch.label?.trim()) {
+        asset.description = (patch.description ?? patch.label)!.trim();
+      }
+      if (patch.value !== undefined) {
+        const amount = parseMoney(patch.value);
+        if (amount) asset.currentValue = amount;
+        const secured = patch.value.match(/secured:\s*\$?([\d,]+\.?\d*)/i);
+        if (secured?.[1]) asset.securedAmount = secured[1].replace(/,/g, "");
+      }
+      recordDemoProvenance(matterId, {
+        formFieldId: itemId,
+        eventType: "attorney_edited",
+        newValue: asset.currentValue,
+        metadata: { source: "schedules_editor", description: asset.description, formId: "106A/B" },
+      });
     } else {
       const tl = state.classifiedTradelines.find((t) => t.id === itemId);
       if (tl) {
-        const amount = parseMoney(value);
-        if (amount) tl.balance = amount;
-        const monthly = value.match(/([\d,]+\.?\d*)\/mo/i);
-        if (monthly?.[1]) tl.monthlyPayment = monthly[1].replace(/,/g, "");
+        if (patch.label?.trim()) tl.creditorName = patch.label.trim();
+        if (patch.value !== undefined) {
+          const amount = parseMoney(patch.value);
+          if (amount) tl.balance = amount;
+          const monthly = patch.value.match(/([\d,]+\.?\d*)\/mo/i);
+          if (monthly?.[1]) tl.monthlyPayment = monthly[1].replace(/,/g, "");
+        }
       }
     }
   }
+  recomputeDemoDiagnostics(matterId, {});
+  saveSnapshot();
+  return assembleDemoPetition(matterId);
+}
+
+export interface AddAssetInput {
+  description: string;
+  category: string;
+  currentValue: string;
+  securedAmount?: string;
+  exemptionSystem?: string;
+  exemptionAmount?: string;
+}
+
+export function addDemoAsset(matterId: string, input: AddAssetInput): PetitionView {
+  const state = getOrCreate(matterId);
+  const id = `asset-${crypto.randomUUID()}`;
+  const currentValue = parseMoney(input.currentValue) ?? input.currentValue;
+  const asset: DemoAsset = {
+    id,
+    description: input.description.trim(),
+    category: input.category,
+    currentValue,
+    securedAmount: input.securedAmount
+      ? (parseMoney(input.securedAmount) ?? input.securedAmount)
+      : undefined,
+    exemptionSystem: input.exemptionSystem?.trim() || "System 2",
+    exemptionAmount: input.exemptionAmount
+      ? (parseMoney(input.exemptionAmount) ?? input.exemptionAmount)
+      : currentValue,
+  };
+  state.assets.push(asset);
+  recordDemoProvenance(matterId, {
+    formFieldId: id,
+    eventType: "attorney_edited",
+    newValue: asset.currentValue,
+    metadata: {
+      source: "schedule_asset_add",
+      description: asset.description,
+      category: asset.category,
+      formId: "106A/B",
+    },
+  });
+  recomputeDemoDiagnostics(matterId, {});
+  saveSnapshot();
+  return assembleDemoPetition(matterId);
+}
+
+export interface AddScheduleLineInput {
+  formId: "106I" | "106J" | "106H" | "107";
+  lineLabel: string;
+  amount: string;
+}
+
+export interface AddCodebtorInput {
+  name: string;
+  relationship?: string;
+  creditorOrDebt?: string;
+}
+
+export function addDemoCodebtor(matterId: string, input: AddCodebtorInput): PetitionView {
+  const state = getOrCreate(matterId);
+  const id = `h-custom-${crypto.randomUUID()}`;
+  const detail = [input.relationship?.trim(), input.creditorOrDebt?.trim()].filter(Boolean).join(" · ");
+  const field: DemoReviewField = {
+    id,
+    fieldPath: `codebtors.${id}`,
+    formId: "106H",
+    lineLabel: input.name.trim(),
+    proposedValue: detail || "Codebtor",
+    confidence: 1,
+    approvalState: "edited",
+    rationale: "Attorney-added Schedule H codebtor",
+    sourceDocument: { id: "attorney-entry", fileName: "Attorney schedule entry" },
+  };
+  state.reviewFields.push(field);
+  recordDemoProvenance(matterId, {
+    formFieldId: id,
+    eventType: "attorney_edited",
+    newValue: field.proposedValue,
+    metadata: { source: "schedule_codebtor_add", formId: "106H" },
+  });
+  recomputeDemoDiagnostics(matterId, {});
+  saveSnapshot();
+  return assembleDemoPetition(matterId);
+}
+
+export function addDemoScheduleLine(matterId: string, input: AddScheduleLineInput): PetitionView {
+  const state = getOrCreate(matterId);
+  const prefix =
+    input.formId === "106J" ? "j" : input.formId === "106I" ? "i" : "107";
+  const id = `${prefix}-custom-${crypto.randomUUID()}`;
+  const value = input.formId === "107" ? input.amount.trim() : (parseMoney(input.amount) ?? input.amount);
+  const fieldPathBase =
+    input.formId === "106J" ? "expenses" : input.formId === "106I" ? "income" : "sofa";
+  const field: DemoReviewField = {
+    id,
+    fieldPath: `${fieldPathBase}.custom.${id}`,
+    formId: input.formId,
+    lineLabel: input.lineLabel.trim(),
+    proposedValue: value,
+    confidence: 1,
+    approvalState: "edited",
+    rationale: "Attorney-added schedule line",
+    sourceDocument: { id: "attorney-entry", fileName: "Attorney schedule entry" },
+  };
+  state.reviewFields.push(field);
+  recordDemoProvenance(matterId, {
+    formFieldId: id,
+    eventType: "attorney_edited",
+    newValue: value,
+    metadata: { source: "schedule_line_add", lineLabel: field.lineLabel, formId: input.formId },
+  });
+  recomputeDemoDiagnostics(matterId, {});
+  saveSnapshot();
+  return assembleDemoPetition(matterId);
+}
+
+const PROTECTED_SCHEDULE_ITEM_IDS = new Set([
+  "chapter-election",
+  "district-filing",
+  "means-computed",
+  "placeholder-i",
+  "placeholder-j",
+  "placeholder-h",
+]);
+
+export function removeDemoScheduleItem(matterId: string, itemId: string): PetitionView {
+  if (PROTECTED_SCHEDULE_ITEM_IDS.has(itemId)) {
+    throw new Error("This schedule item cannot be removed");
+  }
+
+  const state = getOrCreate(matterId);
+  const assetIdx = state.assets.findIndex((a) => a.id === itemId);
+  if (assetIdx >= 0) {
+    const removed = state.assets.splice(assetIdx, 1)[0];
+    if (removed) {
+      recordDemoProvenance(matterId, {
+        formFieldId: itemId,
+        eventType: "attorney_edited",
+        previousValue: removed.currentValue,
+        newValue: null,
+        metadata: { source: "schedule_asset_remove", description: removed.description },
+      });
+    }
+  } else if (
+    itemId.startsWith("j-custom-") ||
+    itemId.startsWith("i-custom-") ||
+    itemId.startsWith("h-custom-") ||
+    itemId.startsWith("107-custom-")
+  ) {
+    const field = state.reviewFields.find((f) => f.id === itemId);
+    state.reviewFields = state.reviewFields.filter((f) => f.id !== itemId);
+    recordDemoProvenance(matterId, {
+      formFieldId: itemId,
+      eventType: "attorney_edited",
+      previousValue: field?.proposedValue,
+      newValue: null,
+      metadata: { source: "schedule_line_remove" },
+    });
+  } else {
+    const tl = state.classifiedTradelines.find((t) => t.id === itemId);
+    if (tl?.isManual) {
+      state.classifiedTradelines = state.classifiedTradelines.filter((t) => t.id !== itemId);
+      state.reviewFields = state.reviewFields.filter((f) => f.id !== `credit-${itemId}`);
+      delete state.tradelineInclusion[itemId];
+    } else if (tl) {
+      throw new Error("Credit tradelines must be excluded on the Credit tab — not deleted");
+    } else if (
+      !SCHEDULE_J_LINES.some((l) => l.id === itemId) &&
+      !SCHEDULE_I_LINES.some((l) => l.id === itemId) &&
+      !SOFA_LINES.some((l) => l.id === itemId)
+    ) {
+      state.reviewFields = state.reviewFields.filter((f) => f.id !== itemId);
+    } else {
+      throw new Error("Standard form lines cannot be removed — set the amount to $0.00 instead");
+    }
+  }
+
   recomputeDemoDiagnostics(matterId, {});
   saveSnapshot();
   return assembleDemoPetition(matterId);
@@ -1128,9 +1525,15 @@ export function recomputeDemoDiagnostics(
 
   const meansTest = evaluateUnifiedMeansTest({
     chapter: state.chapter,
-    householdSize: input.householdSize ?? 2,
-    annualIncome: input.annualIncome ?? "72000.00",
-    deductions: DEFAULT_DEDUCTIONS,
+    householdSize: input.householdSize ?? state.consult?.householdSize ?? 2,
+    annualIncome: input.annualIncome ?? state.consult?.annualIncome ?? "72000.00",
+    deductions: {
+      ...DEFAULT_DEDUCTIONS,
+      livingExpenses:
+        state.consult?.monthlyExpenses ||
+        sumScheduleJExpenses(state) ||
+        DEFAULT_DEDUCTIONS.livingExpenses,
+    },
   });
 
   state.diagnostics = buildDiagnosticsPayload({
@@ -2795,6 +3198,12 @@ function editSurfaceForForm(
 ): { href: string; label: string } {
   if (formId === "101") {
     return { href: `/matters/${matterId}/forge/review`, label: "Edit in petition review" };
+  }
+  if (formId === "107") {
+    return {
+      href: `/matters/${matterId}/forge?section=schedules&schedule=sofa`,
+      label: "Edit SOFA",
+    };
   }
   if (formId.startsWith("106")) {
     return { href: `/matters/${matterId}/forge?section=schedules`, label: "Edit on schedules" };

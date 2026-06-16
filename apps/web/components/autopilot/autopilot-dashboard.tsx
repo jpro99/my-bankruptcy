@@ -77,7 +77,7 @@ export function AutopilotDashboard({ matterId }: AutopilotDashboardProps) {
 
   if (!filed || !timeline) {
     return (
-      <Card className="mx-auto max-w-lg border-dashed">
+      <Card className="staff-panel staff-panel--sm border-dashed">
         <CardContent className="space-y-5 p-10 text-center">
           <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-primary-muted">
             <Plane className="size-8 text-primary" />
@@ -96,7 +96,7 @@ export function AutopilotDashboard({ matterId }: AutopilotDashboardProps) {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 animate-fade-in">
+    <div className="staff-panel staff-panel--lg space-y-8 animate-fade-in">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <Badge className="mb-2">{BRAND.continuum.name}</Badge>

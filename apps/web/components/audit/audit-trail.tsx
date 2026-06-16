@@ -74,7 +74,7 @@ export function AuditTrail({ matterId }: { matterId: string }) {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 animate-fade-in">
+    <div className="staff-panel staff-panel--md space-y-6 animate-fade-in">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <Badge className="mb-2">Audit-grade provenance</Badge>

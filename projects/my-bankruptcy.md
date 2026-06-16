@@ -6,6 +6,57 @@ Repo: `C:\Projects\ChapterAI` · packages `@chapterai/*`
 
 
 
+## Phase 1 — Professional left-aligned staff UI
+
+**Goal:** Match billing page — left sidebar + left-justified content. No centered “toy” columns on matter work.
+
+### Acceptance (Spec Bot)
+
+1. **MatterShell everywhere** — forge, scout, continuum, practice, court preview, billing, audit use sidebar + left main panel (like billing).
+2. **staff-panel** — matter panels use left-aligned `.staff-panel` (not `mx-auto` centered columns); firm dashboard/matters list left-aligned in `.app-container`.
+3. **`npm run build` passes** — no auth/RLS changes; no production deploy during dev.
+
+### Test
+
+1. Open `/matters/demo/billing` then `/matters/demo/forge` — same sidebar, content flush left
+2. Dashboard `/dashboard` — tiles align left, not floating center
+3. Schedules/scout panels — headers left, full width within main column
+
+---
+
+## Phase 1 — Attorney schedule control (court-ready filing prep)
+
+**Goal:** Streamlined start-to-finish bankruptcy prep — attorney full control over Schedules A–J, credit → schedules, practice packet mirrors court forms. World-class data entry; no auth/RLS changes.
+
+### Acceptance (Spec Bot)
+
+1. **Full schedule CRUD** — Forge → Schedules: add/edit/remove property (A/B), exemptions (C), creditors (D–G), codebtors (H), income (I), expenses (J), **SOFA (107)**; Form 106J standard lines + custom lines; total expenses computed.
+2. **Court path** — Practice packet + court preview pull live schedule/SOFA data; each form **Edit** link (107 → SOFA tab); credit **Apply to petition** → schedules D–G.
+3. **`npm run build` passes** — no PII in logs; auth/RLS unchanged; no production deploy during dev.
+
+### Architecture (Architect Bot)
+
+- **Data:** `demo-store` assets + `reviewFields` (formId 106I/J/H) + tradelines → `assemblePetition` → court preview pages.
+- **API:** `PATCH/DELETE /api/schedules/matter/:id/items/:id`, `POST …/assets`, `…/lines`, `…/codebtors` — matter-scoped, `isDemoMatter` gate, existing session auth.
+- **UI:** `schedules-viewer.tsx` + modals; forge sections credit → apply → schedules.
+
+### Security (Security / Risk Bot)
+
+- Schedule routes: matterId + session only; errors return generic messages — no debtor names in server logs.
+- No client bundle secrets; R2/auth paths unchanged.
+- User consent for credit pull unchanged; no elevation/UAC bypass.
+
+### Test attorney schedules
+
+1. `pnpm dev` — open `/matters/demo/forge?section=schedules`
+2. **A/B** → Add property → "Queen bed, couch" → household goods → save
+3. **J** → edit Housing/Food lines → see total at bottom
+4. **H** → Add codebtor → appears on Schedule H tab
+5. **Credit** → pull → Apply to petition → Schedules D–G populated
+6. `/matters/demo/practice` → open 106J / 106A/B / **107** → fields match → Edit → schedules (SOFA tab for 107)
+
+---
+
 ## Phase 1 — Field capture (phone) + matter ops board
 
 

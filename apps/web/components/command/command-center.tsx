@@ -96,7 +96,7 @@ export function CommandCenter({ matterId }: { matterId: string }) {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-8 animate-fade-in">
+    <div className="staff-panel staff-panel--lg space-y-8 animate-fade-in">
       <header className="space-y-6">
         <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="space-y-2">

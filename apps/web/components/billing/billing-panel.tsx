@@ -94,7 +94,7 @@ export function BillingPanel({ matterId }: { matterId: string }) {
   const balance = parseFloat(invoice.balanceDue);
 
   return (
-    <div className="mx-auto max-w-lg space-y-6 animate-fade-in">
+    <div className="staff-panel staff-panel--sm space-y-6 animate-fade-in">
       <header>
         <Badge className="mb-2">{BRAND.trustLedger.short}</Badge>
         <h1 className="font-display text-3xl font-bold">{BRAND.trustLedger.name}</h1>

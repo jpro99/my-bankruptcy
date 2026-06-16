@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { StaffHeader } from "@/components/staff/staff-header";
 import { CourtPacketPreview } from "@/components/filing/court-packet-preview";
+import { MatterShell } from "@/components/layout/matter-shell";
 import "@/styles/staff-chrome.css";
 import "@/styles/court-form.css";
 
@@ -16,11 +16,8 @@ export default function CourtPreviewPage({ params }: { params: Promise<{ matterI
   if (!matterId) return null;
 
   return (
-    <div className="app-container min-h-screen">
-      <StaffHeader />
-      <div className="py-4">
-        <CourtPacketPreview matterId={matterId} layout="fullscreen" />
-      </div>
-    </div>
+    <MatterShell matterId={matterId}>
+      <CourtPacketPreview matterId={matterId} layout="fullscreen" />
+    </MatterShell>
   );
 }

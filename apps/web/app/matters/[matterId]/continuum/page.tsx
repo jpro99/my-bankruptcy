@@ -1,13 +1,10 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import Link from "next/link";
 import { AutopilotDashboard } from "@/components/autopilot/autopilot-dashboard";
 import { ReliefCommandRail } from "@/components/command/relief-command-rail";
 import { MatterCalendarPanel } from "@/components/workflow/matter-calendar-panel";
-import { StaffHeader } from "@/components/staff/staff-header";
-import { ReliefCopilotSheet } from "@/components/copilot/relief-copilot-sheet";
-import { BRAND } from "@/lib/brand";
+import { MatterShell } from "@/components/layout/matter-shell";
 import "@/styles/staff-chrome.css";
 
 export default function ContinuumPage({ params }: { params: Promise<{ matterId: string }> }) {
@@ -20,21 +17,14 @@ export default function ContinuumPage({ params }: { params: Promise<{ matterId: 
   if (!matterId) return null;
 
   return (
-    <div className="app-container">
-      <StaffHeader />
+    <MatterShell matterId={matterId}>
       <ReliefCommandRail matterId={matterId} activePhase="continuum" />
-      <div style={{ marginBottom: "1rem" }}>
-        <Link href={`/matters/${matterId}/forge`} className="app-btn app-btn--tonal">
-          ← {BRAND.forge.name}
-        </Link>
-      </div>
       <Suspense fallback={<p>Loading…</p>}>
         <AutopilotDashboard matterId={matterId} />
       </Suspense>
       <section style={{ marginTop: "2rem" }}>
         <MatterCalendarPanel matterId={matterId} />
       </section>
-      <ReliefCopilotSheet matterId={matterId} phase="continuum" />
-    </div>
+    </MatterShell>
   );
 }

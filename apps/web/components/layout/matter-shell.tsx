@@ -10,9 +10,11 @@ import {
   ChevronRight,
   ShieldCheck,
   Compass,
+  Scale,
 } from "lucide-react";
 import { LomberaLogo } from "@/components/brand/lombera-logo";
 import { BRAND } from "@/lib/brand";
+import { useTestMode } from "@/lib/test-mode";
 import { cn } from "@/lib/utils";
 import { ApiStatusDot } from "@/components/layout/api-status-banner";
 import { ReliefCopilotSheet } from "@/components/copilot/relief-copilot-sheet";
@@ -24,55 +26,73 @@ const MATTER_LINKS = [
     href: (_id: string) => `/matters`,
     label: "All Matters",
     icon: Home,
+    match: (path: string) => path === "/matters" || path === "/test/matters",
   },
   {
     id: "scout",
     href: (id: string) => `/matters/${id}/scout`,
     label: BRAND.reliefScout.name,
     icon: Compass,
+    match: (path: string) => path.includes("/scout"),
   },
   {
     id: "forge",
     href: (id: string) => `/matters/${id}/forge`,
     label: BRAND.forge.name,
     icon: Hammer,
+    match: (path: string) => path.includes("/forge"),
+  },
+  {
+    id: "practice",
+    href: (id: string) => `/matters/${id}/practice`,
+    label: BRAND.practiceMode.short,
+    icon: Scale,
+    match: (path: string) => path.includes("/practice") || path.includes("/court-preview"),
   },
   {
     id: "continuum",
     href: (id: string) => `/matters/${id}/continuum`,
     label: BRAND.continuum.name,
     icon: Route,
+    match: (path: string) => path.includes("/continuum"),
   },
   {
     id: "billing",
     href: (id: string) => `/matters/${id}/billing`,
     label: BRAND.trustLedger.name,
     icon: Wallet,
+    match: (path: string) => path.includes("/billing"),
   },
   {
     id: "audit",
     href: (id: string) => `/matters/${id}/audit`,
     label: "Audit Trail",
     icon: ShieldCheck,
+    match: (path: string) => path.includes("/audit"),
   },
 ];
 
 const FORM_SECTIONS = [
-  { id: "petition", label: "Petition (101)" },
-  { id: "schedules", label: "Schedules A–J" },
-  { id: "sofa", label: "SOFA" },
-  { id: "means", label: "Means Test" },
-  { id: "local", label: "CA Local Forms" },
-  { id: "filing", label: "Petition Bundle" },
+  { id: "petition", label: "Petition (101)", href: (id: string) => `/matters/${id}/forge/review` },
+  {
+    id: "schedules",
+    label: "Schedules A–J",
+    href: (id: string) => `/matters/${id}/forge?section=schedules`,
+  },
+  { id: "sofa", label: "SOFA (107)", href: (id: string) => `/matters/${id}/forge?section=schedules&schedule=sofa` },
+  { id: "means", label: "Means Test", href: (id: string) => `/matters/${id}/scout` },
+  { id: "local", label: "CA Local Forms", href: (id: string) => `/matters/${id}/practice` },
+  { id: "filing", label: "Petition Bundle", href: (id: string) => `/matters/${id}/forge?section=file` },
 ];
 
 export function MatterSidebar({ matterId }: { matterId: string }) {
   const pathname = usePathname();
+  const { appHref } = useTestMode();
 
   return (
     <aside className="flex w-64 shrink-0 flex-col border-r border-sidebar-active bg-sidebar text-sidebar-foreground">
       <div className="border-b border-sidebar-active p-5">
-        <Link href="/matters" className="block">
+        <Link href={appHref("/matters")} className="block">
           <LomberaLogo variant="compact" invert />
         </Link>
       </div>
@@ -83,11 +103,8 @@ export function MatterSidebar({ matterId }: { matterId: string }) {
         </p>
         <ul className="space-y-0.5">
           {MATTER_LINKS.map((link) => {
-            const href = link.href(matterId);
-            const active =
-              pathname === href ||
-              pathname.startsWith(href + "/") ||
-              (link.id === "forge" && pathname.includes("/forge"));
+            const href = appHref(link.href(matterId));
+            const active = link.match(pathname);
             const Icon = link.icon;
             return (
               <li key={link.id}>
@@ -113,20 +130,30 @@ export function MatterSidebar({ matterId }: { matterId: string }) {
           Forms
         </p>
         <ul className="space-y-0.5">
-          {FORM_SECTIONS.map((item) => (
-            <li key={item.id}>
-              <span className="block cursor-default rounded-lg px-3 py-2 text-xs text-sidebar-muted transition hover:bg-sidebar-active hover:text-sidebar-foreground">
-                {item.label}
-              </span>
-            </li>
-          ))}
+          {FORM_SECTIONS.map((item) => {
+            const href = appHref(item.href(matterId));
+            const active = pathname.includes(href.split("?")[0] ?? href);
+            return (
+              <li key={item.id}>
+                <Link
+                  href={href}
+                  className={cn(
+                    "block rounded-lg px-3 py-2 text-xs transition hover:bg-sidebar-active hover:text-sidebar-foreground",
+                    active ? "bg-sidebar-active font-semibold text-white" : "text-sidebar-muted"
+                  )}
+                >
+                  {item.label}
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       </nav>
 
       <div className="space-y-3 border-t border-sidebar-active p-4">
         <ApiStatusDot />
         <Link
-          href="/matters"
+          href={appHref("/matters")}
           className="flex items-center gap-2 text-xs text-sidebar-muted transition hover:text-white"
         >
           <Home className="size-3.5" />
@@ -149,7 +176,7 @@ export function MatterShell({
   return (
     <div className={cn("flex min-h-screen bg-background", className)}>
       <MatterSidebar matterId={matterId} />
-      <main className="flex-1 overflow-y-auto p-6 md:p-8">{children}</main>
+      <main className="matter-shell__main">{children}</main>
       <ReliefCopilotSheet matterId={matterId} phase="forge" />
       <BenchNotesSheet matterId={matterId} />
     </div>

@@ -119,7 +119,7 @@ export function ReliefScoutPanel({ matterId }: { matterId: string }) {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-8 animate-fade-in">
+    <div className="staff-panel staff-panel--md space-y-8 animate-fade-in">
       <header>
         <Badge className="mb-2">{BRAND.reliefScout.name}</Badge>
         <h1 className="font-display text-3xl font-bold">First consult walkthrough</h1>

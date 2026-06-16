@@ -1,7 +1,9 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { ForgeWorkspace } from "@/components/forge/forge-workspace";
+import { MatterShell } from "@/components/layout/matter-shell";
+import "@/styles/staff-chrome.css";
 
 export default function ForgePage({ params }: { params: Promise<{ matterId: string }> }) {
   const [matterId, setMatterId] = useState<string | null>(null);
@@ -13,8 +15,8 @@ export default function ForgePage({ params }: { params: Promise<{ matterId: stri
   if (!matterId) return null;
 
   return (
-    <Suspense fallback={<p>Loading forge…</p>}>
+    <MatterShell matterId={matterId}>
       <ForgeWorkspace matterId={matterId} />
-    </Suspense>
+    </MatterShell>
   );
 }

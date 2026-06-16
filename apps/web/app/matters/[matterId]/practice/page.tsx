@@ -1,9 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { StaffHeader } from "@/components/staff/staff-header";
 import { PracticePacketWorkspace } from "@/components/filing/practice-packet-workspace";
-import { ReliefCopilotSheet } from "@/components/copilot/relief-copilot-sheet";
+import { MatterShell } from "@/components/layout/matter-shell";
 import "@/styles/staff-chrome.css";
 import "@/styles/court-form.css";
 
@@ -17,12 +16,8 @@ export default function PracticeFilingPage({ params }: { params: Promise<{ matte
   if (!matterId) return null;
 
   return (
-    <div className="app-container min-h-screen">
-      <StaffHeader />
-      <div className="py-4">
-        <PracticePacketWorkspace matterId={matterId} />
-      </div>
-      <ReliefCopilotSheet matterId={matterId} phase="forge" />
-    </div>
+    <MatterShell matterId={matterId}>
+      <PracticePacketWorkspace matterId={matterId} />
+    </MatterShell>
   );
 }
