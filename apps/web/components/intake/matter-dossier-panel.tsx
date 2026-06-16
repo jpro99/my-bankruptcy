@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { FileText, Loader2, Printer, Sparkles } from "lucide-react";
 import {
   applyForgeSync,
+  downloadIntakeDocumentFile,
   fetchMatterDossier,
   type IntakeDocument,
   type MatterNote,
@@ -138,7 +139,7 @@ export function MatterDossierPanel({
         <div>
           <h2 className="font-display text-xl font-bold">{displayName}&apos;s file</h2>
           <p className="text-sm text-muted-foreground">
-            Client Vault link uploads stay on this matter · {documents.length} document(s) ·{" "}
+            Client Portal link uploads stay on this matter · {documents.length} document(s) ·{" "}
             {notes.length} note(s)
           </p>
         </div>
@@ -200,8 +201,8 @@ export function MatterDossierPanel({
       {documents.length === 0 ? (
         <Card>
           <CardContent className="p-6 text-center text-sm text-muted-foreground">
-            No documents on file yet — use the upload box above, or send {displayName} their Client
-            Vault link from the Messages tab.
+            No documents on file yet — use the upload box above, or send {displayName} their{" "}
+            {BRAND.clientPortal.linkLabel} from the Messages tab.
           </CardContent>
         </Card>
       ) : (
@@ -215,22 +216,38 @@ export function MatterDossierPanel({
                     <p className="truncate text-sm font-medium">{doc.fileName}</p>
                     <p className="text-xs text-muted-foreground">
                       {doc.source === "portal" || doc.source === "portal_general"
-                        ? "Client Vault link"
+                        ? "Client Portal link"
                         : doc.source === "test_csv"
                           ? "Test CSV import"
                           : doc.uploadedBy === "client"
-                            ? "Client Vault"
+                            ? BRAND.clientPortal.short
                             : "Attorney upload"}{" "}
                       · {doc.documentType.replace(/_/g, " ")} · {doc.uploadedAt.slice(0, 10)}
                     </p>
                   </div>
                 </div>
-                <Badge
-                  variant={doc.status === "applied" ? "success" : "warning"}
-                  className={cn(doc.status === "applied" && "shrink-0")}
-                >
-                  {doc.status === "applied" ? "In petition" : "Ready to sync"}
-                </Badge>
+                <div className="flex shrink-0 items-center gap-2">
+                  {doc.stored && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() =>
+                        void downloadIntakeDocumentFile(matterId, doc.id, doc.fileName).catch(
+                          () => setUploadMessage("Could not download file")
+                        )
+                      }
+                    >
+                      Open
+                    </Button>
+                  )}
+                  <Badge
+                    variant={doc.status === "applied" ? "success" : "warning"}
+                    className={cn(doc.status === "applied" && "shrink-0")}
+                  >
+                    {doc.status === "applied" ? "In petition" : "Ready to sync"}
+                  </Badge>
+                </div>
               </CardContent>
             </Card>
           ))}

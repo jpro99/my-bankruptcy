@@ -85,7 +85,7 @@ portalStaffRouter.post(
             ok: true,
             link,
             messageId: sent.messageId,
-            message: `Client Vault invitation emailed to ${input.recipient}`,
+            message: `Client portal invitation emailed to ${input.recipient}`,
           });
         }
       }

@@ -27,12 +27,12 @@ function demoAnswer(ctx: CopilotContext, topic: string): CopilotResult {
   const base = `/matters/${ctx.matterId}`;
 
   const phaseIntro: Record<CopilotPhase, string> = {
-    scout: `You're in **Relief Scout** for a Chapter ${ch} matter (${ctx.overallPercent}% complete). Run the quick means test, record take/pass/maybe, then enter The Forge.`,
-    forge: `You're in **The Forge** — pre-filing work for Chapter ${ch}. Approve AI-extracted fields, pull credit, confirm schedules, then Seal Check before The Gavel.`,
-    gavel: `You're at **The Gavel** — Seal Check passed or pending. Strike The Gavel when preflight is green; sandbox filing unlocks Continuum.`,
+    scout: `You're in **Initial Consult** for a Chapter ${ch} matter (${ctx.overallPercent}% complete). Run the means test, record take/pass/maybe, then open Petition Prep.`,
+    forge: `You're in **Petition Prep** for Chapter ${ch}. Approve extracted fields, pull credit, confirm schedules, then complete Final Sign-Off before filing.`,
+    gavel: `You're at **E-File** — final sign-off passed or pending. File the petition when preflight is green; filing unlocks the post-filing track.`,
     continuum: ctx.filed
-      ? `You're on **Continuum** — post-filing through discharge. Track 341, §521 docs, Course 2, and discharge eligibility.`
-      : `Continuum unlocks after filing. Finish Forge + Gavel first.`,
+      ? `You're on **Post-Filing** — 341 through discharge. Track the meeting, §521 documents, Course 2, and discharge eligibility.`
+      : `Post-filing unlocks after the petition is filed. Finish petition prep and e-file first.`,
   };
 
   let answer = phaseIntro[ctx.phase];
@@ -51,21 +51,21 @@ function demoAnswer(ctx: CopilotContext, topic: string): CopilotResult {
   }
 
   if (lower.includes("field") && ctx.pendingFieldCount > 0) {
-    answer = `${answer}\n\n${ctx.pendingFieldCount} petition fields still need approve/edit in The Forge. Bulk-approve items above 95% confidence.`;
+    answer = `${answer}\n\n${ctx.pendingFieldCount} petition fields still need approve/edit in Petition Prep. Bulk-approve items above 95% confidence.`;
   }
 
   if (lower.includes("discharge") && ctx.filed) {
-    answer = `${answer}\n\nDischarge track: confirm no §727 objections, Course 2 complete, and 341 held. Use Continuum autopilot tasks.`;
+    answer = `${answer}\n\nDischarge track: confirm no §727 objections, Course 2 complete, and 341 held. Use post-filing deadline tasks.`;
   }
 
-  if (lower.includes("file") || lower.includes("gavel")) {
+  if (lower.includes("file") || lower.includes("gavel") || lower.includes("efile")) {
     answer = ctx.preflightReady
-      ? `${answer}\n\nPreflight is green — ready to Strike The Gavel from the filing packet section.`
+      ? `${answer}\n\nPreflight is green — ready to file the petition from the filing packet section.`
       : `${answer}\n\nPreflight not clear yet — resolve pending fields and district rules first.`;
   }
 
   if (ctx.phase === "scout" && (lower.includes("means") || lower.includes("chapter"))) {
-    answer = `${answer}\n\nScout runs Forms 122A/C against CA median income. Below median → Ch 7 likely. Above → 122A-2 or Ch 13.`;
+    answer = `${answer}\n\nInitial consult runs Forms 122A/C against CA median income. Below median → Ch 7 likely. Above → 122A-2 or Ch 13.`;
   }
 
   const fallbackHref =
@@ -82,7 +82,7 @@ function demoAnswer(ctx: CopilotContext, topic: string): CopilotResult {
   };
 }
 
-/** Attorney co-pilot — PII-safe; demo answers when no API key */
+/** Attorney case assistant — PII-safe; demo answers when no API key */
 export function runCopilot(question: string, ctx: CopilotContext): CopilotResult {
   const { redactedText, redactionCount } = redactPii(question.trim());
   const piiRedacted = redactionCount > 0;
@@ -95,11 +95,9 @@ export function runCopilot(question: string, ctx: CopilotContext): CopilotResult
     };
   }
 
-  // Phase 1: demo-mode only — real LLM wired when ANTHROPIC_API_KEY present (future)
   if (!process.env.ANTHROPIC_API_KEY) {
     return demoAnswer(ctx, redactedText);
   }
 
-  // Placeholder for live model — still never log raw question
   return demoAnswer(ctx, redactedText);
 }

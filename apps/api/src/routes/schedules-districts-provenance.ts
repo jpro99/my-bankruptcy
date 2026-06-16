@@ -1,11 +1,12 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { CaliforniaDistrictSchema, listCaliforniaDistricts } from "@chapterai/districts";
+import { CaliforniaDistrictSchema, listCaliforniaDistricts, getCourtReadiness } from "@chapterai/districts";
 import type { AppEnv } from "../index.js";
 import {
   assembleDemoPetition,
   exportDemoProvenance,
+  getDemoCourtReadiness,
   getDemoDistrictInfo,
   getDemoProvenanceEvents,
   isDemoMatter,
@@ -29,6 +30,21 @@ export const districtsRouter = new Hono<AppEnv>();
 
 districtsRouter.get("/", (c) => {
   return c.json({ districts: listCaliforniaDistricts() });
+});
+
+districtsRouter.get("/readiness", (c) => {
+  const county = c.req.query("county") ?? "Riverside";
+  const chapter = c.req.query("chapter") === "13" ? "13" : "7";
+  const efileMode = process.env.EFILE_MODE === "live" ? "live" : "sandbox";
+  return c.json({ readiness: getCourtReadiness({ county, chapter, efileMode }) });
+});
+
+districtsRouter.get("/matter/:matterId/readiness", async (c) => {
+  const matterId = c.req.param("matterId");
+  if (!isDemoMatter(matterId)) {
+    return c.json({ error: "Matter not found" }, 404);
+  }
+  return c.json(getDemoCourtReadiness(matterId));
 });
 
 districtsRouter.get("/matter/:matterId", async (c) => {

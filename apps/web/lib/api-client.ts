@@ -329,6 +329,11 @@ export interface IntakeDocument {
   requestId?: string;
   status: "received" | "processed" | "applied";
   appliedFieldIds?: string[];
+  mimeType?: string;
+  storageKey?: string;
+  sha256?: string;
+  sizeBytes?: number;
+  stored?: boolean;
   staffVerified?: boolean;
   staffVerifiedAt?: string;
   staffVerifiedBy?: string;
@@ -381,6 +386,15 @@ export interface DemoMatterSummary {
   clientPhone?: string;
   clientFirstName?: string;
   clientLastName?: string;
+  overallPercent?: number;
+  currentPhase?: "consult" | "prep" | "file" | "post-filing";
+  currentStep?: string;
+  balanceDue?: string;
+  paidInFull?: boolean;
+  lastContactAt?: string;
+  lastContactKind?: "portal" | "note";
+  county?: string;
+  divisionName?: string;
 }
 
 export function fetchMatterDossier(matterId: string) {
@@ -518,6 +532,102 @@ async function intakePost<T>(
   }
 
   return data as T;
+}
+
+async function intakeUploadFetch<T>(
+  path: string,
+  form: FormData
+): Promise<T | { mismatch: UploadMatchPreview }> {
+  const headers = new Headers();
+  if (process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "1") {
+    headers.set("x-firm-id", "00000000-0000-0000-0000-000000000010");
+    headers.set("x-user-id", "00000000-0000-0000-0000-000000000001");
+    headers.set("x-clerk-user-id", "dev_clerk_user");
+    headers.set("x-user-email", "attorney@chapterai.dev");
+    headers.set("x-user-role", "attorney");
+  }
+
+  const response = await fetch(`${getApiBase()}${path}`, {
+    method: "POST",
+    headers,
+    body: form,
+  });
+
+  const data = (await response.json().catch(() => ({}))) as {
+    error?: string;
+    preview?: UploadMatchPreview;
+    document?: IntakeDocument;
+    savedToMatterId?: string;
+  };
+
+  if (response.status === 409 && data.error === "matter_mismatch" && data.preview) {
+    return { mismatch: data.preview };
+  }
+
+  if (!response.ok) {
+    throw new Error(data.error ?? `API error ${response.status}`);
+  }
+
+  return data as T;
+}
+
+export async function uploadIntakeDocumentFile(
+  matterId: string,
+  file: File,
+  documentType?: string,
+  options?: { confirmMismatch?: boolean; targetMatterId?: string }
+): Promise<IntakeUploadResult> {
+  const form = new FormData();
+  form.append("file", file);
+  if (documentType) form.append("documentType", documentType);
+  if (options?.confirmMismatch) form.append("confirmMismatch", "true");
+  if (options?.targetMatterId) form.append("targetMatterId", options.targetMatterId);
+
+  const result = await intakeUploadFetch<{
+    document: IntakeDocument;
+    savedToMatterId: string;
+  }>(`/api/intake/matter/${matterId}/upload/file`, form);
+
+  if ("mismatch" in result) {
+    return { ok: false, mismatch: result.mismatch };
+  }
+
+  return {
+    ok: true,
+    document: result.document,
+    savedToMatterId: result.savedToMatterId ?? matterId,
+  };
+}
+
+export function intakeDocumentFileUrl(matterId: string, documentId: string): string {
+  return `${getPublicApiBase()}/api/intake/matter/${matterId}/documents/${documentId}/file`;
+}
+
+export async function downloadIntakeDocumentFile(
+  matterId: string,
+  documentId: string,
+  fileName: string
+): Promise<void> {
+  const headers = new Headers();
+  if (process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "1") {
+    headers.set("x-firm-id", "00000000-0000-0000-0000-000000000010");
+    headers.set("x-user-id", "00000000-0000-0000-0000-000000000001");
+    headers.set("x-clerk-user-id", "dev_clerk_user");
+    headers.set("x-user-email", "attorney@chapterai.dev");
+    headers.set("x-user-role", "attorney");
+  }
+
+  const response = await fetch(intakeDocumentFileUrl(matterId, documentId), { headers });
+  if (!response.ok) {
+    throw new Error("Document file not available");
+  }
+  const blob = await response.blob();
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = fileName;
+  anchor.click();
+  URL.revokeObjectURL(url);
 }
 
 export async function uploadIntakeDocument(
@@ -737,10 +847,16 @@ export interface PortalData {
   filed: boolean;
 }
 
-async function portalFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+async function portalFetch<T>(
+  path: string,
+  options: RequestInit & { omitJsonContentType?: boolean } = {}
+): Promise<T> {
   const headers = new Headers(options.headers);
-  headers.set("Content-Type", "application/json");
-  const response = await fetch(`${getApiBase()}${path}`, { ...options, headers });
+  if (!options.omitJsonContentType) {
+    headers.set("Content-Type", "application/json");
+  }
+  const { omitJsonContentType: _, ...fetchOptions } = options;
+  const response = await fetch(`${getApiBase()}${path}`, { ...fetchOptions, headers });
   if (!response.ok) {
     const error = (await response.json().catch(() => ({}))) as { error?: string };
     throw new Error(error.error ?? `API error ${response.status}`);
@@ -755,6 +871,22 @@ export function fetchPortal(token: string) {
 export function uploadPortalDocument(
   token: string,
   requestId: string,
+  file: File,
+  documentType?: string
+) {
+  const form = new FormData();
+  form.append("file", file);
+  form.append("requestId", requestId);
+  if (documentType) form.append("documentType", documentType);
+  return portalFetch<{ success: boolean; document?: IntakeDocument }>(
+    `/api/portal/${token}/upload/file`,
+    { method: "POST", body: form, omitJsonContentType: true }
+  );
+}
+
+export function uploadPortalDocumentMeta(
+  token: string,
+  requestId: string,
   fileName: string,
   documentType?: string
 ) {
@@ -764,7 +896,17 @@ export function uploadPortalDocument(
   });
 }
 
-export function uploadPortalGeneralDocument(
+export function uploadPortalGeneralDocument(token: string, file: File, documentType?: string) {
+  const form = new FormData();
+  form.append("file", file);
+  if (documentType) form.append("documentType", documentType);
+  return portalFetch<{ success: boolean; document: IntakeDocument }>(
+    `/api/portal/${token}/upload-general/file`,
+    { method: "POST", body: form, omitJsonContentType: true }
+  );
+}
+
+export function uploadPortalGeneralDocumentMeta(
   token: string,
   fileName: string,
   documentType?: string
@@ -923,6 +1065,40 @@ export function setMatterDistrict(
     `/api/districts/matter/${matterId}`,
     { method: "PATCH", body: JSON.stringify(input) }
   );
+}
+
+export interface CourtReadinessForm {
+  formId: string;
+  label: string;
+  category: "official" | "local" | "certificate" | "plan";
+}
+
+export interface CourtReadiness {
+  county: string;
+  district: string;
+  districtName: string;
+  courtName: string;
+  division: { id: string; name: string; courthouse: string };
+  cmEcfBaseUrl: string;
+  chapter: "7" | "13";
+  requiredForms: CourtReadinessForm[];
+  localFormIds: string[];
+  surroundingCounties: string[];
+  connections: {
+    cmEcf: "sandbox" | "live_attempt" | "not_configured";
+    localFormsInSystem: boolean;
+    countyRouting: boolean;
+    practiceReady: boolean;
+  };
+}
+
+export function fetchMatterCourtReadiness(matterId: string) {
+  return apiFetch<{
+    matterId: string;
+    readiness: CourtReadiness;
+    formsInPracticePacket: number;
+    formsMatchDistrict: boolean;
+  }>(`/api/districts/matter/${matterId}/readiness`);
 }
 
 export interface TradelineReviewEntry {
@@ -1103,11 +1279,18 @@ export interface CourtPacketPreview {
   pages: CourtPacketPage[];
   attorneyTools: AttorneyToolLink[];
   assembledAt: string;
+  practiceMode?: boolean;
+  efileMode?: "sandbox" | "live";
+  liveFilingBlocked?: boolean;
 }
 
-export function fetchCourtPacketPreview(matterId: string) {
+export function fetchCourtPacketPreview(
+  matterId: string,
+  options?: { practice?: boolean }
+) {
+  const query = options?.practice ? "?practice=1" : "";
   return apiFetch<{ preview: CourtPacketPreview }>(
-    `/api/filing/matter/${matterId}/court-preview`
+    `/api/filing/matter/${matterId}/court-preview${query}`
   );
 }
 

@@ -1,0 +1,498 @@
+/* Court-form sheet — USC-style petition preview (practice + court preview) */
+
+.court-form-sheet {
+  position: relative;
+  max-width: 816px;
+  margin: 0 auto;
+  padding: 40px 48px 32px;
+  background: #fff;
+  color: #111;
+  font-family: "Times New Roman", Times, Georgia, serif;
+  border: 1px solid #ccc;
+  box-shadow: 0 4px 24px rgb(0 0 0 / 8%);
+  min-height: 640px;
+}
+
+.court-form-sheet__watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: rgb(180 80 0 / 12%);
+  transform: rotate(-24deg);
+  pointer-events: none;
+  user-select: none;
+  text-align: center;
+  padding: 24px;
+}
+
+.court-form-sheet__header {
+  border-bottom: 2px solid #111;
+  padding-bottom: 16px;
+  margin-bottom: 20px;
+}
+
+.court-form-sheet__court {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  margin: 0;
+  font-weight: 700;
+}
+
+.court-form-sheet__district {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 4px 0 0;
+  letter-spacing: 0.06em;
+}
+
+.court-form-sheet__division {
+  font-size: 12px;
+  margin: 2px 0 0;
+  color: #333;
+}
+
+.court-form-sheet__form-id-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.court-form-sheet__official {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #555;
+}
+
+.court-form-sheet__form-num {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.court-form-sheet__title {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 8px 0 0;
+}
+
+.court-form-sheet__case-meta {
+  font-size: 12px;
+  margin: 8px 0 0;
+  color: #444;
+}
+
+.court-form-sheet__empty {
+  font-size: 13px;
+  color: #555;
+  line-height: 1.5;
+  padding: 24px 0;
+}
+
+.court-form-sheet__fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.court-form-sheet__field-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 38%) 1fr;
+  gap: 12px;
+  align-items: start;
+  font-size: 12px;
+  border-bottom: 1px dotted #ccc;
+  padding-bottom: 8px;
+}
+
+.court-form-sheet__field-label {
+  font-weight: 600;
+  color: #222;
+}
+
+.court-form-sheet__field-value-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.court-form-sheet__field-value {
+  border-bottom: 1px solid #111;
+  min-height: 18px;
+  padding-bottom: 2px;
+  word-break: break-word;
+}
+
+.court-form-sheet__status {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #666;
+  font-family: system-ui, sans-serif;
+}
+
+.court-form-sheet__status--approved {
+  color: #166534;
+}
+
+.court-form-sheet__status--edited {
+  color: #1d4ed8;
+}
+
+.court-form-sheet__status--pending {
+  color: #b45309;
+}
+
+.court-form-sheet__footer {
+  margin-top: 24px;
+  padding-top: 12px;
+  border-top: 1px solid #ddd;
+  font-family: system-ui, sans-serif;
+}
+
+.court-form-sheet__edit-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--primary, #2563eb);
+  text-decoration: none;
+}
+
+.court-form-sheet__edit-link:hover {
+  text-decoration: underline;
+}
+
+/* Practice workspace */
+
+.practice-mode-banner {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 10px;
+  border: 1px solid rgb(234 179 8 / 50%);
+  background: rgb(254 249 195 / 80%);
+  color: #713f12;
+}
+
+.practice-mode-banner--compact {
+  padding: 8px 12px;
+  margin-bottom: 8px;
+}
+
+.practice-mode-banner__icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.practice-mode-banner__title {
+  font-weight: 700;
+  font-size: 14px;
+  margin: 0;
+}
+
+.practice-mode-banner__sub {
+  font-size: 12px;
+  margin: 4px 0 0;
+  line-height: 1.45;
+}
+
+.practice-workspace__header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.practice-workspace__eyebrow {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted-foreground);
+  margin: 0;
+}
+
+.practice-workspace__title {
+  font-family: var(--font-display, inherit);
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin: 4px 0 0;
+}
+
+.practice-workspace__sub {
+  font-size: 14px;
+  color: var(--muted-foreground);
+  margin: 4px 0 0;
+}
+
+.practice-workspace__header-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.practice-workspace__layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) 1fr;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .practice-workspace__layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+.practice-workspace__sidebar {
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 12px;
+  background: var(--card);
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+.practice-workspace__sidebar-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted-foreground);
+  margin: 0 0 8px;
+}
+
+.practice-workspace__paper-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.practice-workspace__paper-item {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.practice-workspace__paper-item:hover {
+  background: var(--muted);
+}
+
+.practice-workspace__paper-item--active {
+  border-color: var(--primary);
+  background: rgb(var(--primary-rgb, 37 99 235) / 8%);
+}
+
+.practice-workspace__paper-form {
+  font-weight: 700;
+  font-size: 11px;
+  min-width: 48px;
+}
+
+.practice-workspace__paper-label {
+  line-height: 1.3;
+}
+
+.practice-workspace__tool-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.practice-workspace__tool-link {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  padding: 8px;
+  border-radius: 8px;
+  font-size: 12px;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid var(--border);
+}
+
+.practice-workspace__tool-link:hover {
+  background: var(--muted);
+}
+
+.practice-workspace__main {
+  min-width: 0;
+}
+
+.practice-workspace__pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.practice-workspace__paper-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.practice-workspace__checklist {
+  margin-top: 24px;
+  padding: 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--muted);
+  font-size: 14px;
+}
+
+.practice-workspace__steps {
+  margin: 8px 0 0;
+  padding-left: 1.25rem;
+  line-height: 1.6;
+}
+
+.practice-workspace__steps li.done {
+  color: var(--muted-foreground);
+  text-decoration: line-through;
+}
+
+.practice-workspace__steps a {
+  color: var(--primary);
+  font-weight: 600;
+}
+
+/* District court readiness */
+
+.district-readiness {
+  margin-bottom: 16px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--card);
+}
+
+.district-readiness--loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+
+.district-readiness__header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.district-readiness__title {
+  font-weight: 700;
+  font-size: 14px;
+  margin: 0;
+}
+
+.district-readiness__sub {
+  font-size: 12px;
+  color: var(--muted-foreground);
+  margin: 2px 0 0;
+}
+
+.district-readiness__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+@media (max-width: 640px) {
+  .district-readiness__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.district-readiness__stat {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: var(--muted);
+  font-size: 12px;
+}
+
+.district-readiness__stat-label {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
+}
+
+.district-readiness__stat-value {
+  font-weight: 700;
+  margin-top: 2px;
+}
+
+.district-readiness__counties {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+
+.district-readiness__forms {
+  margin-top: 10px;
+  font-size: 13px;
+}
+
+.district-readiness__forms summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--primary);
+}
+
+.district-readiness__form-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.district-readiness__form-item {
+  display: grid;
+  grid-template-columns: 72px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 6px 8px;
+  border-radius: 6px;
+  background: var(--muted);
+  font-size: 12px;
+}

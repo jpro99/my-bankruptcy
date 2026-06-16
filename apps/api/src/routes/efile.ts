@@ -79,7 +79,7 @@ efileRouter.post("/matter/:matterId/submit", async (c) => {
       {
         error: "Attorney final sign-off required",
         message:
-          "Complete Final Check — staff document QA, numbers review, and attorney thumbs-up before Strike The Gavel.",
+          "Complete Final Check — staff document QA, numbers review, and attorney sign-off before filing the petition.",
       },
       403
     );

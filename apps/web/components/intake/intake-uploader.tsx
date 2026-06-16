@@ -24,7 +24,7 @@ export function IntakeUploader({ matterId }: { matterId: string }) {
 
   const startFullIntake = async () => {
     setIsProcessing(true);
-    setStatusMessage("Forge Sync + tri-merge credit pull…");
+    setStatusMessage(`${BRAND.forgeSync.name} + tri-merge credit pull…`);
     try {
       const result = await pullCredit(matterId);
       setStatusMessage(
@@ -33,7 +33,7 @@ export function IntakeUploader({ matterId }: { matterId: string }) {
       await new Promise((r) => setTimeout(r, 1200));
       window.location.href = `/matters/${matterId}/forge`;
     } catch {
-      setStatusMessage("Continuing to The Forge…");
+      setStatusMessage(`Continuing to ${BRAND.forge.name}…`);
       await new Promise((r) => setTimeout(r, 800));
       window.location.href = `/matters/${matterId}/forge`;
     }
@@ -42,7 +42,7 @@ export function IntakeUploader({ matterId }: { matterId: string }) {
   return (
     <div className="mx-auto max-w-3xl space-y-10 animate-fade-in">
       <header>
-        <Badge className="mb-2">Document Drop</Badge>
+        <Badge className="mb-2">{BRAND.documentDrop.name}</Badge>
         <h1 className="font-display text-3xl font-bold">Collect & sync</h1>
         <p className="mt-2 text-muted-foreground">
           Upload from your computer or collect from the client&apos;s phone. Tap{" "}
@@ -100,7 +100,7 @@ export function IntakeUploader({ matterId }: { matterId: string }) {
         ) : (
           <>
             <Sparkles />
-            Full intake — sync + credit pull → The Forge
+            Full intake — apply + credit pull → {BRAND.forge.short}
             <CreditCard className="opacity-70" />
           </>
         )}

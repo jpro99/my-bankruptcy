@@ -56,7 +56,7 @@ export function ClientPortal({ token }: { token: string }) {
   const handleUpload = async (requestId: string, file: File) => {
     setUploading(requestId);
     try {
-      await uploadPortalDocument(token, requestId, file.name);
+      await uploadPortalDocument(token, requestId, file);
       await load();
     } finally {
       setUploading(null);
@@ -66,7 +66,7 @@ export function ClientPortal({ token }: { token: string }) {
   const handleGeneralUpload = async (file: File) => {
     setUploading("general");
     try {
-      await uploadPortalGeneralDocument(token, file.name);
+      await uploadPortalGeneralDocument(token, file);
       await load();
     } finally {
       setUploading(null);

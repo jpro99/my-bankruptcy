@@ -7,7 +7,7 @@ import { fetchCommandCenter, type MatterProgress } from "@/lib/api-client";
 import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 
-/** Slim progress rail — Scout → Forge → Gavel → Continuum (not a separate destination) */
+/** Case progress rail — Consult → Prep → File → Post-Filing */
 export function ReliefCommandRail({
   matterId,
   activePhase,
@@ -51,7 +51,7 @@ export function ReliefCommandRail({
     },
     {
       id: "gavel" as const,
-      label: "Gavel",
+      label: BRAND.gavel.short,
       full: BRAND.gavel.name,
       href: `/matters/${matterId}/forge?section=seal`,
       done: filed,

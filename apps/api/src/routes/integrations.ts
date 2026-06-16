@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../index.js";
 import { getOutboundEmailConfig } from "../lib/outbound-email.js";
+import { documentStorageStatus } from "../lib/document-storage.js";
 import { PI_FIRM_NAME, PI_FIRM_PHONE, PI_FIRM_URL } from "../lib/follow-up-templates.js";
+import { getCourtReadiness } from "@chapterai/districts";
 
 export const integrationsRouter = new Hono<AppEnv>();
 
@@ -19,6 +21,7 @@ integrationsRouter.get("/status", async (c) => {
           ? "Neon PostgreSQL connected"
           : "Using in-memory demo store (demo-* matters)",
       },
+      documentStorage: documentStorageStatus(),
       outboundEmail: {
         status: email.enabled ? "live" : "mailto_fallback",
         provider: email.provider,
@@ -39,6 +42,10 @@ integrationsRouter.get("/status", async (c) => {
         note:
           "Live CM/ECF requires PACER credentials, district profile, and hardened Playwright bridge",
       },
+      practiceMode: {
+        status: "available",
+        note: "Attorney test workspace — full packet preview, edit every form, sandbox e-file only",
+      },
       counseling: {
         status: "demo_tiers",
         note: "Gold/Relay/Vault UI ready; AOUST provider API partnership required for auto-cert",
@@ -55,11 +62,20 @@ integrationsRouter.get("/status", async (c) => {
       },
     },
     courtConnections: {
-      CACB: { cmEcf: "sandbox_or_live_via_efile_bridge", localForms: ["3015-1.7", "MML", "341"] },
+      CACB: {
+        cmEcf: process.env.EFILE_MODE === "live" ? "live_attempt" : "sandbox",
+        localForms: ["3015-1.7", "MML", "341", "3015-1.01"],
+        riversideDivision: {
+          counties: ["Riverside", "San Bernardino"],
+          courthouse: "Riverside Federal Courthouse",
+          cmEcfBaseUrl: "https://ecf.cacb.uscourts.gov",
+        },
+      },
       CAEB: { cmEcf: "district_routing_ready", localForms: ["3015-1.7", "MML"] },
       CANB: { cmEcf: "district_routing_ready", localForms: ["3015-1.7", "MML"] },
       CASB: { cmEcf: "district_routing_ready", localForms: ["3015-1.7", "MML"] },
     },
+    riversideCourtReadiness: getCourtReadiness({ county: "Riverside", chapter: "7" }),
     filingPackage: {
       formsIncluded: [
         "101",

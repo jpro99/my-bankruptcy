@@ -4,18 +4,18 @@
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-display: var(--font-display), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
-  /* Demand Letter Pro — cream + sapphire + teal accents */
-  --color-background: #fcfcf9;
+  /* Softer gray — easier on eyes; cards stay light */
+  --color-background: #e4e7ec;
   --color-foreground: #13343b;
-  --color-card: #fffffd;
+  --color-card: #f8f9fb;
   --color-card-foreground: #13343b;
   --color-primary: #1557d9;
-  --color-primary-foreground: #fcfcf9;
-  --color-primary-muted: #eff6ff;
+  --color-primary-foreground: #f8f9fb;
+  --color-primary-muted: #dbeafe;
   --color-accent: #21808d;
-  --color-accent-foreground: #fcfcf9;
-  --color-muted: #f0f4fb;
-  --color-muted-foreground: #626c71;
+  --color-accent-foreground: #f8f9fb;
+  --color-muted: #d8dde6;
+  --color-muted-foreground: #4b5563;
   --color-border: rgba(94, 82, 64, 0.2);
   --color-ring: #21808d;
   --color-success: #21808d;
@@ -40,7 +40,14 @@
 
   --color-firm-navy: #13343b;
   --color-firm-gold: #21808d;
-  --color-firm-cream: #fcfcf9;
+  --color-firm-cream: #f8f9fb;
+}
+
+.test-mode-shell {
+  --color-background: #d4d8e0;
+  --color-card: #f3f4f7;
+  --color-muted: #c8ced8;
+  min-height: 100vh;
 }
 
 @layer base {

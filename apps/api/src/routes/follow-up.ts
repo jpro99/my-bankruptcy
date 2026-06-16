@@ -83,7 +83,7 @@ followUpRouter.post(
     addMatterNote(matterId, {
       text: `Discharge follow-up${body.includePiCrossSell ? " + PI cross-sell" : ""} sent to ${body.clientEmail}`,
       source: "system",
-      authorLabel: "Continuum",
+      authorLabel: "Post-Filing",
     });
 
     return c.json({

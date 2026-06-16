@@ -24,14 +24,14 @@ import { Eye } from "lucide-react";
 import "@/styles/staff-chrome.css";
 
 const FORGE_SECTIONS = [
-  { id: "dossier", label: "Documents", icon: "📁", blurb: "Client Vault uploads & petition sync" },
-  { id: "messages", label: "Client Vault", icon: "💬", blurb: "Two-way messages & invites" },
+  { id: "dossier", label: "Documents", icon: "📁", blurb: `${BRAND.clientPortal.short} uploads & apply to petition` },
+  { id: "messages", label: BRAND.clientPortal.name, icon: "💬", blurb: "Portal messages & invite link" },
   { id: "credit", label: "Credit", icon: "💳", blurb: "Tri-merge → Schedules D–G" },
   { id: "schedules", label: "Schedules", icon: "📊", blurb: "A/B through J, exemptions" },
   { id: "petition", label: "Petition review", icon: "⚒️", blurb: "Approve every field" },
   { id: "court", label: "Court preview", icon: "⚖️", blurb: "Live pages — print & send to court" },
-  { id: "seal", label: "Seal Check", icon: "👍", blurb: "Final QA + attorney sign-off" },
-  { id: "file", label: "Filing packet", icon: "📦", blurb: "Bundle → Strike The Gavel" },
+  { id: "seal", label: BRAND.sealCheck.name, icon: "👍", blurb: "Document QA + attorney sign-off" },
+  { id: "file", label: "Filing packet", icon: "📦", blurb: `Court bundle → ${BRAND.gavel.action}` },
 ] as const;
 
 export type ForgeSectionId = (typeof FORGE_SECTIONS)[number]["id"];
@@ -102,6 +102,9 @@ function ForgeWorkspaceInner({ matterId }: { matterId: string }) {
             <Eye className="size-4 inline" aria-hidden />
             Court preview
           </button>
+          <Link href={`/matters/${matterId}/practice`} className="app-btn app-btn--tonal">
+            {BRAND.practiceMode.short} filing
+          </Link>
           <button
             type="button"
             className="app-btn app-btn--primary"
@@ -119,7 +122,7 @@ function ForgeWorkspaceInner({ matterId }: { matterId: string }) {
       {syncMsg && <p className="text-sm text-primary mb-2">{syncMsg}</p>}
 
       <div className="forge-workspace-layout">
-        <nav className="forge-section-nav" aria-label="Forge sections">
+        <nav className="forge-section-nav" aria-label="Petition prep sections">
           {FORGE_SECTIONS.map((s) => (
             <button
               key={s.id}

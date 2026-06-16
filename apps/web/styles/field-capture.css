@@ -655,6 +655,59 @@ html:has(.field-capture-layout-root) body {
   text-decoration: underline;
 }
 
+.field-capture-desktop-gate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 1.5rem;
+  background: #0f172a;
+}
+
+.field-capture-desktop-gate__card {
+  max-width: 420px;
+  padding: 1.75rem;
+  border-radius: 16px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  color: #e2e8f0;
+  text-align: center;
+}
+
+.field-capture-desktop-gate__icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 1rem;
+  color: #38bdf8;
+}
+
+.field-capture-desktop-gate__card h1 {
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin: 0 0 0.75rem;
+  color: #f8fafc;
+}
+
+.field-capture-desktop-gate__card p {
+  font-size: 0.9rem;
+  line-height: 1.5;
+  margin: 0 0 0.75rem;
+  color: #94a3b8;
+}
+
+.field-capture-desktop-gate__url {
+  font-size: 0.8rem !important;
+  word-break: break-all;
+}
+
+.field-capture-desktop-gate__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  margin-top: 1.25rem;
+}
+
 /* Field capture — touch phones: full bleed, largest readable type */
 @media (pointer: coarse), (max-width: 932px) {
   .field-capture-shell--drive-home {

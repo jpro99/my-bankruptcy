@@ -33,7 +33,7 @@ export const CALIFORNIA_DISTRICTS: Record<CaliforniaDistrict, DistrictProfile> =
     courtName: "U.S. Bankruptcy Court — Central District of California",
     cmEcfBaseUrl: "https://ecf.cacb.uscourts.gov",
     divisions: CACB_DIVISIONS,
-    localFormsRequired: ["3015-1.7", "MML", "cert-counsel"],
+    localFormsRequired: ["3015-1.7", "MML", "341", "cert-counsel"],
     primaryCounties: [
       "Los Angeles",
       "Orange",

@@ -31,20 +31,20 @@ export const BANKRUPTCY_EVENT_TEMPLATES: Record<
     label: "Documents due",
     defaultTitle: (d) => `Docs due — ${d}`,
     defaultDetails: (d, id) =>
-      `Client document deadline (paystubs, ID, tax returns)\nMatter: ${id}\nClient Vault upload`,
+      `Client document deadline (paystubs, ID, tax returns)\nMatter: ${id}\nClient portal upload`,
     defaultDurationMin: 15,
   },
   credit_counseling: {
     label: "Credit counseling due",
     defaultTitle: (d) => `Course 1 due — ${d}`,
     defaultDetails: (d, id) =>
-      `BAPCPA credit counseling (before filing)\nMatter: ${id}\nCounseling Bridge`,
+      `BAPCPA credit counseling (before filing)\nMatter: ${id}\nCredit counseling`,
     defaultDurationMin: 30,
   },
   filing_target: {
     label: "Target filing date",
     defaultTitle: (d) => `Target filing — ${d}`,
-    defaultDetails: (d, id) => `Petition filing target\nMatter: ${id}\nThe Forge → The Gavel`,
+    defaultDetails: (d, id) => `Petition filing target\nMatter: ${id}\nPetition prep → E-file`,
     defaultDurationMin: 120,
   },
   meeting_341: {
@@ -63,7 +63,7 @@ export const BANKRUPTCY_EVENT_TEMPLATES: Record<
   fee_payment: {
     label: "Fee / retainer due",
     defaultTitle: (d) => `Fee due — ${d}`,
-    defaultDetails: (d, id) => `Trust Ledger payment / retainer\nMatter: ${id}`,
+    defaultDetails: (d, id) => `Fees & trust payment / retainer\nMatter: ${id}`,
     defaultDurationMin: 15,
   },
 };
@@ -120,19 +120,19 @@ export const BANKRUPTCY_EMAIL_TEMPLATES: Record<
     label: "Welcome — next steps",
     subject: (d) => `Your bankruptcy intake — ${d}`,
     body: (d, id) =>
-      `Hi ${d},\n\nThank you for choosing our office for your bankruptcy matter.\n\nNext steps:\n1. Complete the secure Client Vault upload (ID, pay stubs, bank statements)\n2. Complete credit counseling (Course 1) before we file\n\nMatter reference: ${id}\n\nWe will be in touch shortly.\n\n— Your bankruptcy attorney`,
+      `Hi ${d},\n\nThank you for choosing our office for your bankruptcy matter.\n\nNext steps:\n1. Complete the secure client portal upload (ID, pay stubs, bank statements)\n2. Complete credit counseling (Course 1) before we file\n\nMatter reference: ${id}\n\nWe will be in touch shortly.\n\n— Your bankruptcy attorney`,
   },
   documents_request: {
     label: "Request documents",
     subject: (d) => `Documents needed — ${d}`,
     body: (d) =>
-      `Hi ${d},\n\nPlease upload the following to your secure Client Vault link:\n• Photo ID\n• Pay stubs (last 60 days)\n• Bank statements (last 3 months)\n• Tax returns (last 2 years)\n\nReply if you have questions.\n\n— Your bankruptcy attorney`,
+      `Hi ${d},\n\nPlease upload the following to your secure client portal link:\n• Photo ID\n• Pay stubs (last 60 days)\n• Bank statements (last 3 months)\n• Tax returns (last 2 years)\n\nReply if you have questions.\n\n— Your bankruptcy attorney`,
   },
   portal_link: {
-    label: "Send Client Vault link",
+    label: "Send client portal link",
     subject: (d) => `Secure upload link — ${d}`,
     body: (d, _id, extra) =>
-      `Hi ${d},\n\nUse your encrypted Client Vault to upload documents from your phone:\n\n${extra ?? "[Client Vault link will be pasted here]"}\n\nThis link is private to you.\n\n— Your bankruptcy attorney`,
+      `Hi ${d},\n\nUse your encrypted client portal to upload documents from your phone:\n\n${extra ?? "[Client portal link will be pasted here]"}\n\nThis link is private to you.\n\n— Your bankruptcy attorney`,
   },
   "341_reminder": {
     label: "341 meeting reminder",

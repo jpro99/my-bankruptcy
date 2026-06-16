@@ -37,6 +37,13 @@ describe("California districts", () => {
     expect(div.id).toBe("la");
   });
 
+  it("routes Riverside and San Bernardino to CACB Riverside division", () => {
+    expect(getDistrictForCounty("Riverside")).toBe("CACB");
+    expect(getDistrictForCounty("San Bernardino")).toBe("CACB");
+    expect(getDefaultDivision("CACB", "Riverside").id).toBe("riverside");
+    expect(getDefaultDivision("CACB", "San Bernardino").id).toBe("riverside");
+  });
+
   it("CACB profile includes RARA local form", () => {
     const profile = getDistrictProfile("CACB");
     expect(profile.localFormsRequired).toContain("3015-1.7");

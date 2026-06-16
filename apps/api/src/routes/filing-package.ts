@@ -13,5 +13,6 @@ filingRouter.get("/matter/:matterId/package", async (c) => {
 filingRouter.get("/matter/:matterId/court-preview", async (c) => {
   const matterId = c.req.param("matterId");
   if (!isDemoMatter(matterId)) return c.json({ error: "Matter not found" }, 404);
-  return c.json({ preview: getCourtPacketPreview(matterId) });
+  const practice = c.req.query("practice") === "1";
+  return c.json({ preview: getCourtPacketPreview(matterId, { practice }) });
 });

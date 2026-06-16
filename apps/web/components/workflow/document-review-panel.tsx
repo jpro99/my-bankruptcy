@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { CheckCircle2, Loader2 } from "lucide-react";
 import { fetchMatterDossier, verifyIntakeDocument, type IntakeDocument } from "@/lib/api-client";
+import { BRAND } from "@/lib/brand";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -55,7 +56,7 @@ export function DocumentReviewPanel({ matterId }: { matterId: string }) {
 
       {documents.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          No documents yet — client uploads appear from Client Vault or Document Drop.
+          No documents yet — client uploads appear from the {BRAND.clientPortal.name.toLowerCase()} or {BRAND.documentDrop.name.toLowerCase()}.
         </p>
       ) : (
         <ul className="space-y-2">

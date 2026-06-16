@@ -79,7 +79,7 @@ export function FinalCheckPanel({ matterId }: { matterId: string }) {
         }`}
       >
         <p className="font-semibold">
-          {review.readyForGavel ? "Cleared to Strike The Gavel" : "Not cleared for filing yet"}
+          {review.readyForGavel ? BRAND.gavel.clearedLabel : "Not cleared for filing yet"}
         </p>
         {!review.readyForGavel && (
           <p className="mt-1 text-xs text-muted-foreground">

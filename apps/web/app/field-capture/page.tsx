@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import FieldCaptureClient from "@/components/field-capture/field-capture-client";
+import { FieldCaptureGate } from "@/components/field-capture/field-capture-gate";
 
 export default function FieldCapturePage() {
   return (
@@ -11,7 +11,7 @@ export default function FieldCapturePage() {
           </div>
         }
       >
-        <FieldCaptureClient />
+        <FieldCaptureGate />
       </Suspense>
     </main>
   );

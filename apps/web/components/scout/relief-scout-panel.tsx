@@ -320,7 +320,7 @@ export function ReliefScoutPanel({ matterId }: { matterId: string }) {
               )}
               <Button asChild variant="secondary">
                 <Link href={`/matters/${matterId}/forge?section=messages`}>
-                  Send Client Vault link
+                  {BRAND.clientPortal.inviteAction}
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>

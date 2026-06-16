@@ -25,10 +25,12 @@ import type { MatterInvoice } from "@chapterai/billing";
 import { generateInvoice } from "@chapterai/billing";
 import type { CaliforniaDistrict } from "@chapterai/districts";
 import {
+  getCourtReadiness,
   getDefaultDivision,
   getDistrictForCounty,
   getDistrictProfile,
 } from "@chapterai/districts";
+import { computeMatterProgress } from "@chapterai/matter-guide";
 import { assemblePetition, type PetitionView, type ValuationProvenance } from "@chapterai/petition";
 import type { ProvenanceEventType } from "@chapterai/provenance";
 import { exportProvenanceBundle, type ProvenanceRecord } from "@chapterai/provenance";
@@ -130,6 +132,10 @@ export interface IntakeDocument {
   status: IntakeDocStatus;
   appliedFieldIds?: string[];
   mimeType?: string;
+  storageKey?: string;
+  sha256?: string;
+  sizeBytes?: number;
+  stored?: boolean;
   staffVerified?: boolean;
   staffVerifiedAt?: string;
   staffVerifiedBy?: string;
@@ -167,6 +173,16 @@ export interface DemoMatterSummary {
   clientPhone?: string;
   clientFirstName?: string;
   clientLastName?: string;
+  /** Case pipeline — one-screen ops (Best Case style) */
+  overallPercent: number;
+  currentPhase: "consult" | "prep" | "file" | "post-filing";
+  currentStep: string;
+  balanceDue: string;
+  paidInFull: boolean;
+  lastContactAt?: string;
+  lastContactKind?: "portal" | "note";
+  county?: string;
+  divisionName?: string;
 }
 
 export type ScheduleBucket = "D" | "E" | "F" | "G";
@@ -412,6 +428,11 @@ const DEFAULT_ASSETS: DemoAsset[] = [
 const FIRM_ID = "00000000-0000-0000-0000-000000000010";
 const DEV_USER_ID = "00000000-0000-0000-0000-000000000001";
 
+/** Dev/demo firm id — matches @chapterai/auth DEV_SESSION */
+export function getDemoFirmId(): string {
+  return FIRM_ID;
+}
+
 function seedProvenanceForFields(
   matterId: string,
   fields: DemoReviewField[]
@@ -433,7 +454,7 @@ function seedProvenanceForFields(
 }
 
 function buildInitialState(matterId: string): DemoMatterState {
-  const county = "Los Angeles";
+  const county = "Riverside";
   const district = getDistrictForCounty(county);
   const division = getDefaultDivision(district, county);
   const fields = [...INITIAL_FIELDS];
@@ -465,7 +486,7 @@ function buildProspectState(
   matterId: string,
   input: { debtorDisplayName: string; chapter?: "7" | "13"; county?: string }
 ): DemoMatterState {
-  const county = input.county ?? "Los Angeles";
+  const county = input.county ?? "Riverside";
   const district = getDistrictForCounty(county);
   const division = getDefaultDivision(district, county);
   const chapter = input.chapter ?? "7";
@@ -615,6 +636,23 @@ export function getDemoDistrictInfo(matterId: string): DemoDistrictInfo {
     divisionId: state.divisionId,
     divisionName: state.divisionName,
     courtName: profile.courtName,
+  };
+}
+
+export function getDemoCourtReadiness(matterId: string) {
+  const state = getOrCreate(matterId);
+  const efileMode = process.env.EFILE_MODE === "live" ? "live" : "sandbox";
+  const readiness = getCourtReadiness({
+    county: state.county,
+    chapter: state.chapter,
+    efileMode,
+  });
+  const packetFormIds = getFullPacketFormIds(state.chapter);
+  return {
+    matterId,
+    readiness,
+    formsInPracticePacket: packetFormIds.length,
+    formsMatchDistrict: readiness.requiredForms.length === packetFormIds.length,
   };
 }
 
@@ -1064,6 +1102,29 @@ export function getDemoMatterMeta(matterId: string) {
   };
 }
 
+/** Full bankruptcy petition packet for attorney practice / court preview */
+export function getFullPacketFormIds(chapter: "7" | "13"): string[] {
+  return [
+    "101",
+    "106A/B",
+    "106C",
+    "106D",
+    "106E/F",
+    "106G",
+    "106H",
+    "106I",
+    "106J",
+    "107",
+    chapter === "13" ? "122C-1" : "122A-1",
+    chapter === "13" ? "122C-2" : "122A-2",
+    "cert-counsel",
+    "3015-1.7",
+    "MML",
+    "341",
+    ...(chapter === "13" ? ["3015-1.01"] : []),
+  ];
+}
+
 export function getApprovedFormIds(matterId: string): string[] {
   const state = getOrCreate(matterId);
   const formIds = new Set<string>();
@@ -1072,27 +1133,8 @@ export function getApprovedFormIds(matterId: string): string[] {
       formIds.add(field.formId);
     }
   }
-  // Demo matter includes full petition packet once fields approved
   if (formIds.size >= state.reviewFields.length && state.reviewFields.length > 0) {
-    return [
-      "101",
-      "106A/B",
-      "106C",
-      "106D",
-      "106E/F",
-      "106G",
-      "106H",
-      "106I",
-      "106J",
-      "107",
-      state.chapter === "13" ? "122C-1" : "122A-1",
-      state.chapter === "13" ? "122C-2" : "122A-2",
-      "cert-counsel",
-      "3015-1.7",
-      "MML",
-      "341",
-      ...(state.chapter === "13" ? ["3015-1.01"] : []),
-    ];
+    return getFullPacketFormIds(state.chapter);
   }
   return [...formIds];
 }
@@ -1263,18 +1305,7 @@ export function submitPortalUpload(
     requestId,
   });
 
-  addMatterNote(matterId, {
-    text: `Client uploaded: ${req.title} (${fileName})`,
-    source: "system",
-    authorLabel: "Client Vault",
-  });
-
-  state.portalActivity.unshift({
-    id: `act-${crypto.randomUUID().slice(0, 8)}`,
-    alertType: "document_uploaded",
-    body: `${req.title}: ${fileName}`,
-    createdAt: new Date().toISOString(),
-  });
+  recordPortalRequestUploadActivity(matterId, req.title, fileName);
 
   saveSnapshot();
   return req;
@@ -1382,17 +1413,22 @@ function inferDocumentType(fileName: string, requestTitle?: string): string {
 export function addIntakeDocument(
   matterId: string,
   input: {
+    id?: string;
     fileName: string;
     documentType?: string;
     uploadedBy: "client" | "attorney";
     source: IntakeDocument["source"];
     requestId?: string;
     mimeType?: string;
+    storageKey?: string;
+    sha256?: string;
+    sizeBytes?: number;
+    stored?: boolean;
   }
 ): IntakeDocument {
   const state = getOrCreate(matterId);
   const doc: IntakeDocument = {
-    id: `doc-${crypto.randomUUID().slice(0, 8)}`,
+    id: input.id ?? `doc-${crypto.randomUUID().slice(0, 8)}`,
     fileName: input.fileName,
     documentType: input.documentType ?? inferDocumentType(input.fileName),
     uploadedAt: new Date().toISOString(),
@@ -1401,10 +1437,22 @@ export function addIntakeDocument(
     requestId: input.requestId,
     status: "received",
     mimeType: input.mimeType,
+    storageKey: input.storageKey,
+    sha256: input.sha256,
+    sizeBytes: input.sizeBytes,
+    stored: input.stored,
   };
   state.intakeDocuments.push(doc);
   saveSnapshot();
   return doc;
+}
+
+export function getIntakeDocument(
+  matterId: string,
+  documentId: string
+): IntakeDocument | null {
+  const state = getOrCreate(matterId);
+  return state.intakeDocuments.find((d) => d.id === documentId) ?? null;
 }
 
 export function addMatterNote(
@@ -1699,9 +1747,9 @@ export function applyPendingIntake(matterId: string): {
 
   if (pending.length > 0) {
     addMatterNote(matterId, {
-      text: `Forge Sync applied ${pending.length} document(s) — ${fieldIds.length} petition field(s) updated`,
+      text: `Apply to petition — ${pending.length} document(s) — ${fieldIds.length} petition field(s) updated`,
       source: "system",
-      authorLabel: "Forge Sync",
+      authorLabel: "Apply to Petition",
     });
   }
 
@@ -1712,7 +1760,7 @@ export function applyPendingIntake(matterId: string): {
     fieldIds,
     message:
       pending.length === 0
-        ? "No new documents to sync — upload from Client Vault or Document Drop first"
+        ? "No new documents to apply — upload from client portal or file upload first"
         : `Synced ${pending.length} document(s) into the petition`,
   };
 }
@@ -1846,22 +1894,73 @@ export function createDemoMatter(input: {
 }
 
 function summarizeDemoMatter(state: DemoMatterState): DemoMatterSummary {
+  const pending = state.reviewFields.filter((f) => f.approvalState === "pending").length;
+  const fields = state.reviewFields;
+  const balanceDue = state.billing?.balanceDue ?? "2908.00";
+  const paidInFull = parseFloat(balanceDue) <= 0;
+  const petition = assembleDemoPetition(state.matterId);
+  const counselingComplete = state.portal?.counseling.course1.status === "complete";
+  const pendingIntake = state.intakeDocuments.filter((d) => d.status !== "applied").length;
+  const portalOpen = state.portalMessages.filter(
+    (m) => m.direction === "inbound" && !m.readAt
+  ).length;
+
+  const progress = computeMatterProgress({
+    matterId: state.matterId,
+    chapter: state.chapter,
+    debtorDisplayName: state.debtorDisplayName,
+    intakeComplete: fields.length > 0,
+    reviewComplete: pending === 0 && fields.length > 0,
+    pendingFieldCount: pending,
+    creditPulled: state.creditPulled,
+    preflightReady: pending === 0 && fields.length > 0 && counselingComplete,
+    filed: !!state.filing,
+    autopilotActive: !!state.autopilot,
+    clientPortalRequestsOpen: portalOpen,
+    balanceDue,
+    petitionCompletionPercent: petition.overallCompletion,
+    districtConfigured: true,
+    counselingComplete,
+    consultComplete: !!state.consult?.evaluatedAt,
+    pendingIntakeCount: pendingIntake,
+  });
+
+  let currentPhase: DemoMatterSummary["currentPhase"] = "consult";
+  if (state.filing) currentPhase = "post-filing";
+  else if (progress.readyToFile) currentPhase = "file";
+  else if (state.consult?.evaluatedAt) currentPhase = "prep";
+
+  const contactCandidates: Array<{ at: string; kind: "portal" | "note" }> = [];
+  for (const n of state.notes) contactCandidates.push({ at: n.createdAt, kind: "note" });
+  for (const m of state.portalMessages) {
+    contactCandidates.push({ at: m.createdAt, kind: "portal" });
+  }
+  contactCandidates.sort((a, b) => b.at.localeCompare(a.at));
+  const last = contactCandidates[0];
+
   return {
     matterId: state.matterId,
     debtorDisplayName: state.debtorDisplayName,
     chapter: state.chapter,
     status: state.filing ? "filed" : state.consult?.takeCase === "yes" ? "active" : "prospect",
     consultComplete: !!state.consult?.evaluatedAt,
-    pendingDocuments: state.intakeDocuments.filter((d) => d.status !== "applied").length,
+    pendingDocuments: pendingIntake,
     noteCount: state.notes.length,
-    unreadPortalMessages: state.portalMessages.filter(
-      (m) => m.direction === "inbound" && !m.readAt
-    ).length,
+    unreadPortalMessages: portalOpen,
     createdAt: state.createdAt,
     clientEmail: state.clientEmail,
     clientPhone: state.clientPhone,
     clientFirstName: state.clientFirstName,
     clientLastName: state.clientLastName,
+    overallPercent: progress.overallPercent,
+    currentPhase,
+    currentStep: progress.nextAction?.title ?? progress.tagline,
+    balanceDue,
+    paidInFull,
+    lastContactAt: last?.at,
+    lastContactKind: last?.kind,
+    county: state.county,
+    divisionName: state.divisionName,
   };
 }
 
@@ -1910,7 +2009,7 @@ function seedFiledTestMatter(): void {
     unsecuredDebt: "42000.00",
     chapterPreference: "7",
     takeCase: "yes",
-    attorneyNotes: "Test matter — Ch 7 recommended, filed for Continuum / discharge follow-up testing.",
+    attorneyNotes: "Test matter — Ch 7 recommended, filed for Post-Filing / discharge follow-up testing.",
     evaluatedAt: "2025-03-02T00:00:00.000Z",
     recommendation: "chapter_7",
     meansTestStatus: "pass",
@@ -1955,7 +2054,7 @@ function seedFiledTestMatter(): void {
     receiptUrl: undefined,
     documentsFiled: 16,
     district: "CACB",
-    message: "Sandbox filing — use this matter to test Continuum and discharge + PI follow-up.",
+    message: "Sandbox filing — use this matter to test Post-Filing and discharge + PI follow-up.",
   };
 
   state.autopilot = generateTimeline({
@@ -2007,7 +2106,7 @@ function seedFiledTestMatter(): void {
     },
     {
       id: "note-filed",
-      text: "Sandbox filed ~95 days ago — discharge track task should be due/overdue on Continuum.",
+      text: "Sandbox filed ~95 days ago — discharge track task should be due/overdue on Post-Filing.",
       source: "system",
       createdAt: new Date().toISOString(),
       authorLabel: "Demo seed",
@@ -2067,7 +2166,7 @@ function seedIntakeTestMatter(): void {
   state.notes = [
     {
       id: "note-intake",
-      text: "TEST matter — run Relief Scout, then Forge Sync from Document Drop.",
+      text: "TEST matter — run Initial Consult, then Apply to Petition from File Upload.",
       source: "system",
       createdAt: new Date().toISOString(),
       authorLabel: "Demo seed",
@@ -2158,12 +2257,36 @@ export function submitPortalGeneralUpload(
     source: "portal_general",
   });
 
+  recordPortalGeneralUploadActivity(matterId, fileName);
+  return doc;
+}
+
+export function recordPortalRequestUploadActivity(
+  matterId: string,
+  title: string,
+  fileName: string
+): void {
+  addMatterNote(matterId, {
+    text: `Client uploaded: ${title} (${fileName})`,
+    source: "system",
+    authorLabel: "Client Portal",
+  });
+  const state = getOrCreate(matterId);
+  state.portalActivity.unshift({
+    id: `act-${crypto.randomUUID().slice(0, 8)}`,
+    alertType: "document_uploaded",
+    body: `${title}: ${fileName}`,
+    createdAt: new Date().toISOString(),
+  });
+  saveSnapshot();
+}
+
+export function recordPortalGeneralUploadActivity(matterId: string, fileName: string): void {
   addMatterNote(matterId, {
     text: `Client uploaded additional file: ${fileName}`,
     source: "system",
-    authorLabel: "Client Vault",
+    authorLabel: "Client Portal",
   });
-
   const state = getOrCreate(matterId);
   state.portalActivity.unshift({
     id: `act-${crypto.randomUUID().slice(0, 8)}`,
@@ -2172,8 +2295,24 @@ export function submitPortalGeneralUpload(
     createdAt: new Date().toISOString(),
   });
   saveSnapshot();
+}
 
-  return doc;
+export function markPortalRequestUploaded(
+  token: string,
+  requestId: string,
+  fileName: string
+): PortalDocumentRequest | null {
+  const matterId = resolvePortalMatterId(token);
+  if (!matterId) return null;
+  const state = getOrCreate(matterId);
+  const portal = getDemoPortal(token);
+  const req = portal.requests.find((r) => r.id === requestId);
+  if (!req) return null;
+  req.status = "uploaded";
+  req.uploadedFileName = fileName;
+  state.portal = portal;
+  saveSnapshot();
+  return req;
 }
 
 export function getPortalStaffData(matterId: string) {
@@ -2231,7 +2370,7 @@ export function addPortalClientMessage(token: string, body: string): PortalMessa
   addMatterNote(matterId, {
     text: `Client message: ${body}`,
     source: "system",
-    authorLabel: "Client Vault",
+    authorLabel: "Client Portal",
   });
   saveSnapshot();
   return msg;
@@ -2355,7 +2494,7 @@ export function updateFinalReviewStep(
   }
   if (input.complete && step === "attorneySignOff") {
     addMatterNote(matterId, {
-      text: `Attorney final sign-off — cleared to Strike The Gavel (${input.attorneyName ?? FIRM_ATTORNEY_NAME})`,
+      text: `Attorney final sign-off — cleared to file petition (${input.attorneyName ?? FIRM_ATTORNEY_NAME})`,
       source: "system",
       authorLabel: "Final Check",
     });
@@ -2415,16 +2554,31 @@ export interface AttorneyToolLink {
   icon: string;
 }
 
-export function getCourtPacketPreview(matterId: string) {
+export function getCourtPacketPreview(
+  matterId: string,
+  options?: { practice?: boolean }
+) {
   const state = getOrCreate(matterId);
-  const pkg = getFilingPackagePreview(matterId);
+  const practice = options?.practice === true;
+  const efileMode = (process.env.EFILE_MODE === "live" ? "live" : "sandbox") as
+    | "live"
+    | "sandbox";
+  const formIds = practice
+    ? getFullPacketFormIds(state.chapter)
+    : getApprovedFormIds(matterId);
   const petition = assembleDemoPetition(matterId);
   const finalReview = getFinalReview(matterId);
 
   const scheduleByFormId = new Map(petition.schedules.map((s) => [s.formId, s]));
   const pages: CourtPacketPagePreview[] = [];
 
-  for (const doc of pkg.documents) {
+  for (const formId of formIds) {
+    const doc = {
+      formId,
+      label: formLabel(formId),
+      eventCode: cmecfEventCode(formId),
+      status: "ready_for_preflight" as const,
+    };
     const schedule = scheduleByFormId.get(doc.formId);
     const reviewFields = state.reviewFields.filter((f) => f.formId === doc.formId);
     const fields = schedule
@@ -2473,7 +2627,7 @@ export function getCourtPacketPreview(matterId: string) {
   const attorneyTools: AttorneyToolLink[] = [
     {
       id: "scout",
-      label: "Relief Scout",
+      label: "Initial Consult",
       description: "Income, expenses, means test, take-case decision",
       href: `/matters/${matterId}/scout`,
       icon: "🎯",
@@ -2481,7 +2635,7 @@ export function getCourtPacketPreview(matterId: string) {
     {
       id: "documents",
       label: "Documents",
-      description: "Uploads, paystubs, W-2s, Client Vault",
+      description: "Uploads, paystubs, W-2s, client portal",
       href: `/matters/${matterId}/forge?section=dossier`,
       icon: "📁",
     },
@@ -2519,7 +2673,7 @@ export function getCourtPacketPreview(matterId: string) {
       : []),
     {
       id: "seal",
-      label: "Seal Check",
+      label: "Final Sign-Off",
       description: "Documents QA, numbers QA, attorney sign-off",
       href: `/matters/${matterId}/forge?section=seal`,
       icon: "👍",
@@ -2538,19 +2692,29 @@ export function getCourtPacketPreview(matterId: string) {
       href: `/matters/${matterId}/audit`,
       icon: "🔍",
     },
+    {
+      id: "practice",
+      label: "Practice filing",
+      description: "Review every court paper before sandbox e-file",
+      href: `/matters/${matterId}/practice`,
+      icon: "🧪",
+    },
   ];
 
   return {
     matterId,
     debtorName: state.debtorDisplayName,
     chapter: state.chapter,
-    district: pkg.district,
-    divisionName: pkg.divisionName,
+    district: state.district,
+    divisionName: state.divisionName,
     petitionCompletion: petition.overallCompletion,
     readyForGavel: finalReview.readyForGavel,
     pages,
     attorneyTools,
     assembledAt: petition.assembledAt,
+    practiceMode: practice,
+    efileMode,
+    liveFilingBlocked: practice || efileMode !== "live",
   };
 }
 
@@ -2566,7 +2730,7 @@ function editSurfaceForForm(
     return { href: `/matters/${matterId}/forge?section=schedules`, label: "Edit on schedules" };
   }
   if (formId.startsWith("122")) {
-    return { href: `/matters/${matterId}/scout`, label: "Edit in Relief Scout" };
+    return { href: `/matters/${matterId}/scout`, label: "Edit in initial consult" };
   }
   if (formId === "cert-counsel") {
     return { href: `/matters/${matterId}/forge?section=dossier`, label: "Edit documents" };

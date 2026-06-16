@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { fetchIntegrationsStatus } from "@/lib/api-client";
+import { BRAND } from "@/lib/brand";
 
 type IntegrationBlock = {
   status: string;
@@ -37,7 +38,7 @@ export function IntegrationsPanel() {
   const rows: { label: string; block: IntegrationBlock }[] = [
     { label: "Database", block: data.integrations.database },
     { label: "Outbound email", block: data.integrations.outboundEmail },
-    { label: "Client Vault", block: data.integrations.clientPortal },
+    { label: BRAND.clientPortal.name, block: data.integrations.clientPortal },
     { label: "Credit pull", block: data.integrations.creditPull },
     { label: "CM/ECF e-file", block: data.integrations.efile },
     { label: "Counseling", block: data.integrations.counseling },

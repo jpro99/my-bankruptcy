@@ -23,7 +23,7 @@ interface GavelButtonProps {
   disabled?: boolean;
 }
 
-/** The Gavel — seal check then e-file */
+/** E-file — final sign-off then submit petition */
 export function GavelButton({ matterId, chapter, disabled }: GavelButtonProps) {
   const [open, setOpen] = useState(false);
   const [report, setReport] = useState<PreflightReport | null>(null);
@@ -67,7 +67,7 @@ export function GavelButton({ matterId, chapter, disabled }: GavelButtonProps) {
         autopilotTaskCount: res.autopilot?.taskCount,
       });
     } catch {
-      setResult({ caseNumber: "", message: "Seal Check blocked filing — resolve errors first." });
+      setResult({ caseNumber: "", message: `${BRAND.sealCheck.name} blocked filing — resolve errors first.` });
     } finally {
       setFiling(false);
     }
@@ -146,7 +146,7 @@ export function GavelButton({ matterId, chapter, disabled }: GavelButtonProps) {
               ) : loading ? (
                 <div className="flex flex-col items-center gap-3 py-12">
                   <Loader2 className="size-8 animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">Running Seal Check…</p>
+                  <p className="text-sm text-muted-foreground">Running {BRAND.sealCheck.name.toLowerCase()}…</p>
                 </div>
               ) : report ? (
                 <>

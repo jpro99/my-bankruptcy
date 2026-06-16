@@ -85,7 +85,7 @@ export function AutopilotDashboard({ matterId }: AutopilotDashboardProps) {
           <h2 className="font-display text-xl font-bold">{BRAND.continuum.name} unlocks after filing</h2>
           <p className="text-sm leading-relaxed text-muted-foreground">
             {message ??
-              `Strike ${BRAND.gavel.name} from ${BRAND.forge.name} to start the post-petition path.`}
+              `${BRAND.gavel.action} from ${BRAND.forge.name} to start the post-petition path.`}
           </p>
           <Button asChild>
             <Link href={`/matters/${matterId}/forge`}>Go to {BRAND.forge.name}</Link>

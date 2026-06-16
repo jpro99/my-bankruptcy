@@ -168,7 +168,7 @@ export function SignupForm() {
 
           <Button type="submit" size="lg" className="w-full" disabled={loading}>
             {loading ? <Loader2 className="animate-spin" /> : <ArrowRight />}
-            Create firm & enter Relief Command
+            Create firm & open {BRAND.command.name.toLowerCase()}
           </Button>
         </form>
 

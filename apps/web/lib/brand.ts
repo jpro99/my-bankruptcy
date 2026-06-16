@@ -1,141 +1,325 @@
 /** Practice vocabulary — firm identity lives in lib/firm.ts */
 
+
+
 import { FIRM } from "./firm";
 
+
+
 export const BRAND = {
+
   name: FIRM.name,
+
   tagline: FIRM.tagline,
+
   shortTag: "Bankruptcy & debt relief",
 
-  /** Relief Command — progress rail across Scout → Forge → Gavel → Continuum */
+
+
+  /** Case progress rail — Consult → Prep → File → Post-Filing */
+
   command: {
+
     id: "command",
-    name: "Relief Command",
-    short: "Command",
-    description: "Where you are in the pipeline — not a separate workspace.",
+
+    name: "Case Progress",
+
+    short: "Progress",
+
+    description: "Where the case stands — consult through discharge.",
+
   },
 
-  /** The Forge — all pre-filing attorney work in one place */
+
+
+  /** Petition Prep — documents, credit, schedules, review before filing */
+
   forge: {
+
     id: "forge",
-    name: "The Forge",
-    short: "Forge",
-    tagline: "Where the bankruptcy is built — documents, credit, schedules, petition, filing.",
-    description: "Everything after Relief Scout lives here until you Strike The Gavel.",
+
+    name: "Petition Prep",
+
+    short: "Prep",
+
+    tagline: "Build the petition — documents, credit, schedules, review, and filing packet.",
+
+    description: "Everything after initial consult until you file the petition.",
+
     legacyPath: "cockpit",
+
   },
 
-  /** Continuum — post-filing through discharge */
+
+
+  /** Post-filing — 341 through discharge */
+
   continuum: {
+
     id: "continuum",
-    name: "Continuum",
-    short: "Continuum",
-    description: "341 to discharge — nothing falls through the cracks.",
+
+    name: "Post-Filing",
+
+    short: "Post-Filing",
+
+    description: "341 meeting through discharge — deadlines and follow-up.",
+
     legacyPath: "autopilot",
+
   },
 
-  /** The Gavel — one-click e-file after seal check */
+
+
+  /** E-file — submit petition after final sign-off */
+
   gavel: {
-    name: "The Gavel",
-    action: "Strike The Gavel",
-    description: "Seal verified. One motion files the petition.",
+
+    name: "E-File",
+
+    short: "File",
+
+    action: "File Petition",
+
+    clearedLabel: "Cleared to file petition",
+
+    description: "Final sign-off complete. Submit the petition to the court.",
+
   },
+
+
 
   sealCheck: {
-    name: "Seal Check",
-    description: "247-rule petition verification before filing",
+
+    name: "Final Sign-Off",
+
+    description: "Document QA, numbers review, and attorney approval before filing",
+
   },
+
+
 
   trustLedger: {
-    name: "Trust Ledger",
-    short: "Fees & Trust",
-    description: "Flat fees, trust accounting, instant receipts",
+
+    name: "Fees & Trust",
+
+    short: "Fees",
+
+    description: "Flat fees, trust accounting, and payment receipts",
+
   },
+
+
 
   counseling: {
-    name: "Counseling Bridge",
-    description: "BAPCPA courses — link, relay, or vault",
+
+    name: "Credit Counseling",
+
+    description: "BAPCPA Course 1 & 2 — provider link, relay, or client upload",
+
     tiers: {
+
       gold: {
+
         id: "gold",
-        label: "Gold — Direct",
+
+        label: "Direct — provider feed",
+
         description: "Provider partnership — certificate lands in the case automatically",
+
       },
+
       relay: {
+
         id: "relay",
-        label: "Relay — Smart Email",
-        description: "Secure intake address — we attach the cert when it arrives",
+
+        label: "Relay — secure email",
+
+        description: "Secure intake address — certificate attached when it arrives",
+
       },
+
       vault: {
+
         id: "vault",
-        label: "Vault — Client Upload",
-        description: "Client completes anywhere, uploads PDF to their secure portal",
+
+        label: "Client upload",
+
+        description: "Client completes the course and uploads the certificate PDF",
+
       },
+
     },
+
     providers: {
+
       debtorcc: { name: "DebtorCC.org", url: "https://debtorcc.org" },
+
       bkcert: { name: "BKCert.com (DECAF)", url: "https://www.bkcert.com" },
+
       advantagecc: { name: "AdvantageCC.org", url: "https://www.advantagecc.org" },
+
       creditorg: { name: "Credit.org", url: "https://www.credit.org/bankruptcy/" },
+
     },
+
   },
+
+
 
   portal: {
+
     name: FIRM.portal.title,
+
     description: FIRM.portal.subtitle,
+
   },
 
-  /** Relief Scout — first consult gate before The Forge */
+
+
+  clientPortal: {
+
+    name: "Client Portal",
+
+    short: "Portal",
+
+    linkLabel: "Client Portal link",
+
+    inviteAction: "Send portal link",
+
+    copyAction: "Copy Client Portal link",
+
+    description: "Secure link for client document uploads and messages",
+
+  },
+
+
+
+  /** Initial consult — means test and take-case before petition prep */
+
   reliefScout: {
-    name: "Relief Scout",
-    short: "Scout",
-    description: "First consult walkthrough — means test, take the case, then enter The Forge.",
+
+    name: "Initial Consult",
+
+    short: "Consult",
+
+    description: "Means test, expenses, take the case — then open Petition Prep.",
+
   },
 
-  /** Bench Notes — attorney voice/text notes from phone */
+
+
   benchNotes: {
-    name: "Bench Notes",
-    action: "Leave a note",
-    description: "Tap, speak, done — lands in the matter file instantly",
+
+    name: "Matter Notes",
+
+    action: "Add a note",
+
+    description: "Voice or text notes — saved to the matter file",
+
   },
 
-  /** Client file — documents from their vault link & attorney */
+
+
   dossier: {
+
     name: "Client file",
-    description: "Documents from their Client Vault link — always this matter, never another file",
+
+    description: "Documents from the client portal and attorney uploads",
+
   },
 
-  /** Forge Sync — push collected intake into the petition */
+
+
+  documentDrop: {
+
+    name: "File Upload",
+
+    description: "Upload from your computer — IDs, paystubs, tax returns",
+
+  },
+
+
+
+  /** Apply uploaded docs to petition fields */
+
   forgeSync: {
-    name: "Forge Sync",
-    action: "Sync to petition",
-    description: "One button — IDs, paystubs, uploads fill the bankruptcy",
+
+    name: "Apply to Petition",
+
+    action: "Apply to petition",
+
+    description: "Push IDs, paystubs, and uploads into the bankruptcy forms",
+
   },
 
-  /** Relief Co-pilot — AI assistant on every matter step */
+
+
   copilot: {
-    name: "Relief Co-pilot",
-    short: "Co-pilot",
-    description: "Ask about next steps, fields, filing, or discharge — context follows you",
+
+    name: "Case Assistant",
+
+    short: "Assistant",
+
+    description: "Ask about next steps, schedules, filing, or discharge",
+
   },
 
-  /** Relief Pocket — installable Android / phone attorney app */
+
+
   reliefPocket: {
-    name: "Relief Pocket",
+
+    name: "Mobile App",
+
     shortName: "Matters",
-    tagline: "Bankruptcy on your phone",
-    description: "Install to home screen — pick a matter, note, calendar, Gmail",
+
+    tagline: "Bankruptcy matters on your phone",
+
+    description: "Install to home screen — matters, notes, and calendar on the go",
+
   },
+
+
+
+  /** Attorney sandbox — full packet walkthrough without live court filing */
+
+  practiceMode: {
+
+    name: "Practice Filing",
+
+    short: "Practice",
+
+    banner: "Practice mode — sandbox only, not filed with court",
+
+    description:
+
+      "Walk every court paper, edit fields, print, and sandbox e-file before going live.",
+
+  },
+
 } as const;
 
+
+
 export type CounselingTier = keyof typeof BRAND.counseling.tiers;
+
 export type CounselingProvider = keyof typeof BRAND.counseling.providers;
 
+
+
 export function matterPath(matterId: string, section: keyof Pick<typeof BRAND, "command" | "forge" | "continuum">) {
+
   const paths = {
+
     command: "command",
+
     forge: "forge",
+
     continuum: "continuum",
+
   };
+
   return `/matters/${matterId}/${paths[section]}`;
+
 }
+
+

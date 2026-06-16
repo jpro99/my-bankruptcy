@@ -9,6 +9,7 @@ import {
   addMatterNote,
   applyPendingIntake,
   createDemoMatter,
+  getIntakeDocument,
   getIntakeDossier,
   getMatterNotes,
   isDemoMatter,
@@ -18,6 +19,8 @@ import {
   previewIntakeUpload,
   saveConsultSnapshot,
 } from "../lib/demo-store.js";
+import { readMatterDocument } from "../lib/document-storage.js";
+import { processIntakeFileUpload, readUploadFormFile } from "../lib/intake-upload.js";
 
 export const intakeMatterRouter = new Hono<AppEnv>();
 
@@ -73,7 +76,7 @@ intakeMatterRouter.post(
     const note = addMatterNote(matterId, {
       text: body.text,
       source: body.source ?? "attorney",
-      authorLabel: body.source === "voice" ? "Bench Notes (voice)" : FIRM_ATTORNEY_NAME,
+      authorLabel: body.source === "voice" ? "Matter Notes (voice)" : FIRM_ATTORNEY_NAME,
     });
     return c.json({ note }, 201);
   }
@@ -246,6 +249,80 @@ intakeMatterRouter.post(
     return c.json({ document, savedToMatterId: finalMatterId, preview }, 201);
   }
 );
+
+intakeMatterRouter.post("/matter/:matterId/upload/file", async (c) => {
+  const matterId = c.req.param("matterId");
+  if (!isDemoMatter(matterId)) return c.json({ error: "Matter not found" }, 404);
+
+  const session = c.get("session");
+  let formFile;
+  try {
+    formFile = await readUploadFormFile(c);
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Invalid upload";
+    const status = message.includes("too large") ? 413 : 400;
+    return c.json({ error: message }, status);
+  }
+
+  try {
+    const result = await processIntakeFileUpload({
+      matterId,
+      firmId: session.firmId,
+      fileName: formFile.fileName,
+      documentType: formFile.documentType,
+      mimeType: formFile.mimeType,
+      body: formFile.body,
+      uploadedBy: "attorney",
+      source: "attorney_drop",
+      confirmMismatch: formFile.confirmMismatch,
+      targetMatterId: formFile.targetMatterId,
+    });
+
+    if (!result.ok) {
+      return c.json({ error: "matter_mismatch", preview: result.preview }, 409);
+    }
+
+    console.info(
+      `[intake] document uploaded matterId=${result.savedToMatterId} documentId=${result.document.id} stored=${result.document.stored === true}`
+    );
+
+    return c.json(
+      {
+        document: result.document,
+        savedToMatterId: result.savedToMatterId,
+        preview: result.preview,
+      },
+      201
+    );
+  } catch (e) {
+    const message = e instanceof Error ? e.message : "Upload failed";
+    return c.json({ error: message }, 400);
+  }
+});
+
+intakeMatterRouter.get("/matter/:matterId/documents/:documentId/file", async (c) => {
+  const matterId = c.req.param("matterId");
+  const documentId = c.req.param("documentId");
+  if (!isDemoMatter(matterId)) return c.json({ error: "Matter not found" }, 404);
+
+  const doc = getIntakeDocument(matterId, documentId);
+  if (!doc?.storageKey) {
+    return c.json({ error: "Document file not available" }, 404);
+  }
+
+  try {
+    const file = await readMatterDocument(doc.storageKey);
+    return new Response(new Uint8Array(file.body), {
+      headers: {
+        "Content-Type": file.contentType,
+        "Content-Disposition": `inline; filename="${doc.fileName.replace(/"/g, "")}"`,
+        "Cache-Control": "private, no-store",
+      },
+    });
+  } catch {
+    return c.json({ error: "Document file not available" }, 404);
+  }
+});
 
 intakeMatterRouter.get("/matter/:matterId/apply/preview", async (c) => {
   const matterId = c.req.param("matterId");

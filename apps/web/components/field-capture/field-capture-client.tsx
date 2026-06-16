@@ -12,6 +12,7 @@ import {
   type DemoMatterSummary,
   type MatterNote,
 } from "@/lib/api-client";
+import { BRAND } from "@/lib/brand";
 
 const LS_MATTER_KEY = "fieldCapture.matterId";
 
@@ -341,7 +342,7 @@ export default function FieldCaptureClient() {
       >
         <h1 className="field-capture-title">Field capture</h1>
         <p className="field-capture-sub">
-          Bankruptcy matter → record → saves to Bench Notes / timeline in the main app.
+          Bankruptcy matter → record → saves to {BRAND.benchNotes.name.toLowerCase()} / timeline in the main app.
         </p>
       </header>
 
@@ -463,7 +464,7 @@ export default function FieldCaptureClient() {
                   Client portal (optional)
                 </summary>
                 <p className="field-capture-hint">
-                  Create or resend a secure Client Vault link for this bankruptcy matter. Use when
+                  Create or resend a secure {BRAND.clientPortal.linkLabel} for this bankruptcy matter. Use when
                   the client forgot the link.
                 </p>
                 <div className="field-capture-portal-grid">

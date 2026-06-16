@@ -2,7 +2,7 @@
 
 import { useCallback, useId, useState } from "react";
 import { Loader2, Upload } from "lucide-react";
-import { uploadIntakeDocument, type UploadMatchPreview } from "@/lib/api-client";
+import { uploadIntakeDocumentFile, type UploadMatchPreview } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { DocumentMatterMatchDialog } from "@/components/intake/document-matter-match-dialog";
@@ -32,19 +32,19 @@ export function DocumentDropZone({
   const [uploading, setUploading] = useState(false);
   const [matchPrompt, setMatchPrompt] = useState<{
     preview: UploadMatchPreview;
-    fileName: string;
+    file: File;
     documentType: string;
   } | null>(null);
 
   const finishUpload = useCallback(
     async (
-      fileName: string,
+      file: File,
       documentType: string,
       options?: { confirmMismatch?: boolean; targetMatterId?: string }
     ) => {
-      const result = await uploadIntakeDocument(matterId, fileName, documentType, options);
+      const result = await uploadIntakeDocumentFile(matterId, file, documentType, options);
       if (!result.ok) {
-        setMatchPrompt({ preview: result.mismatch, fileName, documentType });
+        setMatchPrompt({ preview: result.mismatch, file, documentType });
         return false;
       }
       if (result.savedToMatterId !== matterId) {
@@ -63,7 +63,7 @@ export function DocumentDropZone({
         let stoppedForMatch = false;
         for (const file of Array.from(fileList)) {
           const docType = inferType(file.name);
-          const ok = await finishUpload(file.name, docType);
+          const ok = await finishUpload(file, docType);
           if (!ok) {
             stoppedForMatch = true;
             break;
@@ -150,13 +150,13 @@ export function DocumentDropZone({
       {matchPrompt && (
         <DocumentMatterMatchDialog
           preview={matchPrompt.preview}
-          fileName={matchPrompt.fileName}
+          fileName={matchPrompt.file.name}
           busy={uploading}
           onUseMatch={async () => {
             setUploading(true);
             try {
               const target = matchPrompt.preview.bestMatch!.matterId;
-              const ok = await finishUpload(matchPrompt.fileName, matchPrompt.documentType, {
+              const ok = await finishUpload(matchPrompt.file, matchPrompt.documentType, {
                 targetMatterId: target,
               });
               if (ok) {
@@ -172,7 +172,7 @@ export function DocumentDropZone({
           onKeepCurrent={async () => {
             setUploading(true);
             try {
-              const ok = await finishUpload(matchPrompt.fileName, matchPrompt.documentType, {
+              const ok = await finishUpload(matchPrompt.file, matchPrompt.documentType, {
                 confirmMismatch: true,
               });
               if (ok) {

@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { FileStack, Loader2 } from "lucide-react";
 import { fetchFilingPackage } from "@/lib/api-client";
+import { BRAND } from "@/lib/brand";
 import { CourtPacketPreview } from "@/components/filing/court-packet-preview";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -79,7 +80,7 @@ export function FilingPacketPanel({ matterId }: { matterId: string }) {
         <Button asChild>
           <Link href={`/matters/${matterId}/forge/review`}>
             <FileStack className="size-4" />
-            Petition review → Strike The Gavel
+            Petition review → {BRAND.gavel.action}
           </Link>
         </Button>
         <Button asChild variant="secondary">

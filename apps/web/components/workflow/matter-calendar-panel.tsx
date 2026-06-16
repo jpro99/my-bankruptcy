@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Calendar, ExternalLink, Loader2 } from "lucide-react";
 import { fetchMatterCalendar, type MatterCalendarEvent } from "@/lib/api-client";
+import { BRAND } from "@/lib/brand";
 import { buildGoogleCalendarUrl } from "@/lib/mobile-calendar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -39,7 +40,7 @@ export function MatterCalendarPanel({ matterId }: { matterId: string }) {
 
       {events.length === 0 ? (
         <p className="text-sm text-muted-foreground">
-          Calendar fills in when the matter is created and when you Strike The Gavel.
+          Calendar fills in when the matter is created and when you {BRAND.gavel.action.toLowerCase()}.
         </p>
       ) : (
         <>

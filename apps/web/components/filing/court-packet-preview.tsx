@@ -16,11 +16,14 @@ import {
   type CourtPacketPreview,
   type CourtPacketPage,
 } from "@/lib/api-client";
+import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent } from "@/components/ui/card";
+import { CourtFormSheet } from "@/components/filing/court-form-sheet";
+import { PracticeModeBanner } from "@/components/filing/practice-mode-banner";
 import { printCourtPacketPages } from "@/components/filing/court-packet-print";
+import "@/styles/court-form.css";
 
 export type CourtPreviewLayout = "inline" | "drawer" | "fullscreen";
 
@@ -112,6 +115,16 @@ export function CourtPacketPreview({
 
   return (
     <div className={shellClass}>
+      {preview.liveFilingBlocked && (
+        <div className="px-4 pt-4">
+          <PracticeModeBanner
+            compact
+            efileMode={preview.efileMode}
+            liveFilingBlocked={preview.liveFilingBlocked}
+          />
+        </div>
+      )}
+
       <header className="court-packet-preview__header flex flex-wrap items-start justify-between gap-3 border-b border-border p-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
@@ -120,7 +133,7 @@ export function CourtPacketPreview({
           <h2 className="font-display text-lg font-bold">{preview.debtorName}</h2>
           <p className="text-xs text-muted-foreground">
             Chapter {preview.chapter} · {preview.district} · {preview.petitionCompletion}% complete
-            {preview.readyForGavel ? " · Cleared for Gavel" : ""}
+            {preview.readyForGavel ? ` · ${BRAND.gavel.clearedLabel}` : ""}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -150,6 +163,9 @@ export function CourtPacketPreview({
           <Button variant="secondary" size="sm" onClick={() => void load()} disabled={loading}>
             {loading ? <Loader2 className="animate-spin" /> : <RefreshCw className="size-4" />}
             Refresh
+          </Button>
+          <Button asChild variant="outline" size="sm">
+            <Link href={`/matters/${matterId}/practice`}>{BRAND.practiceMode.short} filing</Link>
           </Button>
           {onClose && (
             <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close preview">
@@ -219,89 +235,59 @@ export function CourtPacketPreview({
 
         <main className="min-w-0 flex-1 overflow-y-auto p-4">
           {current ? (
-            <Card className="court-packet-preview__page shadow-sm">
-              <CardContent className="p-0">
-                <div className="border-b border-border bg-muted/20 px-5 py-4">
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                    United States Bankruptcy Court · {preview.district}
-                  </p>
-                  <h3 className="mt-1 font-display text-xl font-bold">
-                    Form {current.formId} — {current.label}
-                  </h3>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    {preview.debtorName} · Chapter {preview.chapter} · {preview.divisionName}
-                  </p>
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    <Button asChild size="sm" variant="secondary">
-                      <Link href={current.editHref}>{current.editLabel} →</Link>
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => printCourtPacketPages(preview, [activePage])}
-                    >
-                      <Printer className="size-4" />
-                      Print this page
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() => printCourtPacketPages(preview)}
-                    >
-                      <Printer className="size-4" />
-                      Print all pages
-                    </Button>
-                    {!preview.readyForGavel && (
-                      <Button asChild size="sm">
-                        <Link href={`/matters/${matterId}/forge?section=seal`}>Seal Check →</Link>
-                      </Button>
-                    )}
-                    {preview.readyForGavel && (
-                      <Button asChild size="sm">
-                        <Link href={`/matters/${matterId}/forge/review`}>Strike The Gavel →</Link>
-                      </Button>
-                    )}
-                  </div>
-                </div>
-                <div className="px-5 py-4">
-                  {current.fields.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">
-                      This page is still building. Sync documents, pull credit, or approve fields —
-                      then hit <strong>Refresh</strong> to see updates here.
-                    </p>
-                  ) : (
-                    <table className="matters-table w-full text-sm">
-                      <thead>
-                        <tr>
-                          <th>Field</th>
-                          <th>Value</th>
-                          <th>Status</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {current.fields.map((field, idx) => (
-                          <tr key={`${field.label}-${idx}`}>
-                            <td className="font-medium">{field.label}</td>
-                            <td className="max-w-xs truncate">{field.value || "—"}</td>
-                            <td>
-                              <Badge variant="secondary" className="text-[10px] capitalize">
-                                {field.status.replace(/_/g, " ")}
-                              </Badge>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  )}
-                </div>
-                <p className="border-t border-border px-5 py-3 text-[11px] text-muted-foreground">
-                  Live preview — updates as you edit Scout, schedules, credit, and petition review.
-                  Official PDF bundle before e-file.
-                </p>
-              </CardContent>
-            </Card>
+            <>
+              <CourtFormSheet
+                preview={preview}
+                page={current}
+                watermark={preview.liveFilingBlocked ? "PREVIEW — NOT FILED" : undefined}
+              />
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Button asChild size="sm" variant="secondary">
+                  <Link href={current.editHref}>{current.editLabel} →</Link>
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => printCourtPacketPages(preview, [activePage])}
+                >
+                  <Printer className="size-4" />
+                  Print this page
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => printCourtPacketPages(preview)}
+                >
+                  <Printer className="size-4" />
+                  Print all pages
+                </Button>
+                {!preview.readyForGavel && (
+                  <Button asChild size="sm">
+                    <Link href={`/matters/${matterId}/forge?section=seal`}>{BRAND.sealCheck.name} →</Link>
+                  </Button>
+                )}
+                {preview.readyForGavel && (
+                  <Button asChild size="sm">
+                    <Link href={`/matters/${matterId}/forge/review`}>{BRAND.gavel.action} →</Link>
+                  </Button>
+                )}
+              </div>
+              <p className="mt-3 text-[11px] text-muted-foreground">
+                Live preview — updates as you edit {BRAND.reliefScout.short.toLowerCase()}, schedules,
+                credit, and petition review. Open{" "}
+                <Link href={`/matters/${matterId}/practice`} className="font-semibold text-primary">
+                  {BRAND.practiceMode.name}
+                </Link>{" "}
+                to walk every paper before sandbox e-file.
+              </p>
+            </>
           ) : (
-            <p className="text-sm text-muted-foreground">Select a court form from the list.</p>
+            <div className="space-y-3 text-sm text-muted-foreground">
+              <p>Approve petition fields to populate court pages — or open practice mode for the full packet list.</p>
+              <Button asChild size="sm">
+                <Link href={`/matters/${matterId}/practice`}>{BRAND.practiceMode.name} →</Link>
+              </Button>
+            </div>
           )}
         </main>
       </div>

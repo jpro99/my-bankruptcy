@@ -350,7 +350,7 @@ export function MobileMatterActions({ matterId }: { matterId: string }) {
       </div>
 
       <Button asChild variant="ghost" className="w-full text-xs text-muted-foreground">
-        <Link href={`/matters/${matterId}/command`}>Open full Relief Command →</Link>
+        <Link href={`/matters/${matterId}/command`}>Open full {BRAND.command.name} →</Link>
       </Button>
     </div>
   );

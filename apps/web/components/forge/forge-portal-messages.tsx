@@ -9,8 +9,9 @@ import {
   type PortalActivityEvent,
   type PortalMessage,
 } from "@/lib/api-client";
+import { BRAND } from "@/lib/brand";
 
-/** Client Vault messaging — used inside The Forge */
+/** Client portal messaging — inside petition prep */
 export function PortalStaffTab({ matterId }: { matterId: string }) {
   const [panel, setPanel] = useState<"activity" | "invite" | "messages">("messages");
   const [activity, setActivity] = useState<PortalActivityEvent[]>([]);
@@ -120,7 +121,7 @@ export function PortalStaffTab({ matterId }: { matterId: string }) {
             />
           </label>
           <button type="button" className="app-btn app-btn--primary" disabled={busy} onClick={() => void sendInvite()}>
-            Send Client Vault link
+            {BRAND.clientPortal.inviteAction}
           </button>
           {status && <p className="text-sm text-primary">{status}</p>}
           <button

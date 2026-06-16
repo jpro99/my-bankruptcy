@@ -24,7 +24,7 @@ import { FinalCheckPanel } from "@/components/workflow/final-check-panel";
 import { MatterCalendarPanel } from "@/components/workflow/matter-calendar-panel";
 
 const TABS = [
-  { id: "command", label: "Relief Command", icon: "🎯" },
+  { id: "command", label: BRAND.command.name, icon: "🎯" },
   { id: "messages", label: "Messages", icon: "💬" },
   { id: "intake", label: "Intake", icon: "📋" },
   { id: "documents", label: "Documents", icon: "📁" },
@@ -158,7 +158,7 @@ function PortalStaffTab({ matterId, defaultPanel = "messages" }: { matterId: str
             className="app-btn app-btn--secondary"
             onClick={() => void navigator.clipboard.writeText(portalUrl)}
           >
-            Copy Client Vault link
+            {BRAND.clientPortal.copyAction}
           </button>
         </div>
       )}
@@ -166,7 +166,7 @@ function PortalStaffTab({ matterId, defaultPanel = "messages" }: { matterId: str
       {panel === "messages" && (
         <div style={{ display: "grid", gap: "0.75rem" }}>
           <p className="text-sm text-muted-foreground">
-            Two-way messaging with your client — same thread they see in Client Vault.
+            Two-way messaging with your client — same thread they see in the {BRAND.clientPortal.name.toLowerCase()}.
           </p>
           <ul style={{ listStyle: "none", padding: 0, maxHeight: 280, overflow: "auto" }}>
             {messages.map((m) => (
@@ -274,7 +274,7 @@ export function MatterWorkspace({ matterId, debtorName }: { matterId: string; de
             {recordingOpen ? "Hide record call" : "Record phone call"}
           </button>
           <button type="button" className="app-btn app-btn--primary" disabled={syncing} onClick={() => void forgeSync()}>
-            {syncing ? "Syncing…" : "Forge Sync"}
+            {syncing ? "Syncing…" : BRAND.forgeSync.action}
           </button>
           <Link href="/matters" className="app-btn app-btn--tonal">
             ← All Matters

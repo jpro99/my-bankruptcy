@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { StaffHeader } from "@/components/staff/staff-header";
 import { CourtPacketPreview } from "@/components/filing/court-packet-preview";
 import "@/styles/staff-chrome.css";
+import "@/styles/court-form.css";
 
 export default function CourtPreviewPage({ params }: { params: Promise<{ matterId: string }> }) {
   const [matterId, setMatterId] = useState<string | null>(null);

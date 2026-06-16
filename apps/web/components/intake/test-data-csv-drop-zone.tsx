@@ -3,6 +3,7 @@
 import { useCallback, useId, useState } from "react";
 import { Download, FlaskConical, Loader2, Upload } from "lucide-react";
 import { importTestDataCsv, type TestDataImportResult } from "@/lib/api-client";
+import { BRAND } from "@/lib/brand";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -82,7 +83,7 @@ export function TestDataCsvDropZone({
             </Badge>
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Drop a fake CSV to fill Scout (income, debts, chapter), add paystubs, W-2s, bank
+            Drop a fake CSV to fill {BRAND.reliefScout.short.toLowerCase()} (income, debts, chapter), add paystubs, W-2s, bank
             statements, and creditors — for testing only.
           </p>
         </div>
