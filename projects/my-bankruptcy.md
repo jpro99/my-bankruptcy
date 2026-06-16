@@ -6,6 +6,24 @@ Repo: `C:\Projects\ChapterAI` · packages `@chapterai/*`
 
 
 
+## Phase 1 — Discharge thank-you letter + firm receipts
+
+**Goal:** After discharge, attorney prints professional thank-you letter (PI referral + Google/Yelp review). Billing prints firm letterhead receipts with charged/received amounts.
+
+### Acceptance (Spec Bot)
+
+1. **Thank you letter** — Post-Filing → Print thank you letter: firm letterhead, pleasure to serve, PI note, Google/Yelp review ask; client name editable.
+2. **Receipts** — Fees & Trust → enter client name, total charged, amount received → Print receipt with Lombera letterhead (2068 Orange Tree Lane, Redlands · (909) 915-0181).
+3. **`npm run build` passes** — client-side print only; no auth/RLS changes; no production deploy during dev.
+
+### Test
+
+1. `/matters/demo-filed/continuum` → complete discharge track → Print thank you letter
+2. `/matters/demo/billing` → fill amounts → Print receipt → check letterhead
+3. Optional env: `NEXT_PUBLIC_GOOGLE_REVIEW_URL`, `NEXT_PUBLIC_YELP_REVIEW_URL`
+
+---
+
 ## Phase 1 — Professional left-aligned staff UI
 
 **Goal:** Match billing page — left sidebar + left-justified content. No centered “toy” columns on matter work.

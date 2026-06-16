@@ -7,6 +7,17 @@ export const FIRM = {
   descriptor: "Bankruptcy & debt relief",
   tagline: "Clear counsel through your fresh start",
 
+  address: {
+    line1: "2068 Orange Tree Lane, Suite 220",
+    cityStateZip: "Redlands, CA 92374",
+  },
+  phone: process.env.NEXT_PUBLIC_FIRM_PHONE?.trim() || "(909) 915-0181",
+
+  reviews: {
+    googleUrl: process.env.NEXT_PUBLIC_GOOGLE_REVIEW_URL?.trim() || "",
+    yelpUrl: process.env.NEXT_PUBLIC_YELP_REVIEW_URL?.trim() || "",
+  },
+
   portal: {
     title: "Secure Client Portal",
     subtitle: "Upload documents, complete counseling, and message your attorney — privately.",
